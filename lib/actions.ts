@@ -2,9 +2,9 @@
 
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
-import { getCurrentUser, setSession, clearSession } from "./auth";
+import { clearSession, deskPath, getCurrentUser, setSession } from "./auth";
 import {
-  ISSUE_FEE_KURUS,
+  CARD_TYPES,
   MAX_BALANCE_KURUS,
   MAX_LIMIT_KURUS,
   MAX_SPEND_KURUS,
@@ -16,9 +16,8 @@ import {
   isCardType,
   isMerchant,
 } from "./catalog";
-import { parseTryToKurus } from "./format";
-import { verifyPassword } from "./password";
-import { createUser, findUserByEmail, issueCard, mutate, openCardCount } from "./store";
+import { istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
+import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseUsername } from "./store";
 
 export type FormState = { error: string };
 
@@ -34,27 +33,29 @@ async function actor() {
 }
 
 export async function loginAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const email = String(formData.get("eposta") || "");
+  const username = parseUsername(String(formData.get("kullanici") || ""));
   const password = String(formData.get("parola") || "");
-  const user = findUserByEmail(email);
-  if (!user || !verifyPassword(password, user.passwordHash)) {
-    return { error: "E-posta veya parola hatalı." };
+  const user = username ? findUserByUsername(username) : undefined;
+  if (!user || user.password !== password) {
+    return { error: "Kullanıcı adı veya parola hatalı." };
+  }
+  if (user.status === "askida") {
+    return { error: "Bu simülasyon hesabı askıya alındı. Giriş kapalı." };
   }
   await setSession(user.id);
-  redirect("/panel");
+  redirect(deskPath(user.role));
 }
 
 export async function registerAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const name = String(formData.get("ad") || "").replace(/\s+/g, " ").trim();
-  const email = String(formData.get("eposta") || "").trim().toLowerCase();
+  const username = parseUsername(String(formData.get("kullanici") || ""));
   const password = String(formData.get("parola") || "");
-  if (name.length < 2 || name.length > 48) return { error: "Ad en az 2 karakter olmalı." };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 120) {
-    return { error: "Geçerli bir e-posta yazın." };
-  }
+  const again = String(formData.get("parola2") || "");
+  if (!username) return { error: "Kullanıcı adı 2–24 karakter olmalı; yalnızca harf, rakam ve alt çizgi." };
   if (password.length < 6 || password.length > 72) return { error: "Parola 6–72 karakter olmalı." };
-  if (findUserByEmail(email)) return { error: "Bu e-posta ile bir simülasyon hesabı zaten var." };
-  const user = createUser({ name, email, password });
+  if (password !== again) return { error: "Parolalar eşleşmiyor." };
+  if (findUserByUsername(username)) return { error: "Bu kullanıcı adı zaten var." };
+  const user = createUser({ username, password });
+  if (!user) return { error: "Bu kullanıcı adı zaten var." };
   await setSession(user.id);
   redirect("/panel?bildirim=hosgeldin");
 }
@@ -106,10 +107,14 @@ export async function issueAction(formData: FormData) {
     bounce("/panel/kartlar/yeni", "e-limit");
   }
   const type = typeRaw;
+  const binId = String(formData.get("bin") || "");
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     if (!row) return { code: "e-yok" as const };
-    if (row.balance < ISSUE_FEE_KURUS) return { code: "e-bakiye" as const };
+    const chosen = db.bins.find((item) => item.id === binId && item.type === type);
+    if (!chosen) return { code: "e-bin" as const };
+    const fee = CARD_TYPES[type].fee;
+    if (row.balance < fee) return { code: "e-bakiye" as const };
     const plan = PLANS[row.plan];
     if (openCardCount(db, row.id) >= plan.cardLimit) return { code: "e-plan" as const };
     const card = issueCard(db, {
@@ -117,7 +122,9 @@ export async function issueAction(formData: FormData) {
       type,
       label,
       limit,
-      fee: ISSUE_FEE_KURUS,
+      fee,
+      bin: chosen.digits,
+      binLabel: chosen.label,
     });
     return { code: "basildi" as const, id: card.id };
   });
@@ -222,4 +229,276 @@ export async function spendAction(formData: FormData) {
   });
   const target = result === "harcama" || result === "reddedildi" ? "/panel/islemler" : "/panel/kartlar";
   bounce(`${target}?vurgu=${encodeURIComponent(id)}`, result);
+}
+
+async function requireAdmin() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/giris");
+  if (user.role !== "yonetici") redirect("/panel");
+  return user;
+}
+
+export async function adminBalanceAction(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("uye") || "");
+  const yon = String(formData.get("yon") || "");
+  const amount = parseTryToKurus(String(formData.get("tutar") || ""));
+  if (yon !== "artir" && yon !== "azalt") bounce("/admin", "e-tutar");
+  if (amount === null || amount < 100 || amount > MAX_TOPUP_KURUS) bounce("/admin", "e-tutar");
+  const signed = yon === "artir" ? amount : -amount;
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === userId);
+    if (!row) return "e-yok" as const;
+    const next = row.balance + signed;
+    if (next < 0) return "e-bakiye" as const;
+    if (next > MAX_BALANCE_KURUS) return "e-tavan" as const;
+    row.balance = next;
+    db.transactions.push({
+      id: `tx_${randomUUID()}`,
+      userId: row.id,
+      cardId: null,
+      kind: "duzeltme",
+      title: yon === "artir" ? "Yönetici bakiyesi artırdı" : "Yönetici bakiyesi azalttı",
+      note: "Simülasyon düzeltmesi. Tahsilat yoktur.",
+      amount: signed,
+      status: "tamamlandi",
+      createdAt: new Date().toISOString(),
+    });
+    return "bakiye" as const;
+  });
+  bounce(`/admin?vurgu=${encodeURIComponent(userId)}`, result);
+}
+
+export async function adminCardAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  const mode = String(formData.get("mod") || "");
+  const result = mutate((db) => {
+    const card = db.cards.find((item) => item.id === id);
+    if (!card) return { code: "e-yok" as const, userId: "" };
+    if (card.status === "kapali") return { code: "e-durum" as const, userId: card.userId };
+    if (mode === "dondur") {
+      if (card.status !== "aktif") return { code: "e-durum" as const, userId: card.userId };
+      card.status = "donduruldu";
+      return { code: "donduruldu" as const, userId: card.userId };
+    }
+    if (mode === "coz") {
+      if (card.status !== "donduruldu") return { code: "e-durum" as const, userId: card.userId };
+      card.status = "aktif";
+      return { code: "cozuldu" as const, userId: card.userId };
+    }
+    return { code: "e-durum" as const, userId: card.userId };
+  });
+  bounce(`/admin?vurgu=${encodeURIComponent(result.userId)}`, result.code);
+}
+
+export async function adminAccountAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const userId = String(formData.get("uye") || "");
+  const mode = String(formData.get("mod") || "");
+  const back = safeAdminReturn(formData, userId);
+  if (userId === admin.id) bounce(back, "e-kendin");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === userId);
+    if (!row) return "e-yok" as const;
+    if (row.role === "yonetici") return "e-yonetici" as const;
+    if (mode === "aski") {
+      row.status = "askida";
+      return "askida" as const;
+    }
+    if (mode === "ac") {
+      row.status = "acik";
+      return "acildi" as const;
+    }
+    return "e-durum" as const;
+  });
+  bounce(`${back}?vurgu=${encodeURIComponent(userId)}`, result);
+}
+
+function safeAdminReturn(formData: FormData, userId: string) {
+  const raw = String(formData.get("donus") || "");
+  if (raw === "/admin" || raw === `/admin/kullanici/${userId}`) return raw;
+  return "/admin";
+}
+
+export async function adminNoticeAction(formData: FormData) {
+  await requireAdmin();
+  const title = String(formData.get("baslik") || "").trim();
+  const body = String(formData.get("mesaj") || "").trim();
+  const hedef = String(formData.get("hedef") || "");
+  if (title.length < 2 || title.length > 80 || body.length < 2 || body.length > 400) {
+    bounce("/admin", "e-mesaj");
+  }
+  const result = mutate((db) => {
+    const members = db.users.filter((user) => user.role === "uye");
+    const targets = hedef === "tumu" ? members : members.filter((user) => user.id === hedef);
+    if (targets.length === 0) return "e-hedef" as const;
+    const batch = randomUUID();
+    const createdAt = new Date().toISOString();
+    for (const user of targets) {
+      db.notices.push({
+        id: `nt_${randomUUID()}`,
+        userId: user.id,
+        batch,
+        title,
+        body,
+        createdAt,
+      });
+    }
+    return "gonderildi" as const;
+  });
+  bounce("/admin", result);
+}
+
+export async function adminSetBalanceAction(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("uye") || "");
+  const next = parseTryToKurus(String(formData.get("bakiye") || ""));
+  const back = safeAdminReturn(formData, userId);
+  if (next === null || next > MAX_BALANCE_KURUS) bounce(back, "e-tutar");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === userId);
+    if (!row || row.role !== "uye") return "e-yonetici" as const;
+    const delta = next - row.balance;
+    row.balance = next;
+    if (delta !== 0) {
+      db.transactions.push({
+        id: `tx_${randomUUID()}`,
+        userId: row.id,
+        cardId: null,
+        kind: "duzeltme",
+        title: "Yönetici bakiyeyi yazdı",
+        note: "Simülasyon düzeltmesi. Tahsilat yoktur.",
+        amount: delta,
+        status: "tamamlandi",
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return "bakiye" as const;
+  });
+  bounce(back, result);
+}
+
+export async function adminEditCardAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  const label = String(formData.get("etiket") || "").trim();
+  const limit = parseTryToKurus(String(formData.get("limit") || ""));
+  const status = String(formData.get("durum") || "");
+  const userId = String(formData.get("uye") || "");
+  const back = safeAdminReturn(formData, userId);
+  if (label.length < 2 || label.length > 32) bounce(back, "e-etiket");
+  if (status !== "aktif" && status !== "donduruldu" && status !== "kapali") bounce(back, "e-durum");
+  const result = mutate((db) => {
+    const card = db.cards.find((item) => item.id === id && item.userId === userId);
+    if (!card) return "e-yok" as const;
+    if (limit === null || limit < MIN_LIMIT_KURUS || limit > MAX_LIMIT_KURUS || limit < card.spent) {
+      return "e-limit" as const;
+    }
+    card.label = label;
+    card.limit = limit;
+    card.status = status;
+    return "kart" as const;
+  });
+  bounce(back, result);
+}
+
+export async function adminEditTxAction(formData: FormData) {
+  await requireAdmin();
+  const txId = String(formData.get("islem") || "");
+  const userId = String(formData.get("uye") || "");
+  const amount = parseSignedTryToKurus(String(formData.get("tutar") || ""));
+  const back = safeAdminReturn(formData, userId);
+  if (amount === null || Math.abs(amount) > MAX_BALANCE_KURUS) bounce(back, "e-tutar");
+  const result = mutate((db) => {
+    const tx = db.transactions.find((item) => item.id === txId && item.userId === userId);
+    const row = db.users.find((item) => item.id === userId);
+    if (!tx || !row || row.role !== "uye") return "e-yok" as const;
+    const delta = amount - tx.amount;
+    const touchesCard = tx.status === "tamamlandi" && (tx.kind === "harcama" || tx.kind === "iade");
+    const card = tx.cardId ? db.cards.find((item) => item.id === tx.cardId) : undefined;
+    const nextBalance = tx.status === "tamamlandi" ? row.balance + delta : row.balance;
+    const nextSpent = card && touchesCard ? card.spent - delta : card?.spent;
+    if (nextBalance < 0 || nextBalance > MAX_BALANCE_KURUS) return "e-bakiye" as const;
+    if (touchesCard && card && (nextSpent === undefined || nextSpent < 0 || nextSpent > card.limit)) {
+      return "e-limit" as const;
+    }
+    if (tx.status === "tamamlandi") row.balance = nextBalance;
+    if (touchesCard && card && nextSpent !== undefined) card.spent = nextSpent;
+    tx.amount = amount;
+    return "islem" as const;
+  });
+  bounce(back, result);
+}
+
+function parseBinDraft(formData: FormData) {
+  const label = String(formData.get("etiket") || "").replace(/\s+/g, " ").trim();
+  const digits = String(formData.get("rakam") || "").replace(/\s/g, "");
+  if (label.length < 2 || label.length > 40 || !/^\d{6,8}$/.test(digits)) return null;
+  return { label, digits };
+}
+
+export async function adminBinAddAction(formData: FormData) {
+  await requireAdmin();
+  const type = String(formData.get("tur") || "");
+  const draft = parseBinDraft(formData);
+  if (!isCardType(type) || !draft) bounce("/admin?vurgu=binler", "e-bin-kayit");
+  const result = mutate((db) => {
+    if (db.bins.some((item) => item.type === type && item.digits === draft.digits)) return "e-bin-kayit" as const;
+    db.bins.push({
+      id: `bin_${randomUUID()}`,
+      type,
+      label: draft.label,
+      digits: draft.digits,
+    });
+    return "bin" as const;
+  });
+  bounce("/admin?vurgu=binler", result);
+}
+
+export async function adminBinSaveAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  const draft = parseBinDraft(formData);
+  if (!draft) bounce("/admin?vurgu=binler", "e-bin-kayit");
+  const result = mutate((db) => {
+    const row = db.bins.find((item) => item.id === id);
+    if (!row) return "e-yok" as const;
+    if (db.bins.some((item) => item.id !== id && item.type === row.type && item.digits === draft.digits)) {
+      return "e-bin-kayit" as const;
+    }
+    row.label = draft.label;
+    row.digits = draft.digits;
+    return "bin" as const;
+  });
+  bounce("/admin?vurgu=binler", result);
+}
+
+export async function adminBinRemoveAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  const result = mutate((db) => {
+    const before = db.bins.length;
+    db.bins = db.bins.filter((item) => item.id !== id);
+    return before === db.bins.length ? ("e-yok" as const) : ("bin" as const);
+  });
+  bounce("/admin?vurgu=binler", result);
+}
+
+export async function adminEditTopupAction(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("uye") || "");
+  const iso = istanbulInputToIso(String(formData.get("zaman") || ""));
+  const back = safeAdminReturn(formData, userId);
+  if (!iso) bounce(back, "e-zaman");
+  const result = mutate((db) => {
+    const loads = db.transactions
+      .filter((item) => item.userId === userId && item.kind === "yukleme" && item.status === "tamamlandi")
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const latest = loads[0];
+    if (!latest) return "e-yukleme-yok" as const;
+    latest.createdAt = iso;
+    return "zaman" as const;
+  });
+  bounce(back, result);
 }

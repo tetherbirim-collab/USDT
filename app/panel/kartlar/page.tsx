@@ -28,8 +28,8 @@ export default async function CardsPage({
           <p className="text-xs font-bold tracking-[0.22em] text-gold">KARTLAR</p>
           <h1 className="font-display text-4xl font-extrabold">Sahne kartları</h1>
           <p className="mt-2 max-w-xl text-white/65">
-            Her kart SİMÜLASYON rozetlidir. Numaralar 400000 test BIN’idir ve gerçek üye işyerinde
-            kullanılamaz.
+            Numaralar demo verisidir ve gerçek üye işyerinde kullanılamaz. Yeni kart, seçilen türün
+            BIN listesinden bir satır ister.
           </p>
         </div>
         <Link href="/panel/kartlar/yeni" className="btn btn-gold">

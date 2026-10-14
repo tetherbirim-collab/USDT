@@ -119,6 +119,8 @@ select.field option {
 
 .vcard {
   position: relative;
+  display: flex;
+  flex-direction: column;
   aspect-ratio: 1.586 / 1;
   overflow: hidden;
   border-radius: 22px;
@@ -127,6 +129,26 @@ select.field option {
     0 24px 50px rgba(0, 0, 0, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
   color: white;
+}
+
+.vcard-light {
+  border-color: rgba(32, 33, 36, 0.12);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.vcard-metal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.08) 0 1px,
+    transparent 1px 4px
+  );
 }
 
 .vcard .sheen {

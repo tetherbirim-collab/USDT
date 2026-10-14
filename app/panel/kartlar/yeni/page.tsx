@@ -2,9 +2,9 @@ import Link from "next/link";
 import { IssueForm } from "@/components/issue-form";
 import { Notice } from "@/components/notice";
 import { getCurrentUser } from "@/lib/auth";
-import { ISSUE_FEE_KURUS, PLANS } from "@/lib/catalog";
-import { formatTL, holderLine } from "@/lib/format";
-import { listCards } from "@/lib/store";
+import { PLANS } from "@/lib/catalog";
+import { holderLine } from "@/lib/format";
+import { listCards, snapshot } from "@/lib/store";
 import { redirect } from "next/navigation";
 
 function one(value: string | string[] | undefined) {
@@ -30,14 +30,19 @@ export default async function NewCardPage({
         </Link>
         <h1 className="font-display mt-3 text-4xl font-extrabold">Kart bas</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Basım ücreti {formatTL(ISSUE_FEE_KURUS)} simülasyon bakiyesinden düşer. Üretilen numara
-          400000 test BIN’idir, kartın üzerinde SİMÜLASYON yazar ve gerçek üye işyerinde
-          kullanılamaz. Dışa aktarma yoktur.
+          Türü seçip Kartı bas dediğinde yalnızca o türün BIN listesi açılır. Listeden bir satır
+          seçilmeden kart oluşmaz. Liste boşsa değerler sonra eklenecek. Numara sorgulama, kimlik
+          belgesi ve ödeme yoktur. Tür adları senaryo etiketidir.
         </p>
       </div>
       <Notice code={one(sp.bildirim)} />
       <div className="glass rounded-[28px] p-4 sm:p-6">
-        <IssueForm holder={holderLine(user.name)} balance={user.balance} slotsLeft={slotsLeft} />
+        <IssueForm
+          holder={holderLine(user.name)}
+          balance={user.balance}
+          slotsLeft={slotsLeft}
+          bins={snapshot().bins}
+        />
       </div>
     </div>
   );

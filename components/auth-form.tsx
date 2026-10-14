@@ -5,21 +5,20 @@ import { loginAction, registerAction } from "@/lib/actions";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, { error: "" });
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   return (
     <form action={action} className="grid gap-4">
       <label className="grid gap-1 text-sm">
-        E-posta
+        Kullanıcı adı
         <input
           className="field"
-          name="eposta"
-          type="email"
-          autoComplete="email"
+          name="kullanici"
+          autoComplete="username"
           required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
         />
       </label>
       <label className="grid gap-1 text-sm">
@@ -42,7 +41,7 @@ export function LoginForm() {
         type="button"
         className="btn btn-ghost"
         onClick={() => {
-          setEmail("demo@sanalkart.local");
+          setUsername("demo");
           setPassword("demo123");
         }}
       >
@@ -57,18 +56,26 @@ export function RegisterForm() {
   return (
     <form action={action} className="grid gap-4">
       <label className="grid gap-1 text-sm">
-        Ad
-        <input className="field" name="ad" autoComplete="name" required minLength={2} maxLength={48} />
-      </label>
-      <label className="grid gap-1 text-sm">
-        E-posta
-        <input className="field" name="eposta" type="email" autoComplete="email" required />
+        Kullanıcı adı
+        <input className="field" name="kullanici" autoComplete="username" required minLength={2} maxLength={24} />
       </label>
       <label className="grid gap-1 text-sm">
         Parola
         <input
           className="field"
           name="parola"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={6}
+          maxLength={72}
+        />
+      </label>
+      <label className="grid gap-1 text-sm">
+        Parola tekrar
+        <input
+          className="field"
+          name="parola2"
           type="password"
           autoComplete="new-password"
           required

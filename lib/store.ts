@@ -4,7 +4,6 @@ import path from "path";
 import { WELCOME_BONUS_KURUS } from "./catalog";
 import { holderLine } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
-import { hashPassword } from "./password";
 import type { Card, CardTypeId, DB, Tx, User } from "./types";
 
 const DATA_PATH = path.join(process.cwd(), "data", "sanalkart.json");
@@ -23,6 +22,8 @@ function createSeed(): DB {
     limit: 2_500_000,
     spent: 0,
     pan: makePan(100_000_001),
+    bin: "400000",
+    binLabel: "Test öneki",
     expiry: "08/28",
     cvv: makeCvv(100_000_001),
     holder: "DEMO KULLANICI",
@@ -37,6 +38,8 @@ function createSeed(): DB {
     limit: 1_000_000,
     spent: 0,
     pan: makePan(100_000_002),
+    bin: "400000",
+    binLabel: "Test öneki",
     expiry: "03/29",
     cvv: makeCvv(100_000_002),
     holder: "DEMO KULLANICI",
@@ -51,6 +54,8 @@ function createSeed(): DB {
     limit: 400_000,
     spent: 0,
     pan: makePan(100_000_003),
+    bin: "400000",
+    binLabel: "Test öneki",
     expiry: "11/27",
     cvv: makeCvv(100_000_003),
     holder: "DEMO KULLANICI",
@@ -61,10 +66,12 @@ function createSeed(): DB {
   const user: User = {
     id: demoId,
     name: "Demo Kullanıcı",
-    email: "demo@sanalkart.local",
-    passwordHash: hashPassword("demo123"),
+    username: "demo",
+    password: "demo123",
     balance: 0,
     plan: "atolye",
+    role: "uye",
+    status: "acik",
     createdAt: "2026-09-28T09:00:00.000Z",
   };
 
@@ -237,9 +244,11 @@ function createSeed(): DB {
   ];
 
   const db: DB = {
-    users: [user],
+    users: [user, adminRecord()],
     cards: [reklam, alisveris, abonelik],
     transactions,
+    notices: [],
+    bins: [],
     nextSerial: 100_000_004,
   };
   applyLedger(db);
@@ -265,13 +274,103 @@ function applyLedger(db: DB) {
   }
 }
 
+function adminRecord(): User {
+  return {
+    id: "usr_admin",
+    name: "Simülasyon Yöneticisi",
+    username: "admin",
+    password: "admin123",
+    balance: 0,
+    plan: "kivilcim",
+    role: "yonetici",
+    status: "acik",
+    createdAt: "2026-09-01T08:00:00.000Z",
+  };
+}
+
+type LegacyUser = User & {
+  email?: string;
+  passwordHash?: string;
+  username?: string;
+  password?: string;
+};
+
+function usernameFromLegacy(user: LegacyUser): string {
+  if (user.username && /^[a-z0-9_]{2,24}$/.test(user.username)) return user.username;
+  if (user.email === "admin@sanalkart.local") return "admin";
+  if (user.email === "demo@sanalkart.local") return "demo";
+  const local = (user.email ?? "").split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
+  return local.slice(0, 24) || "uye";
+}
+
+function normalize(db: DB): DB {
+  let dirty = false;
+  const rows = db.users as LegacyUser[];
+  for (const user of rows) {
+    const username = usernameFromLegacy(user);
+    if (user.username !== username) {
+      user.username = username;
+      dirty = true;
+    }
+    if (typeof user.password !== "string" || user.password.length === 0) {
+      if (username === "admin") user.password = "admin123";
+      else if (username === "demo") user.password = "demo123";
+      dirty = true;
+    }
+    if ("email" in user || "passwordHash" in user) {
+      delete user.email;
+      delete user.passwordHash;
+      dirty = true;
+    }
+    if (user.role !== "uye" && user.role !== "yonetici") {
+      user.role = user.username === "admin" ? "yonetici" : "uye";
+      dirty = true;
+    }
+    if (user.username === "admin" && user.role !== "yonetici") {
+      user.role = "yonetici";
+      dirty = true;
+    }
+    if (user.status !== "acik" && user.status !== "askida") {
+      user.status = "acik";
+      dirty = true;
+    }
+  }
+  if (!db.users.some((user) => user.username === "admin")) {
+    db.users.push(adminRecord());
+    dirty = true;
+  }
+  if (!Array.isArray(db.notices)) {
+    db.notices = [];
+    dirty = true;
+  }
+  if (!Array.isArray(db.bins)) {
+    db.bins = [];
+    dirty = true;
+  }
+  for (const card of db.cards) {
+    if (!/^\d{6,8}$/.test(card.bin ?? "")) {
+      card.bin = card.pan.slice(0, 6);
+      dirty = true;
+    }
+    if (typeof card.binLabel !== "string") {
+      card.binLabel = "";
+      dirty = true;
+    }
+  }
+  if (dirty) {
+    assertDb(db);
+    write(db);
+  }
+  return db;
+}
+
 function assertDb(db: DB) {
   for (const user of db.users) {
     if (user.balance < 0) throw new Error("Simülasyon bakiyesi eksi olamaz");
   }
   for (const card of db.cards) {
-    if (!card.pan.startsWith("400000") || card.pan.length !== 16 || !luhnOk(card.pan)) {
-      throw new Error("Kart numarası test BIN kuralına uymuyor");
+    if (!/^\d{16}$/.test(card.pan) || !luhnOk(card.pan) || !card.pan.startsWith(card.bin)) {
+      throw new Error("Kart numarası kayıtlı BIN ile uyuşmuyor");
     }
     if (card.spent < 0 || card.spent > card.limit) {
       throw new Error("Kart harcaması limit dışında");
@@ -297,7 +396,7 @@ function read(): DB {
   if (!parsed.users || !parsed.cards || !parsed.transactions) {
     throw new Error("Simülasyon verisi okunamadı");
   }
-  return parsed;
+  return normalize(parsed);
 }
 
 export function mutate<T>(fn: (db: DB) => T): T {
@@ -312,24 +411,33 @@ export function snapshot(): DB {
   return read();
 }
 
-export function findUserByEmail(email: string): User | undefined {
-  const needle = email.trim().toLowerCase();
-  return read().users.find((user) => user.email === needle);
+export function parseUsername(raw: string): string | null {
+  const username = raw.trim().toLowerCase();
+  if (!/^[a-z0-9_]{2,24}$/.test(username)) return null;
+  return username;
+}
+
+export function findUserByUsername(username: string): User | undefined {
+  const needle = username.trim().toLowerCase();
+  return read().users.find((user) => user.username === needle);
 }
 
 export function findUserById(id: string): User | undefined {
   return read().users.find((user) => user.id === id);
 }
 
-export function createUser(input: { name: string; email: string; password: string }): User {
+export function createUser(input: { username: string; password: string }): User | null {
   return mutate((db) => {
+    if (db.users.some((item) => item.username === input.username)) return null;
     const user: User = {
       id: `usr_${randomUUID()}`,
-      name: input.name,
-      email: input.email.trim().toLowerCase(),
-      passwordHash: hashPassword(input.password),
+      name: input.username,
+      username: input.username,
+      password: input.password,
       balance: WELCOME_BONUS_KURUS,
       plan: "kivilcim",
+      role: "uye",
+      status: "acik",
       createdAt: new Date().toISOString(),
     };
     db.users.push(user);
@@ -358,6 +466,12 @@ export function listCards(userId: string): Card[] {
     );
 }
 
+export function listNotices(userId: string) {
+  return read()
+    .notices.filter((note) => note.userId === userId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 export function listTransactions(userId: string): Tx[] {
   return read()
     .transactions.filter((entry) => entry.userId === userId)
@@ -370,7 +484,15 @@ export function openCardCount(db: DB, userId: string): number {
 
 export function issueCard(
   db: DB,
-  input: { userId: string; type: CardTypeId; label: string; limit: number; fee: number },
+  input: {
+    userId: string;
+    type: CardTypeId;
+    label: string;
+    limit: number;
+    fee: number;
+    bin: string;
+    binLabel: string;
+  },
 ): Card {
   const user = db.users.find((item) => item.id === input.userId);
   if (!user) throw new Error("Hesap yok");
@@ -384,7 +506,9 @@ export function issueCard(
     label: input.label,
     limit: input.limit,
     spent: 0,
-    pan: makePan(serial),
+    pan: makePan(serial, input.bin),
+    bin: input.bin,
+    binLabel: input.binLabel,
     expiry: makeExpiry(),
     cvv: makeCvv(serial),
     holder: holderLine(user.name),

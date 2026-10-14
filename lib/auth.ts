@@ -59,23 +59,31 @@ export async function readSessionUserId(): Promise<string | null> {
 export function toPublic(user: {
   id: string;
   name: string;
-  email: string;
+  username: string;
   balance: number;
   plan: PublicUser["plan"];
+  role: PublicUser["role"];
+  status: PublicUser["status"];
 }): PublicUser {
   return {
     id: user.id,
     name: user.name,
-    email: user.email,
+    username: user.username,
     balance: user.balance,
     plan: user.plan,
+    role: user.role,
+    status: user.status,
   };
+}
+
+export function deskPath(role: PublicUser["role"]): "/admin" | "/panel" {
+  return role === "yonetici" ? "/admin" : "/panel";
 }
 
 export async function getCurrentUser(): Promise<PublicUser | null> {
   const id = await readSessionUserId();
   if (!id) return null;
   const user = findUserById(id);
-  if (!user) return null;
+  if (!user || user.status === "askida") return null;
   return toPublic(user);
 }

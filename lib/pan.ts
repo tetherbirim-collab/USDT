@@ -32,12 +32,12 @@ export function luhnOk(num: string): boolean {
   return sum % 10 === 0;
 }
 
-/** Fake demo PAN. Always the reserved test BIN, never a live account number. */
-export function makePan(serial: number): string {
-  if (!Number.isInteger(serial) || serial < 0 || serial > 999_999_999) {
-    throw new Error("Geçersiz simülasyon seri numarası");
-  }
-  const body = `${TEST_BIN}${String(serial).padStart(9, "0")}`;
+/** Demo PAN. Prefix is the BIN stored on the card; the rest is a local serial plus a Luhn digit. */
+export function makePan(serial: number, bin = TEST_BIN): string {
+  if (!/^\d{6,8}$/.test(bin)) throw new Error("BIN rakamları geçersiz");
+  if (!Number.isInteger(serial) || serial < 0) throw new Error("Geçersiz simülasyon seri numarası");
+  const accountLen = 15 - bin.length;
+  const body = `${bin}${String(serial % 10 ** accountLen).padStart(accountLen, "0")}`;
   return body + luhnCheckDigit(body);
 }
 

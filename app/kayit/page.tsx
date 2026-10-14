@@ -3,13 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { RegisterForm } from "@/components/auth-form";
 import { AuthShell } from "@/components/auth-shell";
-import { getCurrentUser } from "@/lib/auth";
+import { deskPath, getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Hesap aç" };
 export const dynamic = "force-dynamic";
 
 export default async function RegisterPage() {
-  if (await getCurrentUser()) redirect("/panel");
+  const user = await getCurrentUser();
+  if (user) redirect(deskPath(user.role));
   return (
     <AuthShell
       title="Prova hesabı aç."

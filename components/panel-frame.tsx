@@ -3,24 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/lib/actions";
-import { Mark } from "./mark";
+import { Mark, Wordmark } from "./mark";
 
 const LINKS = [
   ["/panel", "Özet"],
   ["/panel/kartlar", "Kartlar"],
   ["/panel/islemler", "İşlemler"],
+  ["/panel/bildirimler", "Bildirimler"],
   ["/panel/yukle", "Cüzdan"],
 ] as const;
 
 export function PanelFrame({
   name,
-  email,
+  username,
   balanceLabel,
   planName,
   children,
 }: {
   name: string;
-  email: string;
+  username: string;
   balanceLabel: string;
   planName: string;
   children: React.ReactNode;
@@ -30,9 +31,9 @@ export function PanelFrame({
     <div className="mx-auto min-h-screen max-w-6xl px-4 pb-20 pt-5">
       <header className="glass rounded-[28px] px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold">
+          <Link href="/" className="flex items-center gap-2">
             <Mark />
-            SanalKart
+            <Wordmark />
           </Link>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <Link href="/panel/yukle" className="rounded-full bg-black/30 px-3 py-2">
@@ -41,7 +42,7 @@ export function PanelFrame({
             </Link>
             <span className="rounded-full border border-white/15 px-3 py-2 text-white/80">{planName}</span>
             <span className="hidden text-white/70 sm:inline">{name}</span>
-            <span className="hidden text-white/40 md:inline">{email}</span>
+            <span className="hidden text-white/40 md:inline">{username}</span>
             <form action={logoutAction}>
               <button className="btn btn-ghost px-3 py-2 text-sm">Çıkış</button>
             </form>

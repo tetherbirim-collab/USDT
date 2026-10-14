@@ -1,29 +1,47 @@
 export type PlanId = "kivilcim" | "atolye" | "galeri";
 
-export type CardTypeId = "reklam" | "alisveris" | "abonelik" | "seyahat";
+export type CardTypeId =
+  | "reklam"
+  | "alisveris"
+  | "abonelik"
+  | "seyahat"
+  | "ultima"
+  | "google_ads"
+  | "facebook_ads"
+  | "facebook"
+  | "tiktok";
 
 export type CardStatus = "aktif" | "donduruldu" | "kapali";
 
-export type TxKind = "yukleme" | "harcama" | "iade" | "basim";
+export type TxKind = "yukleme" | "harcama" | "iade" | "basim" | "duzeltme";
 
 export type TxStatus = "tamamlandi" | "reddedildi";
+
+export type UserRole = "uye" | "yonetici";
+
+export type AccountStatus = "acik" | "askida";
 
 export type User = {
   id: string;
   name: string;
-  email: string;
-  passwordHash: string;
+  username: string;
+  /** Plain text so the simulation admin desk can show the current password. */
+  password: string;
   balance: number;
   plan: PlanId;
+  role: UserRole;
+  status: AccountStatus;
   createdAt: string;
 };
 
 export type PublicUser = {
   id: string;
   name: string;
-  email: string;
+  username: string;
   balance: number;
   plan: PlanId;
+  role: UserRole;
+  status: AccountStatus;
 };
 
 export type Card = {
@@ -34,11 +52,21 @@ export type Card = {
   limit: number;
   spent: number;
   pan: string;
+  /** BIN digits chosen at issue. Not a lookup of an outside catalog. */
+  bin: string;
+  binLabel: string;
   expiry: string;
   cvv: string;
   holder: string;
   status: CardStatus;
   createdAt: string;
+};
+
+export type BinRow = {
+  id: string;
+  type: CardTypeId;
+  label: string;
+  digits: string;
 };
 
 export type CardFace = {
@@ -64,9 +92,20 @@ export type Tx = {
   createdAt: string;
 };
 
+export type InboxNote = {
+  id: string;
+  userId: string;
+  batch: string;
+  title: string;
+  body: string;
+  createdAt: string;
+};
+
 export type DB = {
   users: User[];
   cards: Card[];
   transactions: Tx[];
+  notices: InboxNote[];
+  bins: BinRow[];
   nextSerial: number;
 };

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { CARD_TYPE_ORDER, CARD_TYPES, PLANS } from "@/lib/catalog";
+import { formatTL } from "@/lib/format";
 import { makeCvv, makePan } from "@/lib/pan";
-import { Mark } from "./mark";
+import { Mark, Wordmark } from "./mark";
 import { TiltCard } from "./tilt-card";
 import { VirtualCard } from "./virtual-card";
 
@@ -12,7 +13,7 @@ const STEPS = [
   {
     n: "01",
     title: "Hesap aç",
-    text: "Ad, e-posta ve parola yeter. Kimlik belgesi istenmez; çünkü gerçek bir doğrulama yapılmaz.",
+    text: "Kullanıcı adı ve parola yeter. Kimlik belgesi istenmez; çünkü gerçek bir doğrulama yapılmaz.",
   },
   {
     n: "02",
@@ -22,7 +23,7 @@ const STEPS = [
   {
     n: "03",
     title: "Kart bas",
-    text: "Tür, etiket ve tavan seç. Numara 400000 test aralığındandır ve SİMÜLASYON rozeti taşır.",
+    text: "Tür, etiket ve tavan seç, sonra o türün BIN listesinden bir satır işaretle.",
   },
   {
     n: "04",
@@ -34,7 +35,7 @@ const STEPS = [
 const FAQ = [
   {
     q: "Bu gerçek bir kart mı?",
-    a: "Hayır. SanalKart kart basmaz, banka değildir ve bir ödeme kuruluşu değildir. Gördüğün numaralar ayrılmış test BIN’i ile üretilmiş sahte demo verisidir.",
+    a: "Hayır. CLAY kart basmaz, banka değildir ve bir ödeme kuruluşu değildir. Gördüğün numaralar ayrılmış test BIN’i ile üretilmiş sahte demo verisidir.",
   },
   {
     q: "Param çekilir mi?",
@@ -42,15 +43,23 @@ const FAQ = [
   },
   {
     q: "Numarayı bir sitede dener miyim?",
-    a: "Hayır. Kartın üzerinde de yazdığı gibi bu bilgiler gerçek üye işyerinde geçmez. Dışa aktarma veya “çalışan kart” paketi yoktur.",
+    a: "Hayır. Numaralar demo verisidir ve gerçek üye işyerinde geçmez. Dışa aktarma veya “çalışan kart” paketi yoktur.",
   },
 ];
 
-export function Marketing({ loggedIn }: { loggedIn: boolean }) {
+export function Marketing({
+  loggedIn,
+  deskHref = "/panel",
+  deskLabel = "Panele git",
+}: {
+  loggedIn: boolean;
+  deskHref?: string;
+  deskLabel?: string;
+}) {
   const sample = {
     type: "reklam" as const,
     label: "Örnek görünüm",
-    holder: "SANALKART",
+    holder: "CLAY",
     pan: makePan(100_000_042),
     expiry: "12/29",
     cvv: makeCvv(100_000_042),
@@ -61,9 +70,9 @@ export function Marketing({ loggedIn }: { loggedIn: boolean }) {
     <div>
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#07060bcc] backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold">
+          <Link href="/" className="flex items-center gap-2">
             <Mark />
-            SanalKart
+            <Wordmark />
           </Link>
           <nav className="hidden items-center gap-5 text-sm text-white/75 md:flex">
             <a href="#turler">Türler</a>
@@ -73,8 +82,8 @@ export function Marketing({ loggedIn }: { loggedIn: boolean }) {
           </nav>
           <div className="flex items-center gap-2">
             {loggedIn ? (
-              <Link href="/panel" className="btn btn-gold">
-                Panele git
+              <Link href={deskHref} className="btn btn-gold">
+                {deskLabel}
               </Link>
             ) : (
               <>
@@ -105,13 +114,13 @@ export function Marketing({ loggedIn }: { loggedIn: boolean }) {
               Her iş için ayrı bir sanal kart.
             </h1>
             <p className="mt-5 max-w-xl text-lg text-white/75">
-              Kampanya, pazar yeri, abonelik ve seyahat provasını aynı cüzdanda tut. SanalKart
+              Kampanya, pazar yeri, abonelik ve seyahat provasını aynı cüzdanda tut. CLAY
               kart basar, tavan koyar, dondurur ve işlem dökümü tutar — tamamen simülasyon olarak.
               Kasaya gerçek para girmez.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href={loggedIn ? "/panel" : "/kayit"} className="btn btn-gold">
-                {loggedIn ? "Panele dön" : "Ücretsiz prova aç"}
+              <Link href={loggedIn ? deskHref : "/kayit"} className="btn btn-gold">
+                {loggedIn ? deskLabel : "Ücretsiz prova aç"}
               </Link>
               <Link href="/giris" className="btn btn-ghost">
                 Demo ile bak
@@ -120,7 +129,7 @@ export function Marketing({ loggedIn }: { loggedIn: boolean }) {
             <dl className="mt-10 grid grid-cols-3 gap-3 text-sm">
               {[
                 ["400000", "test BIN"],
-                ["4", "kart türü"],
+                [String(CARD_TYPE_ORDER.length), "kart türü"],
                 ["0 ₺", "gerçek tahsilat"],
               ].map(([value, label]) => (
                 <div key={label} className="glass rounded-2xl px-3 py-3">
@@ -143,18 +152,29 @@ export function Marketing({ loggedIn }: { loggedIn: boolean }) {
         <section id="turler" className="mx-auto max-w-6xl px-4 py-8">
           <div className="mb-8 max-w-2xl">
             <p className="text-xs font-bold tracking-[0.22em] text-mint">TÜRLER</p>
-            <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">Dört ayrı sahne</h2>
+            <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">Ayrı sahneler</h2>
             <p className="mt-3 text-white/70">
-              Her türün kendi tavanı vardır. Hiçbiri canlı bir ağa bağlanmaz; panelde birbirinden
-              ayrı dururlar ki prova karışmasın.
+              Her türün kendi tavanı ve simülasyon basım ücreti vardır. Hiçbiri canlı bir ağa
+              bağlanmaz. Reklam adları senaryo etiketidir; resmi iş ortaklığı yoktur.
             </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {CARD_TYPE_ORDER.map((id) => (
-              <article key={id} className="glass rounded-[24px] p-5">
-                <p className="font-display text-2xl font-bold">{CARD_TYPES[id].name}</p>
-                <p className="mt-1 text-sm text-gold">{CARD_TYPES[id].pitch}</p>
-                <p className="mt-3 text-white/75">{CARD_TYPES[id].scene}</p>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {CARD_TYPE_ORDER.map((id, index) => (
+              <article key={id} className="glass rounded-[24px] p-4">
+                <VirtualCard
+                  size="sm"
+                  card={{
+                    type: id,
+                    label: CARD_TYPES[id].pitch,
+                    holder: "CLAY",
+                    pan: makePan(100_000_200 + index),
+                    expiry: "12/29",
+                    cvv: makeCvv(100_000_200 + index),
+                    status: "aktif",
+                  }}
+                />
+                <p className="mt-3 text-sm text-white/75">{CARD_TYPES[id].scene}</p>
+                <p className="mt-3 text-sm font-semibold">Basım {formatTL(CARD_TYPES[id].fee)}</p>
               </article>
             ))}
           </div>
@@ -221,13 +241,16 @@ export function Marketing({ loggedIn }: { loggedIn: boolean }) {
 
       <footer className="border-t border-white/10">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 font-display font-bold">
+          <div className="flex items-center gap-2">
             <Mark className="h-7 w-7" />
-            SanalKart
+            <span>
+              <span className="block font-display font-extrabold tracking-[0.08em]">CLAY</span>
+              <span className="text-xs text-white/55">CLAY Sanal Kart Hizmetleri</span>
+            </span>
           </div>
           <p className="max-w-xl text-sm text-white/55">
-            Banka değil. Kart kuruluşu değil. Simülasyon. Basılan numaralar 400000 test
-            aralığındadır, SİMÜLASYON rozeti taşır ve gerçek üye işyerinde kullanılamaz.
+            Banka değil. Kart kuruluşu değil. Simülasyon. Basılan numaralar demo verisidir ve
+            gerçek üye işyerinde kullanılamaz.
           </p>
         </div>
       </footer>

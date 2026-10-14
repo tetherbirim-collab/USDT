@@ -10,11 +10,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "SanalKart — simülasyon sanal kart",
-    template: "%s · SanalKart",
+    default: "CLAY Sanal Kart Hizmetleri — simülasyon",
+    template: "%s · CLAY",
   },
   description:
-    "Reklam, alışveriş, abonelik ve seyahat senaryoları için simülasyon sanal kart paneli. Gerçek tahsilat ve kart ihracı yoktur.",
+    "CLAY Sanal Kart Hizmetleri, reklam ve alışveriş senaryoları için simülasyon sanal kart panelidir. Gerçek tahsilat ve kart ihracı yoktur.",
   robots: { index: false, follow: false },
 };
 

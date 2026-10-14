@@ -6,7 +6,7 @@ export default function NotFound() {
       <div>
         <p className="text-xs font-bold tracking-[0.22em] text-gold">404</p>
         <h1 className="font-display mt-3 text-4xl font-extrabold">Bu sahne yok</h1>
-        <p className="mt-3 text-white/70">Aradığın sayfa SanalKart simülasyonunda durmuyor.</p>
+        <p className="mt-3 text-white/70">Aradığın sayfa CLAY simülasyonunda durmuyor.</p>
         <Link href="/" className="btn btn-gold mt-6">
           Ana sahneye dön
         </Link>

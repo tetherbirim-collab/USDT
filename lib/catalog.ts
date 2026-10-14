@@ -1,7 +1,6 @@
 import type { CardTypeId, PlanId, TxKind } from "./types";
 
 export const TEST_BIN = "400000";
-export const ISSUE_FEE_KURUS = 2900;
 export const WELCOME_BONUS_KURUS = 150_000;
 export const MIN_TOPUP_KURUS = 5_000;
 export const MAX_TOPUP_KURUS = 2_000_000;
@@ -16,32 +15,72 @@ export const CARD_TYPE_ORDER: CardTypeId[] = [
   "alisveris",
   "abonelik",
   "seyahat",
+  "ultima",
+  "google_ads",
+  "facebook_ads",
+  "facebook",
+  "tiktok",
 ];
 
 export const CARD_TYPES: Record<
   CardTypeId,
-  { name: string; pitch: string; scene: string }
+  { name: string; pitch: string; scene: string; fee: number }
 > = {
   reklam: {
     name: "Reklam",
     pitch: "Kampanya tavanı",
-    scene:
-      "Medya denemelerini ayrı limitte tut. Hiçbir reklam hesabına bağlanmaz.",
+    scene: "Medya denemelerini ayrı limitte tut. Hiçbir reklam hesabına bağlanmaz.",
+    fee: 2900,
   },
   alisveris: {
-    name: "Alışveriş",
+    name: "Alışveriş kartı",
     pitch: "Sepet provası",
     scene: "Pazar yeri senaryolarını tek kartta izole et. Tahsilat yoktur.",
+    fee: 1900,
   },
   abonelik: {
     name: "Abonelik",
     pitch: "Araç tavanı",
     scene: "Tekrarlayan servis provasını sabit bir tavana yaz.",
+    fee: 1500,
   },
   seyahat: {
     name: "Seyahat",
     pitch: "Rezervasyon provası",
     scene: "Bilet ve konaklama akışını gerçek kart kullanmadan dene.",
+    fee: 3500,
+  },
+  ultima: {
+    name: "Ultima",
+    pitch: "Geniş prova tavanı",
+    scene:
+      "Birkaç reklam senaryosunu tek premium kartta topla. Bir ağa bağlı değildir; basım ücreti simülasyondur.",
+    fee: 7900,
+  },
+  google_ads: {
+    name: "Google Ads",
+    pitch: "Arama provası",
+    scene:
+      "Arama kampanyası bütçesini ayrı tavanda dene. Resmi hesap bağlantısı ve iş ortaklığı yoktur.",
+    fee: 4500,
+  },
+  facebook_ads: {
+    name: "Facebook Ads",
+    pitch: "Akış bütçesi",
+    scene: "Akış reklamı provası için ayrı limit. Platforma bağlanmaz, tahsilat yapılmaz.",
+    fee: 4500,
+  },
+  facebook: {
+    name: "Facebook",
+    pitch: "Sayfa provası",
+    scene: "Sayfa ve sosyal denemeleri ayırmak için. Resmi bir ürün değildir.",
+    fee: 2500,
+  },
+  tiktok: {
+    name: "TikTok",
+    pitch: "Kısa video provası",
+    scene: "Kısa video kampanyasını kendi tavanında izle. Uygulama hesabına bağlanmaz.",
+    fee: 3900,
   },
 };
 
@@ -96,6 +135,7 @@ export const KIND_LABEL: Record<TxKind, string> = {
   harcama: "Harcama",
   iade: "İade",
   basim: "Basım",
+  duzeltme: "Düzeltme",
 };
 
 export const NOTICES: Record<string, string> = {
@@ -118,8 +158,25 @@ export const NOTICES: Record<string, string> = {
   "e-plan": "Bu vitrin planındaki açık kart adedine ulaşıldı.",
   "e-durum": "Kart bu işlem için uygun durumda değil.",
   "e-onay": "Kapatmak için onay kutusu gerekli.",
-  "e-yok": "Kart bu hesapta bulunamadı.",
+  "e-yok": "Kayıt bu simülasyonda bulunamadı.",
   "e-isletme": "Listeden bir prova işletmesi seç.",
+  bakiye: "Simülasyon bakiyesi güncellendi. Gerçek tahsilat yoktur.",
+  askida: "Hesap askıya alındı. Bu kullanıcı giriş yapamaz.",
+  acildi: "Hesap yeniden açıldı. Simülasyon girişi yine mümkün.",
+  "e-askida": "Bu simülasyon hesabı askıya alındı. Giriş kapalı.",
+  "e-kendin": "Yönetici kendi hesabını askıya alamaz.",
+  "e-yonetici": "Yönetici hesabı bu işlem için kapalı.",
+  gonderildi: "Bildirim üye paneline yazıldı. Bu bir simülasyon mesajıdır.",
+  kart: "Kart kaydı güncellendi. Numara değişmedi; hâlâ test verisidir.",
+  islem: "İşlem tutarı güncellendi. Tahsilat yoktur.",
+  zaman: "Son yükleme zamanı güncellendi.",
+  "e-mesaj": "Başlık 2–80, mesaj 2–400 karakter olmalı.",
+  "e-hedef": "Bir üye seç veya tüm üyeleri işaretle.",
+  "e-zaman": "Zaman İstanbul saatiyle seçilmeli.",
+  "e-yukleme-yok": "Bu hesapta düzenlenecek bir yükleme yok.",
+  bin: "BIN satırı bu türün listesine yazıldı. Numara sorgulama yoktur.",
+  "e-bin": "Kart oluşturmak için bu türe ait bir BIN seç. Liste boşsa basım kapalı.",
+  "e-bin-kayit": "Etiket 2–40 karakter, BIN ise 6–8 rakam olmalı.",
 };
 
 export function noticeText(code?: string): string | null {

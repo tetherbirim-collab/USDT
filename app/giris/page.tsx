@@ -23,14 +23,14 @@ export default async function LoginPage({
   const sp = await searchParams;
   return (
     <AuthShell
-      title="Panele gir."
-      lede="Simülasyon cüzdanın, kartların ve işlem dökümün burada durur. Gerçek bir oturum sağlayıcısı yoktur."
+      title="Hoş geldin"
+      lede="CLAY hesabına gir veya yeni bir hesap aç."
     >
       <Notice code={one(sp.bildirim)} />
       <LoginForm />
-      <p className="mt-5 text-sm text-white/65">
-        Hesabın yok mu? <Link href="/kayit" className="font-semibold text-gold">Hesap aç</Link>
-      </p>
+      <Link href="/kayit" className="auth-outline mt-3">
+        Kayıt ol
+      </Link>
     </AuthShell>
   );
 }

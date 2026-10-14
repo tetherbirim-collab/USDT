@@ -9,37 +9,33 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
 
   return (
-    <form action={action} className="grid gap-4">
-      <label className="grid gap-1 text-sm">
-        Kullanıcı adı
-        <input
-          className="field"
-          name="kullanici"
-          autoComplete="username"
-          required
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
-        />
-      </label>
-      <label className="grid gap-1 text-sm">
-        Parola
-        <input
-          className="field"
-          name="parola"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
-      </label>
+    <form action={action} className="grid gap-3">
+      <input
+        className="auth-field"
+        name="kullanici"
+        autoComplete="username"
+        placeholder="Kullanıcı adı"
+        required
+        value={username}
+        onChange={(event) => setUsername(event.target.value)}
+      />
+      <input
+        className="auth-field"
+        name="parola"
+        type="password"
+        autoComplete="current-password"
+        placeholder="Parola"
+        required
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+      />
       {state.error && <p className="banner-bad">{state.error}</p>}
-      <button className="btn btn-gold" disabled={pending}>
+      <button className="auth-primary mt-2" disabled={pending}>
         {pending ? "Giriliyor…" : "Giriş yap"}
       </button>
       <button
         type="button"
-        className="btn btn-ghost"
+        className="text-sm font-semibold text-[#2f78ff]"
         onClick={() => {
           setUsername("demo");
           setPassword("demo123");
@@ -54,41 +50,34 @@ export function LoginForm() {
 export function RegisterForm() {
   const [state, action, pending] = useActionState(registerAction, { error: "" });
   return (
-    <form action={action} className="grid gap-4">
-      <label className="grid gap-1 text-sm">
-        Kullanıcı adı
-        <input className="field" name="kullanici" autoComplete="username" required minLength={2} maxLength={24} />
-      </label>
-      <label className="grid gap-1 text-sm">
-        Parola
-        <input
-          className="field"
-          name="parola"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={6}
-          maxLength={72}
-        />
-      </label>
-      <label className="grid gap-1 text-sm">
-        Parola tekrar
-        <input
-          className="field"
-          name="parola2"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={6}
-          maxLength={72}
-        />
-      </label>
-      <p className="text-sm text-white/60">
+    <form action={action} className="grid gap-3">
+      <input className="auth-field" name="kullanici" autoComplete="username" placeholder="Kullanıcı adı" required minLength={2} maxLength={24} />
+      <input
+        className="auth-field"
+        name="parola"
+        type="password"
+        autoComplete="new-password"
+        placeholder="Parola"
+        required
+        minLength={6}
+        maxLength={72}
+      />
+      <input
+        className="auth-field"
+        name="parola2"
+        type="password"
+        autoComplete="new-password"
+        placeholder="Parola tekrar"
+        required
+        minLength={6}
+        maxLength={72}
+      />
+      <p className="text-sm text-[#8b95a5]">
         Yeni hesaba 1.500 ₺ hoş geldin bakiyesi yazılır. Bu tutar simülasyondur, tahsil edilmez.
       </p>
       {state.error && <p className="banner-bad">{state.error}</p>}
-      <button className="btn btn-gold" disabled={pending}>
-        {pending ? "Açılıyor…" : "Hesabı aç"}
+      <button className="auth-primary mt-1" disabled={pending}>
+        {pending ? "Açılıyor…" : "Kayıt ol"}
       </button>
     </form>
   );

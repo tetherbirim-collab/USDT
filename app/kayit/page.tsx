@@ -13,13 +13,13 @@ export default async function RegisterPage() {
   if (user) redirect(deskPath(user.role));
   return (
     <AuthShell
-      title="Prova hesabı aç."
-      lede="Kıvılcım planında başlarsın. Kimlik yüklemesi yok, ödeme formu yok, kart basımı simülasyondur."
+      title="Kayıt ol"
+      lede="Kullanıcı adı ve parola yeter. Kimlik belgesi yok."
     >
       <RegisterForm />
-      <p className="mt-5 text-sm text-white/65">
-        Hesabın var mı? <Link href="/giris" className="font-semibold text-gold">Giriş yap</Link>
-      </p>
+      <Link href="/giris" className="auth-outline mt-3">
+        Giriş yap
+      </Link>
     </AuthShell>
   );
 }

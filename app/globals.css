@@ -81,6 +81,50 @@ body {
   color: #ffd0dc;
 }
 
+.auth-field {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #e6ebf2;
+  background: #f5f7fb;
+  padding: 0.95rem 1rem;
+  color: #1c2430;
+}
+
+.auth-field::placeholder {
+  color: #9aa3b2;
+}
+
+.auth-field:focus {
+  outline: 2px solid #c5d7f2;
+  background: #fff;
+}
+
+.auth-primary,
+.auth-outline {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  font-weight: 700;
+}
+
+.auth-primary {
+  background: #111;
+  color: #fff;
+}
+
+.auth-primary:disabled {
+  opacity: 0.55;
+}
+
+.auth-outline {
+  border: 1px solid #e6ebf2;
+  background: #fff;
+  color: #1c2430;
+}
+
 .field {
   width: 100%;
   border-radius: 14px;

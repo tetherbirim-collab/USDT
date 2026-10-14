@@ -1,0 +1,203 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --color-gold: #f0c98a;
+  --color-mint: #8dffe4;
+  --color-ink: #07060b;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  color: #f6f1ff;
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(900px 520px at 8% -10%, rgba(124, 84, 255, 0.38), transparent 60%),
+    radial-gradient(720px 420px at 100% 0%, rgba(240, 201, 138, 0.16), transparent 55%),
+    radial-gradient(680px 480px at 80% 110%, rgba(141, 255, 228, 0.08), transparent 50%),
+    #07060b;
+}
+
+::selection {
+  background: #f0c98a;
+  color: #24180a;
+}
+
+:focus-visible {
+  outline: 2px solid #8dffe4;
+  outline-offset: 3px;
+}
+
+.glass {
+  border: 1px solid rgba(240, 201, 138, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(16px);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.75rem 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.btn-gold {
+  background: linear-gradient(180deg, #ffe7bf, #e0b56a);
+  color: #2a1c0a;
+  box-shadow: 0 10px 30px rgba(240, 201, 138, 0.22);
+}
+
+.btn-ghost {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f6f1ff;
+}
+
+.btn-danger {
+  border: 1px solid rgba(255, 140, 170, 0.4);
+  background: rgba(255, 90, 120, 0.12);
+  color: #ffd0dc;
+}
+
+.field {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 6, 14, 0.55);
+  padding: 0.85rem 0.95rem;
+  color: #f6f1ff;
+}
+
+.field::placeholder {
+  color: rgba(246, 241, 255, 0.38);
+}
+
+select.field option {
+  background: #16131f;
+}
+
+.banner-ok,
+.banner-bad {
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+}
+
+.banner-ok {
+  border: 1px solid rgba(141, 255, 228, 0.35);
+  background: rgba(141, 255, 228, 0.08);
+  color: #d9fff6;
+}
+
+.banner-bad {
+  border: 1px solid rgba(255, 150, 170, 0.4);
+  background: rgba(255, 90, 120, 0.1);
+  color: #ffd5df;
+}
+
+.vcard {
+  position: relative;
+  aspect-ratio: 1.586 / 1;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 24px 50px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: white;
+}
+
+.vcard .sheen {
+  position: absolute;
+  inset: -45% auto -45% -70%;
+  width: 38%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.48), transparent);
+  transform: rotate(16deg);
+  animation: sheen 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.chip {
+  width: 42px;
+  height: 32px;
+  border-radius: 8px;
+  background:
+    linear-gradient(#f3d48a, #b8883e);
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(80, 50, 10, 0.35);
+}
+
+.chip::before,
+.chip::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 1px;
+  background: rgba(80, 50, 10, 0.45);
+}
+
+.chip::before { top: 11px; }
+.chip::after { top: 20px; }
+
+.floaty {
+  animation: floaty 6.5s ease-in-out infinite;
+}
+
+.marquee {
+  overflow: hidden;
+  border-block: 1px solid rgba(240, 201, 138, 0.16);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 1.5rem;
+  padding: 0.7rem 0;
+  animation: ticker 32s linear infinite;
+}
+
+@keyframes sheen {
+  0% { transform: translateX(0) rotate(16deg); }
+  60%, 100% { transform: translateX(420%) rotate(16deg); }
+}
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes ticker {
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

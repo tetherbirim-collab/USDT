@@ -163,15 +163,171 @@ select.field option {
 
 .vcard {
   position: relative;
-  display: flex;
-  flex-direction: column;
+  container-type: inline-size;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   aspect-ratio: 1.586 / 1;
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: 6.2cqw;
   border: 1px solid rgba(255, 255, 255, 0.22);
   box-shadow:
     0 24px 50px rgba(0, 0, 0, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  padding: 5.4cqw 6.4cqw 5cqw;
+  gap: 1.6cqw;
+  color: white;
+}
+
+.vcard-top,
+.vcard-mid,
+.vcard-foot {
+  position: relative;
+  z-index: 20;
+  min-width: 0;
+}
+
+.vcard-top {
+  display: flex;
+  align-items: center;
+  gap: 2.2cqw;
+}
+
+.vcard-id {
+  min-width: 0;
+}
+
+.vcard-title {
+  overflow: hidden;
+  font-size: 4.35cqw;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vcard-kicker {
+  margin-top: 0.7cqw;
+  overflow: hidden;
+  font-size: 2.15cqw;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.vcard-mark-sq {
+  display: block;
+  width: 8.4cqw;
+  height: 8.4cqw;
+  flex: none;
+}
+
+.vcard-mark-wide {
+  display: block;
+  width: 15.5cqw;
+  height: auto;
+  flex: none;
+}
+
+.vcard-pay {
+  display: block;
+  width: 11.5cqw;
+  height: auto;
+  margin-left: auto;
+  flex: none;
+}
+
+.vcard-visa {
+  margin-left: auto;
+  flex: none;
+  font-size: 5.2cqw;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+}
+
+.vcard-mid {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2.4cqw;
+}
+
+.vcard-pan {
+  margin: 0;
+  overflow: hidden;
+  font-size: 4.85cqw;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.045em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vcard-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) 0.72fr 0.58fr;
+  gap: 2cqw;
+  align-items: end;
+}
+
+.vcard-k {
+  margin: 0;
+  font-size: 1.9cqw;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.vcard-holder,
+.vcard-v {
+  margin: 0.7cqw 0 0;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vcard-holder {
+  font-size: 3.15cqw;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.vcard-v {
+  font-size: 3.25cqw;
+  font-weight: 700;
+}
+
+.vcard-stripe {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 4;
+  height: 1.15cqw;
+  background: linear-gradient(90deg, #4285f4, #ea4335, #fbbc05, #34a853);
+}
+
+.vcard-status {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.vcard-status span {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  padding: 1.6cqw 4.2cqw;
+  font-size: 3.1cqw;
+  font-weight: 800;
+  letter-spacing: 0.18em;
   color: white;
 }
 
@@ -217,9 +373,9 @@ select.field option {
 }
 
 .chip {
-  width: 42px;
-  height: 32px;
-  border-radius: 8px;
+  width: 11.2cqw;
+  height: 8.4cqw;
+  border-radius: 1.5cqw;
   background:
     linear-gradient(#f3d48a, #b8883e);
   position: relative;

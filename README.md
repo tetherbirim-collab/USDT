@@ -44,6 +44,6 @@ Her kart türünün listesinde etiket «Test öneki» ve rakam `400000` hazırd�
 
 Türler: Facebook Ads, TikTok, Google Ads ve Ultima. Bunlar senaryo etiketidir; Google, Meta, TikTok veya başka bir kuruluşla iş ortaklığı yoktur. Her türün kendi simülasyon basım ücreti vardır.
 
-Basılan demo numaraları ayrılmış test öneki (`400000`) ile üretilir. Kartın ad yerinde Clay yazar. Bu numaralar gerçek ödeme aracı değildir; üye işyerinde kullanılamaz. Çalışan kart dışa aktarma yoktur.
+Basılan demo numaraları ayrılmış test öneki (`400000`) ile üretilir. Kartın ad yerinde o hesabın adı yazar. Harcama, basım ve yükleme yalnızca işlemi yapan kullanıcının bakiyesinden düşer. Bu numaralar gerçek ödeme aracı değildir; üye işyerinde kullanılamaz. Çalışan kart dışa aktarma yoktur.
 
 Vitrindeki fiyatlar örnektir, tahsilat yapılmaz.

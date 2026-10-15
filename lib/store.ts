@@ -26,7 +26,7 @@ function createSeed(): DB {
     binLabel: "Test öneki",
     expiry: "08/28",
     cvv: makeCvv(100_000_001),
-    holder: "Clay",
+    holder: holderLine("Demo Kullanıcı"),
     status: "aktif",
     createdAt: "2026-09-28T09:04:00.000Z",
   };
@@ -42,7 +42,7 @@ function createSeed(): DB {
     binLabel: "Test öneki",
     expiry: "03/29",
     cvv: makeCvv(100_000_002),
-    holder: "Clay",
+    holder: holderLine("Demo Kullanıcı"),
     status: "aktif",
     createdAt: "2026-10-05T08:39:00.000Z",
   };
@@ -58,7 +58,7 @@ function createSeed(): DB {
     binLabel: "Test öneki",
     expiry: "11/27",
     cvv: makeCvv(100_000_003),
-    holder: "Clay",
+    holder: holderLine("Demo Kullanıcı"),
     status: "donduruldu",
     createdAt: "2026-10-08T08:59:00.000Z",
   };
@@ -266,7 +266,7 @@ function createSeed(): DB {
     binLabel: "Test öneki",
     expiry: "01/30",
     cvv: makeCvv(100_000_004),
-    holder: "Clay",
+    holder: holderLine("Demo Kullanıcı"),
     status: "aktif",
     createdAt: "2026-10-09T09:10:00.000Z",
   };
@@ -419,6 +419,12 @@ function normalize(db: DB): DB {
     }
     if (typeof card.binLabel !== "string") {
       card.binLabel = "";
+      dirty = true;
+    }
+    const owner = db.users.find((user) => user.id === card.userId);
+    const personal = owner ? holderLine(owner.name) : "";
+    if (personal && (card.holder === "Clay" || card.holder === "CLAY" || card.holder.trim() === "")) {
+      card.holder = personal;
       dirty = true;
     }
   }

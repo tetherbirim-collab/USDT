@@ -45,7 +45,7 @@ const STATUS_LABEL = {
 
 function VisaMark({ ink }: { ink: string }) {
   return (
-    <p className="font-display text-lg font-extrabold italic leading-none tracking-tight" style={{ color: ink }}>
+    <p className="vcard-visa font-display" style={{ color: ink }}>
       VISA
     </p>
   );
@@ -53,7 +53,7 @@ function VisaMark({ ink }: { ink: string }) {
 
 function MastercardMark() {
   return (
-    <svg viewBox="0 0 44 28" className="h-7 w-11" aria-hidden>
+    <svg viewBox="0 0 44 28" className="vcard-pay" aria-hidden>
       <circle cx="16" cy="14" r="10" fill="#EB001B" />
       <circle cx="28" cy="14" r="10" fill="#F79E1B" />
       <path d="M22 6.4a10 10 0 0 1 0 15.2 10 10 0 0 1 0-15.2z" fill="#FF5F00" />
@@ -64,7 +64,7 @@ function MastercardMark() {
 function TypeMark({ type }: { type: CardTypeId }) {
   if (type === "facebook_ads") {
     return (
-      <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-hidden>
+      <svg viewBox="0 0 32 32" className="vcard-mark-sq" aria-hidden>
         <circle cx="16" cy="16" r="16" fill="#fff" />
         <path
           fill="#1877F2"
@@ -75,7 +75,7 @@ function TypeMark({ type }: { type: CardTypeId }) {
   }
   if (type === "tiktok") {
     return (
-      <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-hidden>
+      <svg viewBox="0 0 32 32" className="vcard-mark-sq" aria-hidden>
         <path d="M14 6h3.2v12.4a3.5 3.5 0 1 1-2.5-3.3V6z" fill="#25F4EE" transform="translate(-1.3 1)" />
         <path d="M14 6h3.2v12.4a3.5 3.5 0 1 1-2.5-3.3V6z" fill="#FE2C55" transform="translate(1.3 -1)" />
         <path d="M14 6h3.2v12.4a3.5 3.5 0 1 1-2.5-3.3V6z" fill="#fff" />
@@ -84,7 +84,7 @@ function TypeMark({ type }: { type: CardTypeId }) {
   }
   if (type === "google_ads") {
     return (
-      <svg viewBox="0 0 36 12" className="h-3 w-9 shrink-0" aria-hidden>
+      <svg viewBox="0 0 36 12" className="vcard-mark-wide" aria-hidden>
         <circle cx="6" cy="6" r="4" fill="#4285F4" />
         <circle cx="14" cy="6" r="4" fill="#EA4335" />
         <circle cx="22" cy="6" r="4" fill="#FBBC05" />
@@ -93,7 +93,7 @@ function TypeMark({ type }: { type: CardTypeId }) {
     );
   }
   return (
-    <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-hidden>
+    <svg viewBox="0 0 32 32" className="vcard-mark-sq" aria-hidden>
       <path d="M16 4 27 12.5 23 26H9L5 12.5 16 4z" fill="#f0c98a" />
     </svg>
   );
@@ -106,73 +106,64 @@ export function VirtualCard({
   card: CardFace;
   size?: "md" | "sm";
 }) {
-  const compact = size === "sm";
   const tone = TONE[card.type];
   const light = tone === "light";
   const pan = card.masked ? "•••• •••• •••• ••••" : formatPan(card.pan);
   const ink = light ? "#202124" : "#fff";
   const mute = light ? "rgba(32,33,36,.62)" : "rgba(255,255,255,.72)";
   const name = CARD_TYPES[card.type].name;
+  const holder = card.holder.trim() || "CLAY";
 
   return (
     <article
-      className={`vcard ${card.type === "ultima" ? "vcard-metal" : ""} ${light ? "vcard-light" : ""} ${compact ? "p-4" : "p-5 sm:p-6"}`}
+      className={`vcard ${card.type === "ultima" ? "vcard-metal" : ""} ${light ? "vcard-light" : ""}`}
       style={{
         background: SKINS[card.type],
         color: ink,
         boxShadow: `0 22px 48px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.5), ${GLOW[card.type]}`,
       }}
-      aria-label={`${name} kartı. Demo verisidir, gerçek üye işyerinde kullanılamaz.`}
+      data-size={size}
+      aria-label={`${name} kartı, ${holder}. Demo verisidir, gerçek üye işyerinde kullanılamaz.`}
     >
-      {card.type === "google_ads" && (
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-[linear-gradient(90deg,#4285F4,#EA4335,#FBBC05,#34A853)]" />
-      )}
+      {card.type === "google_ads" && <span className="vcard-stripe" />}
       <span className="sheen" />
-      <div className="relative z-20 flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <TypeMark type={card.type} />
-          <div className="min-w-0">
-            <p className={`truncate font-display font-extrabold ${compact ? "text-sm" : "text-base"}`}>{name}</p>
-            <p className="truncate text-[10px] uppercase tracking-[0.16em]" style={{ color: mute }}>
-              {card.label}
-            </p>
-          </div>
+      <header className="vcard-top">
+        <TypeMark type={card.type} />
+        <div className="vcard-id">
+          <p className="vcard-title font-display">{name}</p>
+          <p className="vcard-kicker" style={{ color: mute }}>
+            {card.label}
+          </p>
         </div>
         {NETWORK[card.type] === "visa" ? <VisaMark ink={light ? "#1a1f71" : "#fff"} /> : <MastercardMark />}
-      </div>
-      <div className={`relative z-20 flex items-center justify-between ${compact ? "mt-3" : "mt-5"}`}>
+      </header>
+      <div className="vcard-mid">
         <div className="chip" />
+        <p className="vcard-pan">{pan}</p>
       </div>
-      <p className={`relative z-20 font-semibold tracking-[0.12em] ${compact ? "mt-3 text-sm" : "mt-4 text-lg"}`}>
-        {pan}
-      </p>
-      <div className={`relative z-20 mt-auto flex items-end justify-between gap-3 ${compact ? "pt-3" : "pt-4"}`}>
-        <div className="flex min-w-0 gap-3">
-          <div className="min-w-0">
-            <p className="text-[9px] uppercase tracking-[0.14em]" style={{ color: mute }}>
-              Ad
-            </p>
-            <p className="truncate font-display text-sm font-bold tracking-wide">Clay</p>
-          </div>
-          <div>
-            <p className="text-[9px] uppercase tracking-[0.14em]" style={{ color: mute }}>
-              SKT
-            </p>
-            <p className="text-xs font-semibold">{card.masked ? "••/••" : card.expiry}</p>
-          </div>
-          <div>
-            <p className="text-[9px] uppercase tracking-[0.14em]" style={{ color: mute }}>
-              CVV
-            </p>
-            <p className="text-xs font-semibold">{card.masked ? "•••" : card.cvv}</p>
-          </div>
+      <footer className="vcard-foot">
+        <div className="min-w-0">
+          <p className="vcard-k" style={{ color: mute }}>
+            Ad
+          </p>
+          <p className="vcard-holder font-display">{holder}</p>
         </div>
-      </div>
+        <div>
+          <p className="vcard-k" style={{ color: mute }}>
+            SKT
+          </p>
+          <p className="vcard-v">{card.masked ? "••/••" : card.expiry}</p>
+        </div>
+        <div>
+          <p className="vcard-k" style={{ color: mute }}>
+            CVV
+          </p>
+          <p className="vcard-v">{card.masked ? "•••" : card.cvv}</p>
+        </div>
+      </footer>
       {card.status !== "aktif" && (
-        <div className="absolute inset-0 z-30 grid place-items-center bg-black/55">
-          <span className="rounded-full border border-white/50 px-4 py-2 text-sm font-bold tracking-[0.2em] text-white">
-            {STATUS_LABEL[card.status]}
-          </span>
+        <div className="vcard-status">
+          <span>{STATUS_LABEL[card.status]}</span>
         </div>
       )}
     </article>

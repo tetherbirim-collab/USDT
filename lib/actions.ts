@@ -220,7 +220,7 @@ export async function spendAction(formData: FormData) {
       cardId: card.id,
       kind: "harcama",
       title: merchant,
-      note: "Simüle harcama",
+      note: `${row.username} hesabından düştü`,
       amount: -amount,
       status: "tamamlandi",
       createdAt: now,

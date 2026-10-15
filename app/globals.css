@@ -1167,6 +1167,45 @@ select.field option {
   opacity: 1;
 }
 
+.desk-root {
+  min-height: 100vh;
+}
+
+.desk-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #07060b;
+}
+
+.desk-bg img {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: max(100vw, 100vh);
+  height: max(100vw, 100vh);
+  translate: -50% -50%;
+  object-fit: cover;
+}
+
+.desk-motion {
+  display: none;
+}
+
+.desk-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(7, 6, 11, 0.55) 0%, rgba(7, 6, 11, 0.18) 34%, rgba(7, 6, 11, 0.42) 100%);
+}
+
+.desk-root .glass {
+  background: linear-gradient(180deg, rgba(12, 10, 16, 0.78), rgba(12, 10, 16, 0.64));
+}
+
 .hero-mark {
   position: relative;
   width: min(100%, 420px);
@@ -1448,6 +1487,8 @@ select.field option {
 @media (prefers-reduced-motion: no-preference) {
   .hero-still { display: none; }
   .hero-motion { display: block; }
+  .desk-still { display: none; }
+  .desk-motion { display: block; }
 
   .load-ad-track {
     animation: load-ad 16s linear infinite;

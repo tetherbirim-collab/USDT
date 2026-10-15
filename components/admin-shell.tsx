@@ -30,7 +30,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, [user]);
   if (!user || user.role !== "yonetici") return <Boot />;
   return (
-    <div className="mx-auto min-h-screen max-w-6xl px-4 pb-20 pt-5">
+    <div className="desk-root">
+      <div className="desk-bg" aria-hidden>
+        <img className="desk-still" src="/clay-hero.png" alt="" width={420} height={420} />
+        <img className="desk-motion" src="/clay-hero.gif" alt="" width={420} height={420} />
+      </div>
+      <div className="relative z-[1] mx-auto min-h-screen max-w-6xl px-4 pb-20 pt-5">
       <header className="glass rounded-[28px] px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href={ADMIN_PATH} className="flex items-center gap-2">
@@ -62,6 +67,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
       <div className="mt-6">{children}</div>
+      </div>
     </div>
   );
 }

@@ -30,8 +30,8 @@ export default async function NewCardPage({
         </Link>
         <h1 className="font-display mt-3 text-4xl font-extrabold">Kart bas</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Türü seçip Kartı bas dediğinde yalnızca o türün BIN listesi açılır. Her türde hazır bir test
-          öneki durur: Test öneki, 400000. Yönetici başka satır ekleyebilir. Seçim yapılmadan kart
+          BIN’i buradan seçersin. Satın almadan önce önek kalır, kalan haneler X görünür. Kart oluşunca
+          16 hane yazılır ve Visa ya da Mastercard işareti o BIN’e göre değişir. Seçim yapılmadan kart
           oluşmaz. Numara sorgulama, kimlik belgesi ve ödeme yoktur. Tür adları senaryo etiketidir.
         </p>
       </div>

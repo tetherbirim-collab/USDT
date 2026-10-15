@@ -78,6 +78,10 @@ export type CardFace = {
   expiry: string;
   cvv: string;
   status: CardStatus;
+  /** Chosen BIN. The network mark follows these digits, not the card scene. */
+  bin?: string;
+  /** Purchase preview. BIN digits plus X for the unknown part of the 16. */
+  panLine?: string;
   masked?: boolean;
   /** Undefined hides the CVV until the member asks to see it. */
   hideCvv?: boolean;

@@ -9,6 +9,7 @@ import {
   MIN_LIMIT_KURUS,
 } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
+import { networkOf, previewPan } from "@/lib/pan";
 import type { BinRow, CardTypeId } from "@/lib/types";
 import { SubmitButton } from "./submit-button";
 import { VirtualCard } from "./virtual-card";
@@ -27,27 +28,31 @@ export function IssueForm({
   const [type, setType] = useState<CardTypeId>("facebook_ads");
   const [label, setLabel] = useState("Yeni prova");
   const [limit, setLimit] = useState("5000");
-  const [step, setStep] = useState<"form" | "bin">("form");
   const [binId, setBinId] = useState("");
   const [localError, setLocalError] = useState("");
   const fee = CARD_TYPES[type].fee;
   const blocked = balance < fee || slotsLeft <= 0;
   const choices = bins.filter((row) => row.type === type);
+  const chosen = choices.find((row) => row.id === binId);
+  const networkName = chosen ? (networkOf(chosen.digits) === "mastercard" ? "Mastercard" : networkOf(chosen.digits) === "visa" ? "Visa" : "Kart") : "";
 
-  function openBinSection() {
+  function readyToIssue() {
     const clean = label.trim();
     const amount = Number(limit.replace(",", "."));
     if (clean.length < 2 || clean.length > 32) {
       setLocalError("Etiket 2–32 karakter olmalı.");
-      return;
+      return false;
     }
     if (!Number.isFinite(amount) || amount * 100 < MIN_LIMIT_KURUS || amount * 100 > MAX_LIMIT_KURUS) {
       setLocalError("Tavan izin verilen aralığın dışında.");
-      return;
+      return false;
+    }
+    if (!chosen) {
+      setLocalError("Bir BIN seç.");
+      return false;
     }
     setLocalError("");
-    setBinId("");
-    setStep("bin");
+    return true;
   }
 
   return (
@@ -55,12 +60,10 @@ export function IssueForm({
       action={issueAction}
       className="grid items-start gap-6 lg:grid-cols-[1.1fr_.9fr]"
       onSubmit={(event) => {
-        if (step !== "bin" || choices.length === 0 || !binId) event.preventDefault();
+        if (!readyToIssue()) event.preventDefault();
       }}
     >
       <div className="grid gap-4">
-        {step === "form" ? (
-          <>
             <fieldset className="grid gap-3">
               <legend className="mb-1 text-sm font-semibold">Tür</legend>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -77,7 +80,7 @@ export function IssueForm({
                       checked={type === id}
                       onChange={() => {
                         setType(id);
-                        setStep("form");
+                        setBinId("");
                       }}
                     />
                     <span className="font-semibold">{CARD_TYPES[id].name}</span>
@@ -120,58 +123,46 @@ export function IssueForm({
             {balance < fee && (
               <p className="banner-bad">Bu türün basım ücreti için simülasyon bakiyesi yetersiz. Önce cüzdanı yükle.</p>
             )}
-            <button type="button" className="btn btn-gold w-fit" disabled={blocked} onClick={openBinSection}>
-              Kartı bas
-            </button>
-          </>
-        ) : (
-          <section id="bin-sec" className="grid gap-4 rounded-[24px] border border-gold/30 bg-black/20 p-4">
-            <input type="hidden" name="tur" value={type} />
-            <input type="hidden" name="etiket" value={label.trim()} />
-            <input type="hidden" name="limit" value={limit} />
-            <div>
-              <p className="text-xs font-bold tracking-[0.18em] text-gold">BIN SEÇ</p>
-              <h2 className="font-display mt-1 text-2xl font-bold">{CARD_TYPES[type].name}</h2>
-              <p className="mt-2 text-sm text-white/65">
-                Yalnızca bu türün listesi açılır. Başka türlerin BIN satırları burada görünmez.
-              </p>
-            </div>
-            {choices.length === 0 ? (
-              <p className="rounded-2xl bg-black/30 px-3 py-3 text-sm text-white/75">
-                Bu türün listesinde satır yok. Yönetim masası bir satır ekleyince burada görünür. Seçim
-                yapılmadan kart oluşmaz.
-              </p>
-            ) : (
-              <fieldset className="grid gap-2">
-                <legend className="mb-1 text-sm font-semibold">Bu türün BIN satırları</legend>
-                {choices.map((row) => (
-                  <label key={row.id} className="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 px-3 py-3">
-                    <input
-                      type="radio"
-                      name="bin"
-                      value={row.id}
-                      checked={binId === row.id}
-                      onChange={() => setBinId(row.id)}
-                      required
-                    />
-                    <span>
-                      <span className="block font-semibold">{row.label}</span>
-                      <span className="font-mono text-sm text-white/70">{row.digits}</span>
-                    </span>
-                  </label>
-                ))}
-              </fieldset>
-            )}
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn btn-ghost" onClick={() => setStep("form")}>
-                Geri
-              </button>
-              <SubmitButton className="btn btn-gold" disabled={choices.length === 0 || !binId}>
-                Kartı oluştur
-              </SubmitButton>
-            </div>
-          </section>
-        )}
+            <section id="bin-sec" className="grid gap-3 rounded-[24px] border border-gold/30 bg-black/20 p-4">
+              <div>
+                <p className="text-xs font-bold tracking-[0.18em] text-gold">BIN SEÇ</p>
+                <p className="mt-2 text-sm text-white/65">
+                  Yönetim masasının bu türe eklediği satırlar. Satın alırken kalan haneler X durur. Örnek: 42330 seçilirse önizleme 4233 0XXX XXXX XXXX olur.
+                </p>
+              </div>
+              {choices.length === 0 ? (
+                <p className="rounded-2xl bg-black/30 px-3 py-3 text-sm text-white/75">
+                  Bu türün listesinde satır yok. Yönetim masası bir satır ekleyince burada görünür.
+                </p>
+              ) : (
+                <fieldset className="grid gap-2">
+                  <legend className="sr-only">BIN</legend>
+                  {choices.map((row) => {
+                    const mark = networkOf(row.digits);
+                    return (
+                      <label key={row.id} className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-3 ${binId === row.id ? "border-gold bg-white/10" : "border-white/10"}`}>
+                        <input
+                          type="radio"
+                          name="bin"
+                          value={row.id}
+                          checked={binId === row.id}
+                          onChange={() => setBinId(row.id)}
+                          required
+                        />
+                        <span>
+                          <span className="block font-semibold">{row.label}</span>
+                          <span className="font-mono text-sm text-white/70">{previewPan(row.digits)}</span>
+                          <span className="mt-1 block text-xs text-white/50">{mark === "mastercard" ? "Mastercard" : mark === "visa" ? "Visa" : "Kart işareti"}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </fieldset>
+              )}
+            </section>
+            <SubmitButton className="btn btn-gold w-fit" disabled={blocked || !chosen}>
+              Kartı oluştur
+            </SubmitButton>
       </div>
       <div>
         <VirtualCard
@@ -180,6 +171,8 @@ export function IssueForm({
             label: label || "Etiket",
             holder,
             pan: "",
+            bin: chosen?.digits,
+            panLine: chosen ? previewPan(chosen.digits) : "XXXX XXXX XXXX XXXX",
             expiry: "",
             cvv: "",
             status: "aktif",
@@ -187,8 +180,9 @@ export function IssueForm({
           }}
         />
         <p className="mt-3 text-sm text-white/60">
-          Numara, seçilen BIN önekiyle basım anında üretilir. Önizleme maskelidir. Bu bir numara
-          sorgulama aracı değildir.
+          {chosen
+            ? `${networkName} işareti bu BIN’e göre durur. Satın alınca X’lerin yerine 16 hane yazılır.`
+            : "BIN seçilince önek kalır, kalan haneler X olur. Satın alınca numara açılır."}
         </p>
       </div>
     </form>

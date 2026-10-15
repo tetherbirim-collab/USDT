@@ -469,7 +469,7 @@ function normalize(db: DB): DB {
     }
   }
   for (const card of db.cards) {
-    if (!/^\d{6,8}$/.test(card.bin ?? "")) {
+    if (!/^\d{4,8}$/.test(card.bin ?? "")) {
       card.bin = card.pan.slice(0, 6);
       dirty = true;
     }

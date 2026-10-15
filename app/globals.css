@@ -195,6 +195,10 @@ select.field option {
   gap: 2.2cqw;
 }
 
+.vcard:has(.vcard-status) .vcard-top {
+  padding-right: 92px;
+}
+
 .vcard-id {
   min-width: 0;
 }
@@ -313,20 +317,21 @@ select.field option {
 
 .vcard-status {
   position: absolute;
-  inset: 0;
+  top: 14px;
+  right: 14px;
   z-index: 30;
-  display: grid;
-  place-items: center;
-  background: rgba(0, 0, 0, 0.55);
+  pointer-events: none;
 }
 
 .vcard-status span {
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  display: inline-block;
+  border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 999px;
-  padding: 1.6cqw 4.2cqw;
-  font-size: 3.1cqw;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 3px 7px;
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.06em;
   color: white;
 }
 

@@ -1,5 +1,6 @@
 import { CARD_TYPES, KIND_LABEL } from "./catalog";
 import { formatDay, formatSigned, formatUsd, formatWhen, istanbulKey, parseTryToKurus } from "./format";
+import { networkOf } from "./pan";
 import type { Card, CardTypeId, Tx, TxKind } from "./types";
 
 export type PayBucket = "basarili" | "beklemede" | "reddedildi" | "iptal" | "iade" | "nakit" | "diger";
@@ -21,6 +22,13 @@ const NETWORK: Record<CardTypeId, string> = {
   google_ads: "Visa",
   ultima: "Visa",
 };
+
+function networkLabel(card: Card): string {
+  const mark = networkOf(card.bin || card.pan);
+  if (mark === "visa") return "Visa";
+  if (mark === "mastercard") return "Mastercard";
+  return NETWORK[card.type];
+}
 
 const KINDS = new Set<TxKind>(["yukleme", "harcama", "iade", "basim", "duzeltme", "yenileme", "transfer"]);
 
@@ -141,7 +149,7 @@ export function presentPayments(entries: Tx[], cards: Card[]): PaymentRow[] {
       when: formatWhen(entry.createdAt),
       cardLabel: card?.label ?? "Cüzdan",
       last4: card ? card.pan.slice(-4) : "",
-      network: card ? NETWORK[card.type] : "",
+      network: card ? networkLabel(card) : "",
       typeName: card ? CARD_TYPES[card.type].name : "Hesap",
       title: entry.title,
       detail: entry.note,

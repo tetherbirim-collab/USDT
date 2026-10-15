@@ -1,5 +1,6 @@
 import { CARD_TYPES } from "@/lib/catalog";
 import { formatPan } from "@/lib/format";
+import { networkOf } from "@/lib/pan";
 import type { CardFace, CardTypeId } from "@/lib/types";
 
 type Network = "visa" | "mastercard";
@@ -130,8 +131,9 @@ export function VirtualCard({
 }) {
   const tone = TONE[card.type];
   const light = tone === "light";
-  const hide = Boolean(card.masked) || card.status === "hazirlaniyor";
-  const pan = hide ? "•••• •••• •••• ••••" : formatPan(card.pan);
+  const hide = Boolean(card.masked);
+  const pan = card.panLine || (hide ? "•••• •••• •••• ••••" : formatPan(card.pan));
+  const network = networkOf(card.bin || card.panLine || card.pan) ?? NETWORK[card.type];
   const ink = light ? "#202124" : "#fff";
   const mute = light ? "rgba(32,33,36,.62)" : "rgba(255,255,255,.72)";
   const name = CARD_TYPES[card.type].name;
@@ -185,7 +187,7 @@ export function VirtualCard({
           </div>
         </div>
         <div className="vcard-net">
-          {NETWORK[card.type] === "visa" ? <VisaMark ink={light ? "#1a1f71" : "#fff"} /> : <MastercardMark />}
+          {network === "visa" ? <VisaMark ink={light ? "#1a1f71" : "#fff"} /> : <MastercardMark />}
         </div>
       </footer>
       {card.status !== "aktif" && (

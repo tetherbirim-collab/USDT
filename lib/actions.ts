@@ -586,7 +586,7 @@ export async function adminEditTxAction(formData: FormData) {
 function parseBinDraft(formData: FormData) {
   const label = String(formData.get("etiket") || "").replace(/\s+/g, " ").trim();
   const digits = String(formData.get("rakam") || "").replace(/\s/g, "");
-  if (label.length < 2 || label.length > 40 || !/^\d{6,8}$/.test(digits)) return null;
+  if (label.length < 2 || label.length > 40 || !/^\d{4,8}$/.test(digits)) return null;
   return { label, digits };
 }
 
@@ -645,7 +645,7 @@ function parsePasteLine(line: string) {
   const label = (split ? split.join("|") : trimmed.slice(0, trimmed.length - digits.length))
     .replace(/\s+/g, " ")
     .trim();
-  if (label.length < 2 || label.length > 40 || !/^\d{6,8}$/.test(digits)) return null;
+  if (label.length < 2 || label.length > 40 || !/^\d{4,8}$/.test(digits)) return null;
   return { label, digits };
 }
 

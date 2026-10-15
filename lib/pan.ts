@@ -32,9 +32,26 @@ export function luhnOk(num: string): boolean {
   return sum % 10 === 0;
 }
 
+export const BIN_PATTERN = /^\d{4,8}$/;
+
+/** Visa starts with 4. Mastercard starts with 5, or the 2-series. */
+export function networkOf(prefix: string): "visa" | "mastercard" | null {
+  const digits = prefix.replace(/\D/g, "");
+  if (digits.startsWith("4")) return "visa";
+  if (digits.startsWith("5") || digits.startsWith("2")) return "mastercard";
+  return null;
+}
+
+/** Purchase preview: keep the chosen BIN and fill the rest of the 16 digits with X. */
+export function previewPan(bin: string): string {
+  const digits = bin.replace(/\D/g, "").slice(0, 15);
+  const line = `${digits}${"X".repeat(16)}`.slice(0, 16);
+  return line.replace(/(.{4})/g, "$1 ").trim();
+}
+
 /** Demo PAN. Prefix is the BIN stored on the card; the rest is a local serial plus a Luhn digit. */
 export function makePan(serial: number, bin = TEST_BIN): string {
-  if (!/^\d{6,8}$/.test(bin)) throw new Error("BIN rakamları geçersiz");
+  if (!BIN_PATTERN.test(bin)) throw new Error("BIN rakamları geçersiz");
   if (!Number.isInteger(serial) || serial < 0) throw new Error("Geçersiz simülasyon seri numarası");
   const accountLen = 15 - bin.length;
   const body = `${bin}${String(serial % 10 ** accountLen).padStart(accountLen, "0")}`;

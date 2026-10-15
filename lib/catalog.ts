@@ -174,7 +174,7 @@ export const NOTICES: Record<string, string> = {
   "e-yukleme-yok": "Bu hesapta düzenlenecek bir yükleme yok.",
   bin: "BIN satırı bu türün listesine yazıldı. Numara sorgulama yoktur.",
   "e-bin": "Kart oluşturmak için bu türe ait bir BIN seç. Liste boşsa basım kapalı.",
-  "e-bin-kayit": "Etiket 2–40 karakter, BIN ise 6–8 rakam olmalı. Aynı türde aynı rakam iki kez durmaz.",
+  "e-bin-kayit": "Etiket 2–40 karakter, BIN ise 4–8 rakam olmalı. Aynı türde aynı rakam iki kez durmaz.",
   parola: "Parola güncellendi. Yönetim masasında yeni parola görünür.",
   "e-parola": "Yeni parola 6–72 karakter olmalı ve tekrar ile aynı olmalı.",
   "e-parola-eski": "Mevcut parola hatalı.",

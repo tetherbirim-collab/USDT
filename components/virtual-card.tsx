@@ -6,40 +6,35 @@ type Network = "visa" | "mastercard";
 type Tone = "light" | "dark";
 
 const NETWORK: Record<CardTypeId, Network> = {
-  reklam: "visa",
-  abonelik: "visa",
-  ultima: "visa",
-  google_ads: "visa",
-  facebook: "visa",
-  alisveris: "mastercard",
-  seyahat: "mastercard",
   facebook_ads: "mastercard",
   tiktok: "mastercard",
+  google_ads: "visa",
+  ultima: "visa",
 };
 
 const TONE: Record<CardTypeId, Tone> = {
-  reklam: "dark",
-  alisveris: "dark",
-  abonelik: "dark",
-  seyahat: "dark",
-  ultima: "dark",
-  google_ads: "light",
   facebook_ads: "dark",
-  facebook: "dark",
   tiktok: "dark",
+  google_ads: "light",
+  ultima: "dark",
 };
 
 const SKINS: Record<CardTypeId, string> = {
-  reklam: "linear-gradient(145deg, #7c3aed 0%, #c026d3 46%, #2e1065 100%)",
-  alisveris: "linear-gradient(150deg, #ff8a3d 0%, #e11d48 52%, #7f1d1d 100%)",
-  abonelik: "linear-gradient(155deg, #14b8a6 0%, #0f766e 48%, #042f2e 100%)",
-  seyahat: "linear-gradient(160deg, #38bdf8 0%, #1d4ed8 46%, #0f172a 100%)",
+  facebook_ads:
+    "radial-gradient(90% 80% at 0% 0%, rgba(255,255,255,.5), transparent 42%), linear-gradient(155deg, #7eb6ff 0%, #1877f2 48%, #0a4fb3 100%)",
+  tiktok:
+    "radial-gradient(70% 80% at 100% 0%, rgba(37,244,238,.4), transparent 42%), radial-gradient(70% 70% at 0% 100%, rgba(254,44,85,.38), transparent 46%), linear-gradient(165deg, #2a2a2a 0%, #070707 68%, #141414 100%)",
+  google_ads:
+    "radial-gradient(80% 70% at 100% 0%, rgba(66,133,244,.22), transparent 46%), radial-gradient(60% 50% at 0% 100%, rgba(52,168,83,.16), transparent 50%), linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%)",
   ultima:
-    "linear-gradient(145deg, #8a8a92 0%, #3a3a40 22%, #121214 58%, #5c5c64 100%)",
-  google_ads: "linear-gradient(180deg, #ffffff 0%, #f6f7f9 70%, #eef1f4 100%)",
-  facebook_ads: "linear-gradient(155deg, #4c9aff 0%, #1877f2 42%, #0a4fb3 100%)",
-  facebook: "linear-gradient(160deg, #3b8cff 0%, #1877f2 40%, #0b5ed7 100%)",
-  tiktok: "linear-gradient(160deg, #222 0%, #050505 62%, #111 100%)",
+    "radial-gradient(80% 70% at 0% 0%, rgba(255,236,196,.62), transparent 40%), linear-gradient(145deg, #8d8d96 0%, #3a3a40 26%, #0c0c0e 64%, #4a4a52 100%)",
+};
+
+const GLOW: Record<CardTypeId, string> = {
+  facebook_ads: "0 0 46px rgba(24,119,242,.55)",
+  tiktok: "0 0 28px rgba(37,244,238,.4), 0 0 42px rgba(254,44,85,.32)",
+  google_ads: "0 0 36px rgba(66,133,244,.35)",
+  ultima: "0 0 42px rgba(240,201,138,.42)",
 };
 
 const STATUS_LABEL = {
@@ -67,7 +62,7 @@ function MastercardMark() {
 }
 
 function TypeMark({ type }: { type: CardTypeId }) {
-  if (type === "facebook" || type === "facebook_ads") {
+  if (type === "facebook_ads") {
     return (
       <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-hidden>
         <circle cx="16" cy="16" r="16" fill="#fff" />
@@ -97,36 +92,6 @@ function TypeMark({ type }: { type: CardTypeId }) {
       </svg>
     );
   }
-  if (type === "alisveris") {
-    return (
-      <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-hidden>
-        <path d="M9 12h14l-1.2 12H10.2L9 12z" fill="#fff" />
-        <path d="M12.5 12V10a3.5 3.5 0 0 1 7 0v2" fill="none" stroke="#fff" strokeWidth="2" />
-      </svg>
-    );
-  }
-  if (type === "seyahat") {
-    return (
-      <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-hidden>
-        <path d="M4 18 28 10l-8 12 2 4-4-2-6 2 2-6z" fill="#fff" />
-      </svg>
-    );
-  }
-  if (type === "abonelik") {
-    return (
-      <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-hidden>
-        <path d="M16 6a10 10 0 0 1 8.6 5H20v3h8V6h-3v2.2A13 13 0 1 0 29 16h-3a10 10 0 1 1-10-10z" fill="#fff" />
-      </svg>
-    );
-  }
-  if (type === "reklam") {
-    return (
-      <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-hidden>
-        <path d="M8 13h5l8-5v16l-8-5H8z" fill="#fff" />
-        <path d="M22 12.5a6 6 0 0 1 0 7" fill="none" stroke="#fff" strokeWidth="2" />
-      </svg>
-    );
-  }
   return (
     <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-hidden>
       <path d="M16 4 27 12.5 23 26H9L5 12.5 16 4z" fill="#f0c98a" />
@@ -152,7 +117,11 @@ export function VirtualCard({
   return (
     <article
       className={`vcard ${card.type === "ultima" ? "vcard-metal" : ""} ${light ? "vcard-light" : ""} ${compact ? "p-4" : "p-5 sm:p-6"}`}
-      style={{ background: SKINS[card.type], color: ink }}
+      style={{
+        background: SKINS[card.type],
+        color: ink,
+        boxShadow: `0 22px 48px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.5), ${GLOW[card.type]}`,
+      }}
       aria-label={`${name} kartı. Demo verisidir, gerçek üye işyerinde kullanılamaz.`}
     >
       {card.type === "google_ads" && (
@@ -183,7 +152,7 @@ export function VirtualCard({
             <p className="text-[9px] uppercase tracking-[0.14em]" style={{ color: mute }}>
               Ad
             </p>
-            <p className="truncate text-xs font-semibold">{card.holder}</p>
+            <p className="truncate font-display text-sm font-bold tracking-wide">Clay</p>
           </div>
           <div>
             <p className="text-[9px] uppercase tracking-[0.14em]" style={{ color: mute }}>
@@ -198,7 +167,6 @@ export function VirtualCard({
             <p className="text-xs font-semibold">{card.masked ? "•••" : card.cvv}</p>
           </div>
         </div>
-        <p className="text-[11px] font-semibold leading-none">Clay</p>
       </div>
       {card.status !== "aktif" && (
         <div className="absolute inset-0 z-30 grid place-items-center bg-black/55">

@@ -17,8 +17,8 @@ function createSeed(): DB {
   const reklam: Card = {
     id: "crd_reklam",
     userId: demoId,
-    type: "reklam",
-    label: "Kuzey Kampanya",
+    type: "facebook_ads",
+    label: "Akış Kampanyası",
     limit: 2_500_000,
     spent: 0,
     pan: makePan(100_000_001),
@@ -26,15 +26,15 @@ function createSeed(): DB {
     binLabel: "Test öneki",
     expiry: "08/28",
     cvv: makeCvv(100_000_001),
-    holder: "DEMO KULLANICI",
+    holder: "Clay",
     status: "aktif",
     createdAt: "2026-09-28T09:04:00.000Z",
   };
   const alisveris: Card = {
     id: "crd_alisveris",
     userId: demoId,
-    type: "alisveris",
-    label: "Pazar Sepeti",
+    type: "tiktok",
+    label: "Kısa Video",
     limit: 1_000_000,
     spent: 0,
     pan: makePan(100_000_002),
@@ -42,15 +42,15 @@ function createSeed(): DB {
     binLabel: "Test öneki",
     expiry: "03/29",
     cvv: makeCvv(100_000_002),
-    holder: "DEMO KULLANICI",
+    holder: "Clay",
     status: "aktif",
     createdAt: "2026-10-05T08:39:00.000Z",
   };
   const abonelik: Card = {
     id: "crd_abonelik",
     userId: demoId,
-    type: "abonelik",
-    label: "Araçlar",
+    type: "google_ads",
+    label: "Arama Kampanyası",
     limit: 400_000,
     spent: 0,
     pan: makePan(100_000_003),
@@ -58,7 +58,7 @@ function createSeed(): DB {
     binLabel: "Test öneki",
     expiry: "11/27",
     cvv: makeCvv(100_000_003),
-    holder: "DEMO KULLANICI",
+    holder: "Clay",
     status: "donduruldu",
     createdAt: "2026-10-08T08:59:00.000Z",
   };
@@ -91,9 +91,9 @@ function createSeed(): DB {
       userId: demoId,
       cardId: reklam.id,
       kind: "basim",
-      title: "Basım · Kuzey Kampanya",
+      title: "Basım · Akış Kampanyası",
       note: "Simülasyon basım ücreti",
-      amount: -2900,
+      amount: -4500,
       status: "tamamlandi",
       createdAt: "2026-09-28T09:05:00.000Z",
     }),
@@ -142,9 +142,9 @@ function createSeed(): DB {
       userId: demoId,
       cardId: alisveris.id,
       kind: "basim",
-      title: "Basım · Pazar Sepeti",
+      title: "Basım · Kısa Video",
       note: "Simülasyon basım ücreti",
-      amount: -2900,
+      amount: -3900,
       status: "tamamlandi",
       createdAt: "2026-10-05T08:40:00.000Z",
     }),
@@ -173,9 +173,9 @@ function createSeed(): DB {
       userId: demoId,
       cardId: abonelik.id,
       kind: "basim",
-      title: "Basım · Araçlar",
+      title: "Basım · Arama Kampanyası",
       note: "Simülasyon basım ücreti",
-      amount: -2900,
+      amount: -4500,
       status: "tamamlandi",
       createdAt: "2026-10-08T09:00:00.000Z",
     }),
@@ -241,15 +241,43 @@ function createSeed(): DB {
       status: "tamamlandi",
       createdAt: "2026-10-14T08:20:00.000Z",
     }),
+    tx({
+      id: "tx_17",
+      userId: demoId,
+      cardId: "crd_ultima",
+      kind: "basim",
+      title: "Basım · Ultima",
+      note: "Simülasyon basım ücreti",
+      amount: -7900,
+      status: "tamamlandi",
+      createdAt: "2026-10-09T09:10:00.000Z",
+    }),
   ];
+
+  const ultima: Card = {
+    id: "crd_ultima",
+    userId: demoId,
+    type: "ultima",
+    label: "Ultima",
+    limit: 5_000_000,
+    spent: 0,
+    pan: makePan(100_000_004),
+    bin: "400000",
+    binLabel: "Test öneki",
+    expiry: "01/30",
+    cvv: makeCvv(100_000_004),
+    holder: "Clay",
+    status: "aktif",
+    createdAt: "2026-10-09T09:10:00.000Z",
+  };
 
   const db: DB = {
     users: [user, adminRecord()],
-    cards: [reklam, alisveris, abonelik],
+    cards: [reklam, alisveris, abonelik, ultima],
     transactions,
     notices: [],
     bins: [],
-    nextSerial: 100_000_004,
+    nextSerial: 100_000_005,
   };
   applyLedger(db);
   return db;
@@ -347,6 +375,13 @@ function normalize(db: DB): DB {
     db.bins = [];
     dirty = true;
   }
+  const kept = new Set(["facebook_ads", "tiktok", "google_ads", "ultima"]);
+  const cardCount = db.cards.length;
+  db.cards = db.cards.filter((card) => kept.has(card.type));
+  if (db.cards.length !== cardCount) dirty = true;
+  const binCount = db.bins.length;
+  db.bins = db.bins.filter((row) => kept.has(row.type));
+  if (db.bins.length !== binCount) dirty = true;
   for (const card of db.cards) {
     if (!/^\d{6,8}$/.test(card.bin ?? "")) {
       card.bin = card.pan.slice(0, 6);

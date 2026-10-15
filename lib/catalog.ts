@@ -10,77 +10,35 @@ export const MAX_SPEND_KURUS = 2_000_000;
 export const MIN_LIMIT_KURUS = 10_000;
 export const MAX_LIMIT_KURUS = 10_000_000;
 
-export const CARD_TYPE_ORDER: CardTypeId[] = [
-  "reklam",
-  "alisveris",
-  "abonelik",
-  "seyahat",
-  "ultima",
-  "google_ads",
-  "facebook_ads",
-  "facebook",
-  "tiktok",
-];
+export const CARD_TYPE_ORDER: CardTypeId[] = ["facebook_ads", "tiktok", "google_ads", "ultima"];
 
 export const CARD_TYPES: Record<
   CardTypeId,
   { name: string; pitch: string; scene: string; fee: number }
 > = {
-  reklam: {
-    name: "Reklam",
-    pitch: "Kampanya tavanı",
-    scene: "Medya denemelerini ayrı limitte tut. Hiçbir reklam hesabına bağlanmaz.",
-    fee: 2900,
-  },
-  alisveris: {
-    name: "Alışveriş kartı",
-    pitch: "Sepet provası",
-    scene: "Pazar yeri senaryolarını tek kartta izole et. Tahsilat yoktur.",
-    fee: 1900,
-  },
-  abonelik: {
-    name: "Abonelik",
-    pitch: "Araç tavanı",
-    scene: "Tekrarlayan servis provasını sabit bir tavana yaz.",
-    fee: 1500,
-  },
-  seyahat: {
-    name: "Seyahat",
-    pitch: "Rezervasyon provası",
-    scene: "Bilet ve konaklama akışını gerçek kart kullanmadan dene.",
-    fee: 3500,
-  },
-  ultima: {
-    name: "Ultima",
-    pitch: "Geniş prova tavanı",
-    scene:
-      "Birkaç reklam senaryosunu tek premium kartta topla. Bir ağa bağlı değildir; basım ücreti simülasyondur.",
-    fee: 7900,
-  },
-  google_ads: {
-    name: "Google Ads",
-    pitch: "Arama provası",
-    scene:
-      "Arama kampanyası bütçesini ayrı tavanda dene. Resmi hesap bağlantısı ve iş ortaklığı yoktur.",
-    fee: 4500,
-  },
   facebook_ads: {
     name: "Facebook Ads",
     pitch: "Akış bütçesi",
     scene: "Akış reklamı provası için ayrı limit. Platforma bağlanmaz, tahsilat yapılmaz.",
     fee: 4500,
   },
-  facebook: {
-    name: "Facebook",
-    pitch: "Sayfa provası",
-    scene: "Sayfa ve sosyal denemeleri ayırmak için. Resmi bir ürün değildir.",
-    fee: 2500,
-  },
   tiktok: {
     name: "TikTok",
     pitch: "Kısa video provası",
     scene: "Kısa video kampanyasını kendi tavanında izle. Uygulama hesabına bağlanmaz.",
     fee: 3900,
+  },
+  google_ads: {
+    name: "Google Ads",
+    pitch: "Arama provası",
+    scene: "Arama kampanyası bütçesini ayrı tavanda dene. Resmi hesap bağlantısı ve iş ortaklığı yoktur.",
+    fee: 4500,
+  },
+  ultima: {
+    name: "Ultima",
+    pitch: "Geniş prova tavanı",
+    scene: "Koyu metal bir prova kartı. Bir ağa bağlı değildir; basım ücreti simülasyondur.",
+    fee: 7900,
   },
 };
 

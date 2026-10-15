@@ -59,14 +59,14 @@ export default async function AdminPage({
         <h1 className="font-display text-4xl font-extrabold">Yönetim masası</h1>
         <p className="mt-2 max-w-2xl text-white/70">
           Üye listesi, simülasyon bakiyesi ve kart durumu burada değişir. Kimlik belgesi yok, gerçek
-          kart yok, tahsilat yok. Numaralar 400000 test BIN’idir.
+          kart yok, tahsilat yok. Numaralar 400000 test önekidir.
         </p>
       </div>
       <Notice code={one(sp.bildirim)} />
       <section className="glass rounded-[28px] p-5">
         <h2 className="font-display text-2xl font-bold">Bildirimler</h2>
         <p className="mt-1 text-sm text-white/60">
-          Mesaj üye paneline düşer. Duyuru simülasyondur; e-posta veya SMS gitmez.
+          Mesaj üye paneline düşer. Duyuru simülasyondur; e-posta veya kısa mesaj gitmez.
         </p>
         <form action={adminNoticeAction} className="mt-4 grid gap-3">
           <label className="grid gap-1 text-sm">

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     template: "%s · CLAY",
   },
   description:
-    "CLAY Sanal Kart Hizmetleri, reklam ve alışveriş senaryoları için simülasyon sanal kart panelidir. Gerçek tahsilat ve kart ihracı yoktur.",
+    "CLAY Sanal Kart Hizmetleri, Facebook Ads, TikTok, Google Ads ve Ultima senaryoları için simülasyon sanal kart panelidir. Gerçek tahsilat ve kart ihracı yoktur.",
   robots: { index: false, follow: false },
 };
 

@@ -1,15 +1,6 @@
 export type PlanId = "kivilcim" | "atolye" | "galeri";
 
-export type CardTypeId =
-  | "reklam"
-  | "alisveris"
-  | "abonelik"
-  | "seyahat"
-  | "ultima"
-  | "google_ads"
-  | "facebook_ads"
-  | "facebook"
-  | "tiktok";
+export type CardTypeId = "facebook_ads" | "tiktok" | "google_ads" | "ultima";
 
 export type CardStatus = "aktif" | "donduruldu" | "kapali";
 

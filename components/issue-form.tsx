@@ -24,7 +24,7 @@ export function IssueForm({
   slotsLeft: number;
   bins: Pick<BinRow, "id" | "type" | "label" | "digits">[];
 }) {
-  const [type, setType] = useState<CardTypeId>("reklam");
+  const [type, setType] = useState<CardTypeId>("facebook_ads");
   const [label, setLabel] = useState("Yeni prova");
   const [limit, setLimit] = useState("5000");
   const [step, setStep] = useState<"form" | "bin">("form");

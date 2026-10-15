@@ -7,7 +7,7 @@ import { TiltCard } from "./tilt-card";
 import { VirtualCard } from "./virtual-card";
 
 const TICKER =
-  "SİMÜLASYON  ·  GERÇEK TAHSİLAT YOK  ·  TEST BIN 400000  ·  ÜYE İŞYERİNDE GEÇMEZ  ·  KİMLİK BELGESİ YOK  ·  ";
+  "SİMÜLASYON  ·  GERÇEK TAHSİLAT YOK  ·  TEST ÖNEKİ 400000  ·  ÜYE İŞYERİNDE GEÇMEZ  ·  KİMLİK BELGESİ YOK  ·  ";
 
 const STEPS = [
   {
@@ -35,7 +35,7 @@ const STEPS = [
 const FAQ = [
   {
     q: "Bu gerçek bir kart mı?",
-    a: "Hayır. CLAY kart basmaz, banka değildir ve bir ödeme kuruluşu değildir. Gördüğün numaralar ayrılmış test BIN’i ile üretilmiş sahte demo verisidir.",
+    a: "Hayır. CLAY kart basmaz, banka değildir ve bir ödeme kuruluşu değildir. Gördüğün numaralar ayrılmış test öneki ile üretilmiş sahte demo verisidir.",
   },
   {
     q: "Param çekilir mi?",
@@ -57,7 +57,7 @@ export function Marketing({
   deskLabel?: string;
 }) {
   const sample = {
-    type: "reklam" as const,
+    type: "facebook_ads" as const,
     label: "Örnek görünüm",
     holder: "CLAY",
     pan: makePan(100_000_042),
@@ -114,7 +114,7 @@ export function Marketing({
               Her iş için ayrı bir sanal kart.
             </h1>
             <p className="mt-5 max-w-xl text-lg text-white/75">
-              Kampanya, pazar yeri, abonelik ve seyahat provasını aynı cüzdanda tut. CLAY
+              Facebook Ads, TikTok, Google Ads ve Ultima provasını aynı cüzdanda tut. CLAY
               kart basar, tavan koyar, dondurur ve işlem dökümü tutar — tamamen simülasyon olarak.
               Kasaya gerçek para girmez.
             </p>
@@ -128,7 +128,7 @@ export function Marketing({
             </div>
             <dl className="mt-10 grid grid-cols-3 gap-3 text-sm">
               {[
-                ["400000", "test BIN"],
+                ["400000", "test öneki"],
                 [String(CARD_TYPE_ORDER.length), "kart türü"],
                 ["0 ₺", "gerçek tahsilat"],
               ].map(([value, label]) => (
@@ -155,10 +155,10 @@ export function Marketing({
             <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">Ayrı sahneler</h2>
             <p className="mt-3 text-white/70">
               Her türün kendi tavanı ve simülasyon basım ücreti vardır. Hiçbiri canlı bir ağa
-              bağlanmaz. Reklam adları senaryo etiketidir; resmi iş ortaklığı yoktur.
+              bağlanmaz. Tür adları senaryo etiketidir; resmi iş ortaklığı yoktur.
             </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             {CARD_TYPE_ORDER.map((id, index) => (
               <article key={id} className="glass rounded-[24px] p-4">
                 <VirtualCard

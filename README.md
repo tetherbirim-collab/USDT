@@ -1,6 +1,6 @@
 # CLAY Sanal Kart Hizmetleri
 
-CLAY, reklam ve çevrimiçi alışveriş senaryoları için **simülasyon** sanal kart panelidir. Tam ad **CLAY Sanal Kart Hizmetleri**. Gerçek kart basılmaz, gerçek ödeme alınmaz, hiçbir kart gerçek üye işyerinde kullanılamaz.
+CLAY, Facebook Ads, TikTok, Google Ads ve Ultima senaryoları için **simülasyon** sanal kart panelidir. Tam ad **CLAY Sanal Kart Hizmetleri**. Gerçek kart basılmaz, gerçek ödeme alınmaz, hiçbir kart gerçek üye işyerinde kullanılamaz.
 
 Bu bir banka veya kart kuruluşu değildir. Kimlik doğrulama, 3-D Secure ve ödeme sağlayıcısı yoktur.
 
@@ -42,8 +42,8 @@ Her kart türünün BIN listesi boş başlar. Yönetici etiket ve 6–8 rakamlı
 
 ## Kartlar hakkında
 
-Türler: Reklam, Alışveriş kartı, Abonelik, Seyahat, Ultima, Google Ads, Facebook Ads, Facebook ve TikTok. Bunlar senaryo etiketidir; Google, Meta, TikTok veya başka bir kuruluşla iş ortaklığı yoktur. Her türün kendi simülasyon basım ücreti vardır.
+Türler: Facebook Ads, TikTok, Google Ads ve Ultima. Bunlar senaryo etiketidir; Google, Meta, TikTok veya başka bir kuruluşla iş ortaklığı yoktur. Her türün kendi simülasyon basım ücreti vardır.
 
-Basılan numaralar ayrılmış test BIN (`400000`) ile üretilen sahte demo verileridir. Kartın üzerinde ve panelde **SİMÜLASYON** ibaresi bulunur. Bu numaralar gerçek ödeme aracı değildir; üye işyerinde kullanılamaz. Çalışan kart dışa aktarma yoktur.
+Basılan demo numaraları ayrılmış test öneki (`400000`) ile üretilir. Kartın ad yerinde Clay yazar. Bu numaralar gerçek ödeme aracı değildir; üye işyerinde kullanılamaz. Çalışan kart dışa aktarma yoktur.
 
 Vitrindeki fiyatlar örnektir, tahsilat yapılmaz.

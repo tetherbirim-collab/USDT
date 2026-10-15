@@ -22,7 +22,7 @@ export function AuthShell({
                 <path d="M3 10h18" stroke="currentColor" strokeWidth="1.8" />
               </svg>
             </span>
-            clay virtual card
+            Clay sanal kart
           </Link>
           <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-8">
             <h1 className="font-display text-4xl font-extrabold text-[#1c2430]">{title}</h1>

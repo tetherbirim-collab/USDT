@@ -14,7 +14,7 @@ export default async function NoticesPage() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">SİMÜLASYON</p>
         <h1 className="font-display text-4xl font-extrabold">Bildirimler</h1>
         <p className="mt-2 max-w-xl text-white/70">
-          CLAY yönetim masasının yazdığı mesajlar. E-posta veya SMS gitmez; kayıt yalnızca bu panelde durur.
+          CLAY yönetim masasının yazdığı mesajlar. E-posta veya kısa mesaj gitmez; kayıt yalnızca bu panelde durur.
         </p>
       </div>
       {notes.length === 0 ? (

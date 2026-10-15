@@ -42,7 +42,7 @@ function NavLinks({ path, stacked = false }: { path: string; stacked?: boolean }
           <Link
             key={href}
             href={href}
-            className={`nav-pill rounded-full px-3 py-2 text-sm font-bold whitespace-nowrap ${stacked ? "text-center" : ""} ${active ? "bg-gold text-[#24180a]" : "bg-white/5 text-white/80"}`}
+            className={`nav-pill rounded-full px-3 py-2 text-sm font-bold whitespace-nowrap ${stacked ? "text-center" : ""} ${active ? "nav-on" : "bg-white/5 text-white/80"}`}
           >
             {label}
           </Link>
@@ -67,7 +67,7 @@ export function PanelFrame({
   unread?: number;
   children: React.ReactNode;
 }) {
-  const path = usePathname();
+  const path = usePathname().replace(/\/$/, "") || "/";
   return (
     <div className="mx-auto min-h-screen max-w-6xl px-4 pb-20 pt-5">
       <header className="glass rounded-[28px] px-4 py-4 sm:px-5">
@@ -103,6 +103,11 @@ export function PanelFrame({
             <NavLinks path={path} stacked />
           </div>
         </details>
+        <p className="trust-line">
+          <span>KYC YOK</span>
+          <span className="trust-hot">LOG YOK</span>
+          <span>TAMAMEN GÜVENLİ VE ANONİM</span>
+        </p>
       </header>
       <div className="mt-6">{children}</div>
     </div>

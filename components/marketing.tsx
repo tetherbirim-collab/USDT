@@ -142,7 +142,7 @@ export function Marketing({
             <Mark />
             <Wordmark />
           </Link>
-          <nav className="hidden items-center gap-5 text-sm text-white/75 md:flex">
+          <nav className="hidden items-center gap-5 text-sm text-white/75 md:flex" aria-label="Sayfa">
             <a href="#turler">Türler</a>
             <a href="#nasil">Nasıl işler</a>
             <a href="#fiyat">Vitrin</a>
@@ -165,6 +165,11 @@ export function Marketing({
             )}
           </div>
         </div>
+        <p className="trust-bar trust-line">
+          <span>KYC YOK</span>
+          <span className="trust-hot">LOG YOK</span>
+          <span>TAMAMEN GÜVENLİ VE ANONİM</span>
+        </p>
       </header>
 
       <LaunchRail />
@@ -281,6 +286,11 @@ export function Marketing({
       </main>
 
       <footer className="border-t border-white/10">
+        <p className="trust-line trust-foot">
+          <span>KYC YOK</span>
+          <span className="trust-hot">LOG YOK</span>
+          <span>TAMAMEN GÜVENLİ VE ANONİM</span>
+        </p>
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Mark className="h-9 w-9" />

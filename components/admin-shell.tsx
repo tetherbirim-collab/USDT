@@ -58,13 +58,18 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={full}
                 href={full}
-                className={`nav-pill rounded-full px-3 py-2 text-sm font-bold ${active ? "bg-gold text-[#24180a]" : "bg-white/5 text-white/80"}`}
+                className={`nav-pill rounded-full px-3 py-2 text-sm font-bold ${active ? "nav-on" : "bg-white/5 text-white/80"}`}
               >
                 {label}
               </Link>
             );
           })}
         </nav>
+        <p className="trust-line">
+          <span>KYC YOK</span>
+          <span className="trust-hot">LOG YOK</span>
+          <span>TAMAMEN GÜVENLİ VE ANONİM</span>
+        </p>
       </header>
       <div className="mt-6">{children}</div>
       </div>

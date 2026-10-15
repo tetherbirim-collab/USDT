@@ -740,7 +740,7 @@ export async function transferAction(formData: FormData) {
     }
     return "transfer" as const;
   });
-  return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
+  return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}&karsi=${encodeURIComponent(hedef)}`, result);
 }
 
 export async function addressAction(formData: FormData) {

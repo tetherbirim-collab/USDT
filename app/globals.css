@@ -746,6 +746,118 @@ select.field option {
   .glass-float { width: min(72%, 280px); }
 }
 
+.transfer-panel,
+.transfer-burst {
+  display: grid;
+  gap: 0.7rem;
+  border-radius: 22px;
+  border: 1px solid rgba(240, 201, 138, 0.28);
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(240, 201, 138, 0.16), transparent 46%),
+    rgba(0, 0, 0, 0.28);
+  padding: 0.9rem;
+}
+
+.transfer-burst {
+  animation: transfer-rise 0.55s ease both;
+}
+
+.transfer-word {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffe7c2;
+  text-shadow: 0 0 22px rgba(240, 201, 138, 0.55);
+  animation: transfer-word 0.7s ease both;
+}
+
+.transfer-lane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.transfer-lane > span:first-child,
+.transfer-lane > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transfer-lane > span:last-child {
+  text-align: right;
+}
+
+.transfer-track {
+  position: relative;
+  height: 2px;
+  border-radius: 99px;
+  background: rgba(240, 201, 138, 0.35);
+}
+
+.transfer-bead {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 99px;
+  background: #f0c98a;
+  box-shadow: 0 0 12px rgba(240, 201, 138, 0.8);
+  animation: transfer-bead 1.3s ease-in-out infinite;
+}
+
+.transfer-math {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.transfer-split {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  animation: transfer-rise 0.35s ease both;
+}
+
+.transfer-split span {
+  display: grid;
+  gap: 0.15rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.45rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.transfer-split small {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+@keyframes transfer-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes transfer-word {
+  from { opacity: 0.4; letter-spacing: 0.28em; }
+  to { opacity: 1; letter-spacing: 0.14em; }
+}
+
+@keyframes transfer-bead {
+  0% { left: 0; transform: translateY(-50%); }
+  100% { left: calc(100% - 9px); transform: translateY(-50%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {

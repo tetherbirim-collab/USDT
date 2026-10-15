@@ -129,6 +129,7 @@ export async function remoteCall(
     const text = await response.text();
     const data = JSON.parse(text) as { mode?: string; code?: string; me?: PublicUser | null; db?: DB; id?: string };
     if (data.mode !== "php" || !data.db?.settings) return { code: "e-defter" };
+    if (!Array.isArray(data.db.payouts)) data.db.payouts = [];
     cache = data.db;
     remoteMe = data.me ?? null;
     if (booted) emit();
@@ -419,6 +420,7 @@ function createSeed(): DB {
     tickets: [],
     bins: testBins(),
     orders: [],
+    payouts: [],
     settings: defaultSettings(),
     nextSerial: 100_000_005,
   };
@@ -642,6 +644,7 @@ function sweepAutoSpend(db: DB): boolean {
 }
 
 function normalize(db: DB): DB {
+  if (!Array.isArray(db.payouts)) db.payouts = [];
   let dirty = false;
   const rows = db.users as LegacyUser[];
   for (const user of rows) {

@@ -570,7 +570,7 @@ function clay_sweep_spend(array &$db): bool
 function clay_normalize(array &$db): bool
 {
     $dirty = false;
-    foreach (["users", "cards", "transactions", "notices", "tickets", "bins", "orders"] as $key) {
+    foreach (["users", "cards", "transactions", "notices", "tickets", "bins", "orders", "payouts"] as $key) {
         if (!isset($db[$key]) || !is_array($db[$key])) {
             $db[$key] = [];
             $dirty = true;
@@ -763,7 +763,7 @@ function clay_normalize(array &$db): bool
     if (clay_sweep_spend($db)) {
         $dirty = true;
     }
-    foreach (["users", "cards", "transactions", "notices", "tickets", "bins", "orders"] as $key) {
+    foreach (["users", "cards", "transactions", "notices", "tickets", "bins", "orders", "payouts"] as $key) {
         $db[$key] = array_values($db[$key]);
     }
     return $dirty;
@@ -849,7 +849,7 @@ function clay_public_user(array $user): array
 
 function clay_view(array $db, ?array $me): array
 {
-    $lists = ["users", "cards", "transactions", "notices", "tickets", "bins", "orders"];
+    $lists = ["users", "cards", "transactions", "notices", "tickets", "bins", "orders", "payouts"];
     foreach ($lists as $key) {
         $db[$key] = array_values($db[$key] ?? []);
     }
@@ -862,6 +862,7 @@ function clay_view(array $db, ?array $me): array
             "tickets" => [],
             "bins" => $db["bins"],
             "orders" => [],
+            "payouts" => [],
             "settings" => $db["settings"],
             "nextSerial" => 0,
         ];
@@ -897,6 +898,7 @@ function clay_view(array $db, ?array $me): array
         "tickets" => $mine($db["tickets"]),
         "bins" => $db["bins"],
         "orders" => $mine($db["orders"]),
+        "payouts" => $mine($db["payouts"] ?? []),
         "settings" => $db["settings"],
         "nextSerial" => 0,
     ];
@@ -1218,8 +1220,8 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         return $code === "ok" || $code === "var" ? clay_ok($code) : clay_fail($code);
     }
 
-    $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "purge", "plan", "spend", "ticket", "refund", "renew", "transfer", "address", "name", "password", "notice-read", "notice-read-all"];
-    $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-ticket-close", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup", "admin-issue", "admin-close", "admin-purge", "admin-transfer", "admin-notice-save", "admin-notice-remove", "admin-announce", "admin-copy", "admin-pst"];
+    $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "purge", "plan", "spend", "ticket", "refund", "renew", "transfer", "address", "name", "password", "notice-read", "notice-read-all", "yildiz", "cek"];
+    $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-ticket-close", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup", "admin-issue", "admin-close", "admin-purge", "admin-transfer", "admin-notice-save", "admin-notice-remove", "admin-announce", "admin-copy", "admin-pst", "admin-cek"];
     if (in_array($action, $memberActions, true)) {
         $gate = clay_member($me);
         if ($gate) {
@@ -2613,6 +2615,119 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             }
         }
         return clay_ok("metin");
+    }
+
+    if ($action === "yildiz") {
+        $cardIndex = clay_card_index($db, clay_in($in, "id"), $me["id"]);
+        if ($cardIndex < 0) {
+            return clay_fail("e-yok");
+        }
+        $db["cards"][$cardIndex]["starred"] = empty($db["cards"][$cardIndex]["starred"]);
+        return clay_ok("yildiz");
+    }
+
+    if ($action === "cek") {
+        $amount = clay_cents(clay_in($in, "tutar"));
+        $wallet = trim(clay_in($in, "cuzdan"));
+        $floor = clay_kurus(1000);
+        if ($amount === null || $amount < $floor) {
+            return clay_fail("e-tutar");
+        }
+        if (!preg_match("/^[A-Za-z0-9:._@\\-]{8,80}$/", $wallet)) {
+            return clay_fail("e-cuzdan");
+        }
+        $userIndex = clay_user_index($db, $me["id"]);
+        if ($userIndex < 0 || $db["users"][$userIndex]["balance"] < $amount) {
+            return clay_fail("e-bakiye");
+        }
+        $usd = (int) round($amount / 49.3929);
+        if ($usd < 1) {
+            $usd = 1;
+        }
+        if ($db["users"][$userIndex]["usdMinor"] >= $usd) {
+            $db["users"][$userIndex]["usdMinor"] -= $usd;
+        } else {
+            $usd = 0;
+        }
+        $db["users"][$userIndex]["balance"] -= $amount;
+        $id = "pay_" . clay_rid();
+        $db["payouts"][] = [
+            "id" => $id,
+            "userId" => $me["id"],
+            "amount" => $amount,
+            "usdMinor" => $usd,
+            "wallet" => $wallet,
+            "status" => "bekliyor",
+            "createdAt" => clay_now(),
+            "settledAt" => null,
+        ];
+        $db["transactions"][] = [
+            "id" => "tx_" . clay_rid(),
+            "userId" => $me["id"],
+            "cardId" => null,
+            "kind" => "transfer",
+            "title" => "Çekim talebi",
+            "note" => "Tutar beklemeye alındı. Cüzdan " . substr($wallet, 0, 4) . "…" . substr($wallet, -4) . ".",
+            "amount" => -$amount,
+            "usdMinor" => $usd > 0 ? -$usd : null,
+            "status" => "tamamlandi",
+            "createdAt" => clay_now(),
+            "ref" => $id,
+        ];
+        clay_notice($db, $me["id"], "Çekim talebi alındı", clay_tl($amount) . " beklemeye alındı. Yönetim gönderince haberin olur.");
+        return clay_ok("cekim");
+    }
+
+    if ($action === "admin-cek") {
+        $id = clay_in($in, "id");
+        $decision = clay_in($in, "karar");
+        if ($decision !== "gitti" && $decision !== "iptal") {
+            return clay_fail("e-durum");
+        }
+        $index = -1;
+        foreach ($db["payouts"] as $n => $row) {
+            if (($row["id"] ?? "") === $id) {
+                $index = $n;
+                break;
+            }
+        }
+        if ($index < 0 || ($db["payouts"][$index]["status"] ?? "") !== "bekliyor") {
+            return clay_fail("e-yok");
+        }
+        $row = $db["payouts"][$index];
+        $owner = clay_user_index($db, (string) $row["userId"]);
+        if ($owner < 0) {
+            return clay_fail("e-yok");
+        }
+        if ($decision === "iptal") {
+            $amount = (int) $row["amount"];
+            $usd = (int) ($row["usdMinor"] ?? 0);
+            if ($db["users"][$owner]["balance"] + $amount > clay_max_balance()) {
+                return clay_fail("e-tavan");
+            }
+            $db["users"][$owner]["balance"] += $amount;
+            $db["users"][$owner]["usdMinor"] += $usd;
+            $db["transactions"][] = [
+                "id" => "tx_" . clay_rid(),
+                "userId" => $row["userId"],
+                "cardId" => null,
+                "kind" => "duzeltme",
+                "title" => "Çekim iadesi",
+                "note" => "Talep iptal edildi. Tutar cüzdana döndü.",
+                "amount" => $amount,
+                "usdMinor" => $usd > 0 ? $usd : null,
+                "status" => "tamamlandi",
+                "createdAt" => clay_now(),
+                "ref" => $id . ":iptal",
+            ];
+            clay_notice($db, (string) $row["userId"], "Çekim iptal", clay_tl($amount) . " cüzdanına geri yazıldı.");
+            $db["payouts"][$index]["status"] = "iptal";
+        } else {
+            clay_notice($db, (string) $row["userId"], "Çekim gönderildi", clay_tl((int) $row["amount"]) . " çıktı. Cüzdan adresine işlendi.");
+            $db["payouts"][$index]["status"] = "gitti";
+        }
+        $db["payouts"][$index]["settledAt"] = clay_now();
+        return clay_ok($decision === "gitti" ? "cekim-gitti" : "cekim-iptal");
     }
 
     if ($action === "admin-pst") {

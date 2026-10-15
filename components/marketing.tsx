@@ -170,6 +170,7 @@ export function Marketing({
             <Wordmark />
           </Link>
           <nav className="hidden items-center gap-5 text-sm text-white/75 md:flex" aria-label="Sayfa">
+            <a href="#yetenek">Atölye</a>
             <a href="#turler">{line("navTypes")}</a>
             <a href="#nasil">{line("navHow")}</a>
             <a href="#fiyat">{line("navPlans")}</a>
@@ -270,6 +271,32 @@ export function Marketing({
           </div>
         </section>
 
+        <section id="yetenek" className="mx-auto max-w-6xl px-4 py-8">
+          <div className="mb-8 max-w-2xl">
+            <p className="eyebrow">ATÖLYE</p>
+            <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">Reklam masasının tamamı</h2>
+            <p className="mt-3 text-white/70">Kart bas, yatır, çek, dondur, kapat, aktar. Hepsi bu stüdyoda, kendi yüzüyle.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["01", "Kart bas", "Facebook, TikTok, Google ve Ultima. BIN seç, bedeli öde, kart açılsın."],
+              ["02", "Yatır", "Cüzdana crypto ile yükle. Komisyon yok. Kur sabit."],
+              ["03", "Çek", "Adres yaz, tutar beklemeye alınsın. Yönetim gönderince haberin gelir."],
+              ["04", "Dondur", "Harcama dursun. Kart durur, bakiye durur."],
+              ["05", "Kapat", "Kart kapanır. PST kartında komut hesaba da gider."],
+              ["06", "Aktar", "Kullanılabilir bakiye karşı karta geçer. Ana cüzdan durur."],
+              ["07", "Canlı takip", "Ekran kapansa da VPS yatırımı, çekimi ve kartı okur."],
+              ["08", "Destek", "Talep aç. Yanıt zilde durur. Yönetim aynı masayı görür."],
+            ].map(([n, title, text]) => (
+              <article key={n} className="glass rounded-[24px] p-4">
+                <p className="font-display text-2xl font-extrabold text-gold">{n}</p>
+                <h3 className="mt-2 font-bold">{title}</h3>
+                <p className="mt-2 text-sm text-white/70">{text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section id="nasil" className="mx-auto max-w-6xl px-4 py-16">
           <h2 className="font-display text-3xl font-bold sm:text-4xl">{line("stepsTitle")}</h2>
           <ol className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -300,6 +327,19 @@ export function Marketing({
                 <p className="mt-3 text-sm text-white/75">{item.a}</p>
               </details>
             ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-4 pb-16">
+          <div className="glass flex flex-wrap items-center justify-between gap-4 rounded-[32px] px-6 py-8">
+            <div>
+              <p className="text-xs font-bold tracking-[0.22em] text-gold">HAZIR</p>
+              <h2 className="font-display mt-2 text-3xl font-extrabold">Reklamını bugün aç</h2>
+              <p className="mt-2 max-w-xl text-white/70">Hesap aç, cüzdanı yükle, kartı bas. KYC yok. Aynı masa yönetimden de izlenir.</p>
+            </div>
+            <Link href={loggedIn ? deskHref : "/kayit"} className="btn btn-gold">
+              {loggedIn ? deskLabel : "Hesap aç"}
+            </Link>
           </div>
         </section>
       </main>

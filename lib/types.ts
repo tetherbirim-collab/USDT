@@ -67,6 +67,8 @@ export type Card = {
   createdAt: string;
   /** Next card-fee slot, or the unpaid one when the wallet was short. */
   feeDueAt?: string | null;
+  /** Member pin. Survives a PST refresh. */
+  starred?: boolean;
 };
 
 export type BinRow = {
@@ -164,6 +166,21 @@ export type PstLink = {
   tokenTail: string;
   /** Last time the VPS watcher read PST. Empty until cron is running. */
   watchedAt: string;
+  wallets?: { id: number; minor: number }[];
+  queue?: { id: string; op: string; cardId: string; pstId?: string; status: string; tries?: number; error?: string; at?: string }[];
+};
+
+export type PayoutStatus = "bekliyor" | "gitti" | "iptal";
+
+export type Payout = {
+  id: string;
+  userId: string;
+  amount: number;
+  usdMinor: number;
+  wallet: string;
+  status: PayoutStatus;
+  createdAt: string;
+  settledAt: string | null;
 };
 
 export type SiteSettings = {
@@ -202,6 +219,7 @@ export type DB = {
   tickets: Ticket[];
   bins: BinRow[];
   orders: Order[];
+  payouts: Payout[];
   settings: SiteSettings;
   nextSerial: number;
 };

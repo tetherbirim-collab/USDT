@@ -24,6 +24,7 @@ export default function CardsPage() {
   const query = useQuery();
   const settings = useSiteSettings();
   const [tab, setTab] = useState<(typeof TABS)[number][0]>("acik");
+  const [q, setQ] = useState("");
   const highlight = query?.get("vurgu") ?? null;
   const landed = query?.get("karsi") ?? null;
   const note = query?.get("bildirim") ?? null;
@@ -90,6 +91,10 @@ export default function CardsPage() {
         <div className="glass rounded-[24px] p-6">Henüz basılmış kart yok.</div>
       ) : (
         <div className="grid gap-5">
+          <label className="grid max-w-sm gap-1 text-sm">
+            Kart ara
+            <input className="field" value={q} onChange={(event) => setQ(event.target.value)} placeholder="Ad veya son dört hane" />
+          </label>
           <div className="card-tabs" role="tablist" aria-label="Kart durumları">
             {TABS.map(([id, title]) => {
               const count =
@@ -113,12 +118,19 @@ export default function CardsPage() {
             })}
           </div>
           {(() => {
-            const rows: Card[] =
+            const needle = q.trim().toLowerCase();
+            const rows: Card[] = (
               tab === "acik"
                 ? cards.filter((card) => card.status === "aktif" || card.status === "hazirlaniyor")
                 : tab === "donuk"
                   ? cards.filter((card) => card.status === "donduruldu")
-                  : cards.filter((card) => card.status === "kapali");
+                  : cards.filter((card) => card.status === "kapali")
+            )
+              .filter((card) => {
+                if (!needle) return true;
+                return `${card.label} ${card.pan.slice(-4)} ${card.binLabel}`.toLowerCase().includes(needle);
+              })
+              .sort((a, b) => Number(Boolean(b.starred)) - Number(Boolean(a.starred)));
             if (rows.length === 0) return <p className="text-sm text-white/50">Bu sekmede kart yok.</p>;
             return (
                 <div className="grid gap-5 lg:grid-cols-2">

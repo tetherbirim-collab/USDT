@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { activateCardAction, cancelOrderAction, closeAction, freezeAction, purgeCardAction } from "@/lib/actions";
+import { activateCardAction, cancelOrderAction, closeAction, freezeAction, purgeCardAction, starAction } from "@/lib/actions";
 import { formatTL } from "@/lib/format";
 import type { Card } from "@/lib/types";
 
@@ -47,6 +47,14 @@ export function CardMenu({ card, fee }: { card: Card; fee: number }) {
       </button>
       {open && (
         <div className="card-menu-pop" role="menu">
+          {!closing && !freezing && (
+            <form action={starAction}>
+              <input type="hidden" name="id" value={card.id} />
+              <button type="submit" className="card-menu-item">
+                {card.starred ? "Yıldızı kaldır" : "Yıldızla"}
+              </button>
+            </form>
+          )}
           {card.status !== "kapali" && !closing && !freezing && (
             <button
               type="button"

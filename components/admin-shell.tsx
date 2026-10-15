@@ -13,6 +13,7 @@ import { snapshot } from "@/lib/store";
 
 const LINKS = [
   ["", "Özet"],
+  ["/canli", "Canlı"],
   ["/uyeler", "Üyeler"],
   ["/kartlar", "Kartlar"],
   ["/bin", "BIN"],

@@ -514,6 +514,7 @@ function clay_pst_apply(array &$db, array $cards, array $transactions, array $ta
         if (isset($cardIndex[$id])) {
             $keep = $db["cards"][$cardIndex[$id]];
             $row["period"] = $keep["period"] ?? 1;
+            $row["starred"] = !empty($keep["starred"]);
             if ($available === null) {
                 $row["limit"] = (int) ($keep["limit"] ?? 0);
             }

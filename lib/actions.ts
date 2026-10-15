@@ -1585,3 +1585,106 @@ export async function adminCopyAction(formData: FormData) {
   });
   return bounce("/clayadm!nxx/metinler", result);
 }
+
+export async function starAction(formData: FormData) {
+  const user = await actor();
+  if (user.role !== "uye") return go("/panel/kartlar");
+  const remote = await remoteCall("yildiz", pack(formData, ["id"]));
+  if (remote) return bounce("/panel/kartlar", remote.code);
+  const id = String(formData.get("id") || "");
+  const result = mutate((db) => {
+    const card = db.cards.find((item) => item.id === id && item.userId === user.id);
+    if (!card) return "e-yok" as const;
+    card.starred = !card.starred;
+    return "yildiz" as const;
+  });
+  return bounce("/panel/kartlar", result);
+}
+
+export async function withdrawAction(formData: FormData) {
+  const user = await actor();
+  if (user.role !== "uye") return go("/panel/yukle");
+  const amount = parseTryToKurus(String(formData.get("tutar") || ""));
+  const wallet = String(formData.get("cuzdan") || "").trim();
+  const floor = usdMinorToKurus(1000);
+  if (amount === null || amount < floor) return bounce("/panel/yukle", "e-tutar");
+  if (!/^[A-Za-z0-9:._@-]{8,80}$/.test(wallet)) return bounce("/panel/yukle", "e-cuzdan");
+  const remote = await remoteCall("cek", pack(formData, ["tutar", "cuzdan"]));
+  if (remote) return bounce("/panel/yukle", remote.code);
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id);
+    if (!row || row.balance < amount) return "e-bakiye" as const;
+    let usd = Math.round(amount / USD_SELL_RATE);
+    if (usd < 1) usd = 1;
+    if (row.usdMinor >= usd) row.usdMinor -= usd;
+    else usd = 0;
+    row.balance -= amount;
+    const id = `pay_${rid()}`;
+    db.payouts.push({
+      id,
+      userId: row.id,
+      amount,
+      usdMinor: usd,
+      wallet,
+      status: "bekliyor",
+      createdAt: new Date().toISOString(),
+      settledAt: null,
+    });
+    db.transactions.push({
+      id: `tx_${rid()}`,
+      userId: row.id,
+      cardId: null,
+      kind: "transfer",
+      title: "Çekim talebi",
+      note: `Tutar beklemeye alındı. Cüzdan ${wallet.slice(0, 4)}…${wallet.slice(-4)}.`,
+      amount: -amount,
+      usdMinor: usd > 0 ? -usd : null,
+      status: "tamamlandi",
+      createdAt: new Date().toISOString(),
+      ref: id,
+    });
+    pushNotice(db, { userId: row.id, title: "Çekim talebi alındı", body: `${formatTL(amount)} beklemeye alındı.` });
+    return "cekim" as const;
+  });
+  return bounce("/panel/yukle", result);
+}
+
+export async function settlePayoutAction(formData: FormData) {
+  await requireAdmin();
+  const decision = String(formData.get("karar") || "");
+  if (decision !== "gitti" && decision !== "iptal") return bounce("/clayadm!nxx/canli", "e-durum");
+  const remote = await remoteCall("admin-cek", pack(formData, ["id", "karar"]));
+  if (remote) return bounce("/clayadm!nxx/canli", remote.code);
+  const id = String(formData.get("id") || "");
+  const result = mutate((db) => {
+    const row = db.payouts.find((item) => item.id === id && item.status === "bekliyor");
+    const owner = row ? db.users.find((item) => item.id === row.userId) : undefined;
+    if (!row || !owner) return "e-yok" as const;
+    if (decision === "iptal") {
+      if (owner.balance + row.amount > MAX_BALANCE_KURUS) return "e-tavan" as const;
+      owner.balance += row.amount;
+      owner.usdMinor += row.usdMinor;
+      db.transactions.push({
+        id: `tx_${rid()}`,
+        userId: row.userId,
+        cardId: null,
+        kind: "duzeltme",
+        title: "Çekim iadesi",
+        note: "Talep iptal edildi. Tutar cüzdana döndü.",
+        amount: row.amount,
+        usdMinor: row.usdMinor > 0 ? row.usdMinor : null,
+        status: "tamamlandi",
+        createdAt: new Date().toISOString(),
+        ref: `${id}:iptal`,
+      });
+      row.status = "iptal";
+      pushNotice(db, { userId: row.userId, title: "Çekim iptal", body: `${formatTL(row.amount)} cüzdanına geri yazıldı.` });
+    } else {
+      row.status = "gitti";
+      pushNotice(db, { userId: row.userId, title: "Çekim gönderildi", body: `${formatTL(row.amount)} çıktı.` });
+    }
+    row.settledAt = new Date().toISOString();
+    return decision === "gitti" ? ("cekim-gitti" as const) : ("cekim-iptal" as const);
+  });
+  return bounce("/clayadm!nxx/canli", result);
+}

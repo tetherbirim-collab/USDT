@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { Notice } from "@/components/notice";
 import { MAX_USD_MINOR, MIN_USD_MINOR, USD_RATE_AS_OF, USD_SELL_RATE, noticeText, usdMinorToKurus } from "@/lib/catalog";
 import { formatRate, formatSigned, formatTL, formatUsd, formatWhen, parseTryToKurus } from "@/lib/format";
+import { withdrawAction } from "@/lib/actions";
 import { openHeleketPayment, readHeleketPayment } from "@/lib/heleket";
 import { Boot, useQuery, useUser } from "@/lib/live";
-import { creditHeleketPayment, listTransactions } from "@/lib/store";
+import { creditHeleketPayment, listTransactions, snapshot } from "@/lib/store";
 
 function explain(error: string): string {
   return noticeText(error.startsWith("e-") ? error : `e-${error}`) || "Heleket ödeme sayfası açılmadı.";
@@ -161,6 +162,39 @@ export default function TopupPage() {
         {waitText && <p className="text-sm text-gold">{waitText}</p>}
         {error && <p className="banner-bad">{error}</p>}
       </form>
+      <form action={withdrawAction} className="glass grid max-w-xl gap-4 rounded-[28px] p-5">
+        <div>
+          <p className="text-xs font-bold tracking-[0.18em] text-gold">ÇEKİM</p>
+          <h2 className="font-display mt-1 text-2xl font-bold">Para çek</h2>
+          <p className="mt-2 text-sm text-white/70">Tutar hemen beklemeye alınır. Yönetim gönderince veya iptal edince zil çalar. En az 10 USD karşılığı.</p>
+        </div>
+        <label className="grid gap-1 text-sm">
+          Tutar (TL)
+          <input className="field" name="tutar" inputMode="decimal" placeholder="500" required />
+        </label>
+        <label className="grid gap-1 text-sm">
+          Cüzdan adresi
+          <input className="field" name="cuzdan" placeholder="TRC20 veya cüzdan kodu" required />
+        </label>
+        <button className="btn btn-ghost w-fit" type="submit">
+          Çekim talebi aç
+        </button>
+      </form>
+      <section className="grid max-w-xl gap-3">
+        <h2 className="font-display text-2xl font-bold">Taleplerim</h2>
+        {snapshot().payouts.filter((row) => row.userId === user.id).length === 0 && <p className="text-sm text-white/55">Henüz çekim talebi yok.</p>}
+        {snapshot().payouts
+          .filter((row) => row.userId === user.id)
+          .map((row) => (
+            <article key={row.id} className="glass rounded-[24px] px-4 py-3 text-sm">
+              <p className="font-semibold">{formatTL(row.amount)}</p>
+              <p className="text-white/70">{row.wallet}</p>
+              <p className="mt-1 text-xs text-white/45">
+                {formatWhen(row.createdAt)} · {row.status === "bekliyor" ? "Bekliyor" : row.status === "gitti" ? "Gönderildi" : "İptal"}
+              </p>
+            </article>
+          ))}
+      </section>
       {receipt && (
         <article className="glass max-w-xl rounded-[28px] p-5">
           <p className="text-xs font-bold tracking-[0.18em] text-gold">SON FİŞ</p>

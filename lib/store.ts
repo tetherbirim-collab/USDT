@@ -9,6 +9,23 @@ function rid() {
   return globalThis.crypto.randomUUID();
 }
 
+export function pushNotice(
+  db: DB,
+  input: { userId: string; title: string; body: string; ref?: string | null },
+) {
+  if (input.ref && db.notices.some((note) => note.ref === input.ref)) return;
+  db.notices.push({
+    id: `nt_${rid()}`,
+    userId: input.userId,
+    batch: rid(),
+    title: input.title,
+    body: input.body,
+    createdAt: new Date().toISOString(),
+    readAt: null,
+    ref: input.ref ?? null,
+  });
+}
+
 let cache: DB | null = null;
 let booted = false;
 const listeners = new Set<() => void>();
@@ -639,6 +656,12 @@ export function creditHeleketPayment(input: { userId: string; orderId: string; c
       createdAt: new Date().toISOString(),
       ref,
     });
+    pushNotice(db, {
+      userId: row.id,
+      title: "Bakiye yüklendi",
+      body: `${formatUsd(input.cents)} karşılığı ${formatTL(credit)} bakiyene yazıldı.`,
+      ref: `note:${ref}`,
+    });
     return "ok" as const;
   });
 }
@@ -713,6 +736,11 @@ export function createUser(input: { username: string; password: string; name: st
       usdMinor: WELCOME_USD_MINOR,
       status: "tamamlandi",
       createdAt: new Date().toISOString(),
+    });
+    pushNotice(db, {
+      userId: user.id,
+      title: "Hoş geldin",
+      body: `${formatTL(WELCOME_BONUS_KURUS)} bakiyen hazır. İlk kartını basabilirsin.`,
     });
     return user;
   });

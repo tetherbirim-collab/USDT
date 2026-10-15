@@ -32,12 +32,12 @@ function NavLinks({
           <Link
             key={href}
             href={href}
-            className={`rounded-full px-3 py-2 text-sm font-bold whitespace-nowrap ${stacked ? "text-center" : ""} ${active ? "bg-gold text-[#24180a]" : "bg-white/5 text-white/80"}`}
+            className={`nav-pill rounded-full px-3 py-2 text-sm font-bold whitespace-nowrap ${stacked ? "text-center" : ""} ${active ? "bg-gold text-[#24180a]" : "bg-white/5 text-white/80"}`}
           >
             {label}
             {href === "/panel/bildirimler" && unread > 0 && (
               <span
-                className={`ml-2 inline-flex min-w-5 justify-center rounded-full px-1.5 text-xs ${active ? "bg-[#24180a] text-gold" : "bg-gold text-[#24180a]"}`}
+                className={`note-count ml-2 inline-flex min-w-5 justify-center rounded-full px-1.5 text-xs ${active ? "bg-[#24180a] text-gold" : "bg-gold text-[#24180a]"}`}
               >
                 {unread}
               </span>

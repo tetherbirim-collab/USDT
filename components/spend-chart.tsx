@@ -40,10 +40,22 @@ export function SpendChart({
       <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full" role="img" aria-label="Son yedi günün harcaması">
         <defs>
           <linearGradient id="spend-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#f0c98a" stopOpacity="0.42" />
-            <stop offset="70%" stopColor="#f0c98a" stopOpacity="0.08" />
+            <stop offset="0%" stopColor="#f0c98a" stopOpacity="0.5" />
+            <stop offset="55%" stopColor="#9be7c4" stopOpacity="0.12" />
             <stop offset="100%" stopColor="#f0c98a" stopOpacity="0" />
           </linearGradient>
+          <linearGradient id="spend-stroke" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#9be7c4" />
+            <stop offset="58%" stopColor="#f0c98a" />
+            <stop offset="100%" stopColor="#ffb4a2" />
+          </linearGradient>
+          <filter id="spend-glow" x="-20%" y="-40%" width="140%" height="180%">
+            <feGaussianBlur stdDeviation="3.2" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
         {ticks.map((mark) => {
           const y = pad.top + innerH - mark * innerH;
@@ -57,13 +69,24 @@ export function SpendChart({
             </g>
           );
         })}
-        <path d={area} fill="url(#spend-fill)" />
-        <path d={line} fill="none" stroke="#f0c98a" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />
+        <path className="spend-area" d={area} fill="url(#spend-fill)" />
+        <path
+          className="spend-line"
+          d={line}
+          pathLength={1}
+          fill="none"
+          stroke="url(#spend-stroke)"
+          strokeWidth="3"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          filter="url(#spend-glow)"
+        />
         {points.map((point) => {
           const high = peak > 0 && point.total === peak;
           return (
             <g key={point.key}>
-              <circle cx={point.x} cy={point.y} r={high ? 5.5 : 4} fill="#07060b" stroke="#f0c98a" strokeWidth="2" />
+              {high && <circle cx={point.x} cy={point.y} r="11" fill="rgba(240,201,138,.18)" />}
+              <circle cx={point.x} cy={point.y} r={high ? 5.5 : 4} fill="#07060b" stroke={high ? "#ffe7c2" : "#f0c98a"} strokeWidth="2" />
               {high && (
                 <text x={point.x} y={point.y - 12} textAnchor="middle" fill="#f0c98a" fontSize="12" fontWeight="700">
                   {formatTL(point.total)}

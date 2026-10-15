@@ -95,14 +95,14 @@ export function CardActions({
           <form action={freezeAction}>
             <input type="hidden" name="id" value={card.id} />
             <input type="hidden" name="mod" value="dondur" />
-            <SubmitButton className="btn btn-ghost">Dondur</SubmitButton>
+            <SubmitButton className="btn btn-ghost">Kartı dondur</SubmitButton>
           </form>
         )}
         {card.status === "donduruldu" && (
           <form action={freezeAction}>
             <input type="hidden" name="id" value={card.id} />
             <input type="hidden" name="mod" value="coz" />
-            <SubmitButton className="btn btn-gold">Çöz</SubmitButton>
+            <SubmitButton className="btn btn-gold">Kartı aktif et</SubmitButton>
           </form>
         )}
       </div>

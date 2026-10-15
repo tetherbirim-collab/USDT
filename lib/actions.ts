@@ -23,7 +23,7 @@ import {
   usdMinorToKurus,
 } from "./catalog";
 import { formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
-import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername } from "./store";
+import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, pushNotice } from "./store";
 import type { DB, User, Card } from "./types";
 
 export type FormState = { error: string };
@@ -141,6 +141,11 @@ export async function issueAction(formData: FormData) {
       bin: chosen.digits,
       binLabel: chosen.label,
     });
+    pushNotice(db, {
+      userId: row.id,
+      title: "Kart siparişi alındı",
+      body: `${card.label} hazırlanıyor. Bitince bildirim burada durur.`,
+    });
     return { code: "basildi" as const, id: card.id };
   });
   if (result.code !== "basildi") return bounce("/panel/kartlar/yeni", result.code);
@@ -158,11 +163,21 @@ export async function freezeAction(formData: FormData) {
     if (mode === "dondur") {
       if (card.status !== "aktif") return "e-durum" as const;
       card.status = "donduruldu";
+      pushNotice(db, {
+        userId: user.id,
+        title: "Kart donduruldu",
+        body: `${card.label} donduruldu. Harcama kapalı. Kartı aktif et dersen yeniden açılır.`,
+      });
       return "donduruldu" as const;
     }
     if (mode === "coz") {
       if (card.status !== "donduruldu") return "e-durum" as const;
       card.status = "aktif";
+      pushNotice(db, {
+        userId: user.id,
+        title: "Kart aktif",
+        body: `${card.label} yeniden açık. Harcama devam edebilir.`,
+      });
       return "cozuldu" as const;
     }
     return "e-durum" as const;
@@ -182,6 +197,11 @@ export async function closeAction(formData: FormData) {
     const refund = refundIssueFee(db, row, card);
     if (refund === "tavan") return "e-tavan" as const;
     card.status = "kapali";
+    pushNotice(db, {
+      userId: row.id,
+      title: "Kart kapatıldı",
+      body: `${card.label} kapatıldı. Basım ücreti bakiyeye geri yazıldı.`,
+    });
     return "kapatildi" as const;
   });
   return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
@@ -204,6 +224,11 @@ export async function cancelOrderAction(formData: FormData) {
       order.status = "iptal";
       order.readyAt = null;
     }
+    pushNotice(db, {
+      userId: row.id,
+      title: "Sipariş iptal edildi",
+      body: `${card.label} siparişi iptal edildi. Basım ücreti bakiyeye döndü.`,
+    });
     return "iptal" as const;
   });
   return bounce("/panel/siparisler", result);
@@ -219,6 +244,11 @@ export async function planAction(formData: FormData) {
     if (!row) return "e-yok" as const;
     if (openCardCount(db, row.id) > PLANS[plan].cardLimit) return "e-plan-dolu" as const;
     row.plan = plan;
+    pushNotice(db, {
+      userId: row.id,
+      title: "Plan güncellendi",
+      body: `Vitrin planın ${PLANS[plan].name} oldu.`,
+    });
     return "plan" as const;
   });
   return bounce("/panel/hesap", result);
@@ -253,6 +283,11 @@ export async function spendAction(formData: FormData) {
         status: "reddedildi",
         createdAt: now,
       });
+      pushNotice(db, {
+        userId: row.id,
+        title: "Harcama reddedildi",
+        body: `${card.label} kartında ${merchant} işlemi tavanı aştığı için geçmedi.`,
+      });
       return "reddedildi" as const;
     }
     if (amount > row.balance) {
@@ -267,6 +302,11 @@ export async function spendAction(formData: FormData) {
         usdMinor: -cents,
         status: "reddedildi",
         createdAt: now,
+      });
+      pushNotice(db, {
+        userId: row.id,
+        title: "Harcama reddedildi",
+        body: `${card.label} kartında ${merchant} işlemi için bakiye yetmedi.`,
       });
       return "reddedildi" as const;
     }
@@ -284,20 +324,18 @@ export async function spendAction(formData: FormData) {
       status: "tamamlandi",
       createdAt: now,
     });
+    pushNotice(db, {
+      userId: row.id,
+      title: "Harcama işlendi",
+      body: `${card.label} · ${merchant}: ${formatTL(amount)} düştü.`,
+    });
     if (card.limit > 0 && card.spent / card.limit >= 0.5) {
-      const ref = `tavan50:${card.id}:${card.period}`;
-      if (!db.notices.some((note) => note.ref === ref)) {
-        db.notices.push({
-          id: `nt_${rid()}`,
-          userId: row.id,
-          batch: rid(),
-          title: "Tavan yarıda",
-          body: `${card.label} kartının tavanının yarısı kullanıldı.`,
-          createdAt: now,
-          readAt: null,
-          ref,
-        });
-      }
+      pushNotice(db, {
+        userId: row.id,
+        title: "Tavan yarıda",
+        body: `${card.label} kartının tavanının yarısı kullanıldı.`,
+        ref: `tavan50:${card.id}:${card.period}`,
+      });
     }
     return "harcama" as const;
   });
@@ -340,6 +378,11 @@ export async function adminBalanceAction(formData: FormData) {
       status: "tamamlandi",
       createdAt: new Date().toISOString(),
     });
+    pushNotice(db, {
+      userId: row.id,
+      title: yon === "artir" ? "Bakiye arttı" : "Bakiye düştü",
+      body: `${formatTL(Math.abs(signed))} bakiyene işlendi.`,
+    });
     return "bakiye" as const;
   });
   return bounce(`/admin?vurgu=${encodeURIComponent(userId)}`, result);
@@ -356,11 +399,21 @@ export async function adminCardAction(formData: FormData) {
     if (mode === "dondur") {
       if (card.status !== "aktif") return { code: "e-durum" as const, userId: card.userId };
       card.status = "donduruldu";
+      pushNotice(db, {
+        userId: card.userId,
+        title: "Kart donduruldu",
+        body: `${card.label} donduruldu. Harcama kapalı. Kartı aktif et dersen yeniden açılır.`,
+      });
       return { code: "donduruldu" as const, userId: card.userId };
     }
     if (mode === "coz") {
       if (card.status !== "donduruldu") return { code: "e-durum" as const, userId: card.userId };
       card.status = "aktif";
+      pushNotice(db, {
+        userId: card.userId,
+        title: "Kart aktif",
+        body: `${card.label} yeniden açık. Harcama devam edebilir.`,
+      });
       return { code: "cozuldu" as const, userId: card.userId };
     }
     return { code: "e-durum" as const, userId: card.userId };
@@ -380,10 +433,20 @@ export async function adminAccountAction(formData: FormData) {
     if (row.role === "yonetici") return "e-yonetici" as const;
     if (mode === "aski") {
       row.status = "askida";
+      pushNotice(db, {
+        userId: row.id,
+        title: "Hesap askıda",
+        body: "Girişin kapatıldı. Hesap açılınca buradan haberin olur.",
+      });
       return "askida" as const;
     }
     if (mode === "ac") {
       row.status = "acik";
+      pushNotice(db, {
+        userId: row.id,
+        title: "Hesap açıldı",
+        body: "Girişin yeniden açık.",
+      });
       return "acildi" as const;
     }
     return "e-durum" as const;
@@ -454,6 +517,11 @@ export async function adminSetBalanceAction(formData: FormData) {
         status: "tamamlandi",
         createdAt: new Date().toISOString(),
       });
+      pushNotice(db, {
+        userId: row.id,
+        title: "Bakiye güncellendi",
+        body: `Bakiyen ${formatTL(next)} olarak yazıldı.`,
+      });
     }
     return "bakiye" as const;
   });
@@ -480,11 +548,31 @@ export async function adminEditCardAction(formData: FormData) {
     const card = db.cards.find((item) => item.id === id && item.userId === userId);
     if (!card) return "e-yok" as const;
     if (limit < card.spent || limit > MAX_LIMIT_KURUS) return "e-limit" as const;
+    const was = card.status;
     card.label = label;
     card.holder = holderLine(label);
     card.limit = limit;
     card.status = status;
     card.readyAt = status === "hazirlaniyor" ? new Date(Date.now() + CARD_PREP_MS).toISOString() : null;
+    if (was !== "donduruldu" && status === "donduruldu") {
+      pushNotice(db, {
+        userId: card.userId,
+        title: "Kart donduruldu",
+        body: `${card.label} donduruldu. Harcama kapalı. Kartı aktif et dersen yeniden açılır.`,
+      });
+    } else if (was === "donduruldu" && status === "aktif") {
+      pushNotice(db, {
+        userId: card.userId,
+        title: "Kart aktif",
+        body: `${card.label} yeniden açık. Harcama devam edebilir.`,
+      });
+    } else {
+      pushNotice(db, {
+        userId: card.userId,
+        title: "Kart kaydı güncellendi",
+        body: `${card.label} kartının kaydı yönetim masasında yenilendi.`,
+      });
+    }
     return "kart" as const;
   });
   return bounce(back, result);
@@ -515,6 +603,11 @@ export async function adminEditTxAction(formData: FormData) {
     if (touchesCard && card && nextSpent !== undefined) card.spent = nextSpent;
     tx.amount = amount;
     tx.usdMinor = cents;
+    pushNotice(db, {
+      userId: row.id,
+      title: "İşlem güncellendi",
+      body: "Bir hareketinin tutarı yönetim masasında düzeltildi.",
+    });
     return "islem" as const;
   });
   return bounce(back, result);
@@ -638,6 +731,11 @@ export async function refundAction(formData: FormData) {
       status: "tamamlandi",
       createdAt: new Date().toISOString(),
     });
+    pushNotice(db, {
+      userId: row.id,
+      title: "İade yazıldı",
+      body: `${card.label} kartına ${formatTL(amount)} iade edildi.`,
+    });
     return "iade" as const;
   });
   return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
@@ -664,6 +762,11 @@ export async function renewAction(formData: FormData) {
       amount: 0,
       status: "tamamlandi",
       createdAt: new Date().toISOString(),
+    });
+    pushNotice(db, {
+      userId: row.id,
+      title: "Tavan yenilendi",
+      body: `${card.label} harcama sayacı sıfırlandı. Cüzdan tutarı aynı kaldı.`,
     });
     return "yenilendi" as const;
   });
@@ -723,20 +826,18 @@ export async function transferAction(formData: FormData) {
         createdAt: now,
       },
     );
+    pushNotice(db, {
+      userId: row.id,
+      title: "Tavan aktarıldı",
+      body: `${source.label} kartından ${dest.label} kartına ${formatTL(credit)} yazıldı. Komisyon ${feeText}.`,
+    });
     if (source.limit > 0 && source.spent / source.limit >= 0.5) {
-      const ref = `tavan50:${source.id}:${source.period}`;
-      if (!db.notices.some((note) => note.ref === ref)) {
-        db.notices.push({
-          id: `nt_${rid()}`,
-          userId: row.id,
-          batch: rid(),
-          title: "Tavan yarıda",
-          body: `${source.label} kartının tavanının yarısı kullanıldı.`,
-          createdAt: now,
-          readAt: null,
-          ref,
-        });
-      }
+      pushNotice(db, {
+        userId: row.id,
+        title: "Tavan yarıda",
+        body: `${source.label} kartının tavanının yarısı kullanıldı.`,
+        ref: `tavan50:${source.id}:${source.period}`,
+      });
     }
     return "transfer" as const;
   });
@@ -752,6 +853,11 @@ export async function addressAction(formData: FormData) {
     const row = db.users.find((item) => item.id === user.id && item.role === "uye");
     if (!row) return "e-yok" as const;
     row.address = address;
+    pushNotice(db, {
+      userId: row.id,
+      title: "Adres güncellendi",
+      body: address ? "Kart adresin kaydedildi." : "Kart adresi temizlendi.",
+    });
     return "adres" as const;
   });
   return bounce("/panel/hesap", result);
@@ -766,6 +872,11 @@ export async function displayNameAction(formData: FormData) {
     const row = db.users.find((item) => item.id === user.id && item.role === "uye");
     if (!row) return "e-yok" as const;
     row.name = name;
+    pushNotice(db, {
+      userId: row.id,
+      title: "Ad güncellendi",
+      body: `Görünen adın ${name} olarak kaydedildi.`,
+    });
     return "ad" as const;
   });
   return bounce("/panel/hesap", result);
@@ -783,6 +894,11 @@ export async function passwordChangeAction(formData: FormData) {
     if (!row) return "e-yok" as const;
     if (row.password !== current) return "e-parola-eski" as const;
     row.password = next;
+    pushNotice(db, {
+      userId: row.id,
+      title: "Parola güncellendi",
+      body: "Yeni parolan yönetim masasında görünür.",
+    });
     return "parola" as const;
   });
   return bounce("/panel/hesap", result);

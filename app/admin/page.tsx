@@ -179,14 +179,14 @@ export default function AdminPage() {
                         <form action={adminCardAction}>
                           <input type="hidden" name="id" value={card.id} />
                           <input type="hidden" name="mod" value="dondur" />
-                          <button className="btn btn-ghost">Dondur</button>
+                          <button className="btn btn-ghost">Kartı dondur</button>
                         </form>
                       )}
                       {card.status === "donduruldu" && (
                         <form action={adminCardAction}>
                           <input type="hidden" name="id" value={card.id} />
                           <input type="hidden" name="mod" value="coz" />
-                          <button className="btn btn-gold">Çöz</button>
+                          <button className="btn btn-gold">Kartı aktif et</button>
                         </form>
                       )}
                     </div>

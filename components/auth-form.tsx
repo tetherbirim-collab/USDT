@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { loginAction, registerAction } from "@/lib/actions";
+import { Boot } from "@/lib/live";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, { error: "" });
@@ -10,6 +11,11 @@ export function LoginForm() {
 
   return (
     <form action={action} className="grid gap-3">
+      {pending && (
+        <div className="fixed inset-0 z-[80] bg-[#07060b]">
+          <Boot />
+        </div>
+      )}
       <input
         className="auth-field"
         name="kullanici"
@@ -31,7 +37,7 @@ export function LoginForm() {
       />
       {state.error && <p className="banner-bad">{state.error}</p>}
       <button className="auth-primary mt-2" disabled={pending}>
-        {pending ? "Giriliyor…" : "Giriş yap"}
+        Giriş yap
       </button>
       <button
         type="button"
@@ -51,6 +57,11 @@ export function RegisterForm() {
   const [state, action, pending] = useActionState(registerAction, { error: "" });
   return (
     <form action={action} className="grid gap-3">
+      {pending && (
+        <div className="fixed inset-0 z-[80] bg-[#07060b]">
+          <Boot />
+        </div>
+      )}
       <input className="auth-field" name="ad" autoComplete="name" placeholder="Görünen ad" required minLength={2} maxLength={40} />
       <input className="auth-field" name="kullanici" autoComplete="username" placeholder="Kullanıcı adı" required minLength={2} maxLength={24} />
       <input
@@ -78,7 +89,7 @@ export function RegisterForm() {
       </p>
       {state.error && <p className="banner-bad">{state.error}</p>}
       <button className="auth-primary mt-1" disabled={pending}>
-        {pending ? "Açılıyor…" : "Kayıt ol"}
+        Kayıt ol
       </button>
     </form>
   );

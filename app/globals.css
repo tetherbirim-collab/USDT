@@ -12,6 +12,20 @@ html {
   scroll-behavior: smooth;
 }
 
+.splash-card {
+  animation: splash-float 2.6s ease-in-out infinite;
+}
+
+@keyframes splash-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
 body {
   min-height: 100vh;
   color: #f6f1ff;

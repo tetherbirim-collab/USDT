@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { Boot } from "@/lib/live";
 
 export function SubmitButton({
   children,
@@ -13,8 +14,15 @@ export function SubmitButton({
 }) {
   const { pending } = useFormStatus();
   return (
-    <button className={className} disabled={pending || disabled}>
-      {pending ? "İşleniyor…" : children}
-    </button>
+    <>
+      {pending && (
+        <div className="fixed inset-0 z-[80] bg-[#07060b]">
+          <Boot />
+        </div>
+      )}
+      <button className={className} disabled={pending || disabled}>
+        {children}
+      </button>
+    </>
   );
 }

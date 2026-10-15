@@ -29,6 +29,7 @@ function LaunchUnit() {
         <span key={beat.type} className="launch-beat">
           <span className={`launch-card launch-card-${beat.type}`} aria-hidden>
             <span className="launch-chip" />
+            <span className="launch-line">Clay Virtual Card</span>
             <span className="launch-brand">{CARD_TYPES[beat.type].name}</span>
           </span>
           <span className="launch-phrase">{siteText(settings, beat.phrase)}</span>
@@ -65,18 +66,62 @@ function EntranceWaves() {
   );
 }
 
+function BrandGlyph({ type }: { type: CardTypeId }) {
+  if (type === "facebook_ads") {
+    return (
+      <svg className="entrance-glyph" viewBox="0 0 24 24" aria-hidden>
+        <circle cx="12" cy="12" r="12" fill="#fff" />
+        <path fill="#1877F2" d="M13.4 18.4v-4.3h1.5l.2-1.7h-1.7V11c0-.5.1-.8.9-.8h1V8.6c-.2 0-.8 0-1.4-.1-1.4 0-2.3.8-2.3 2.4v1.5H9.8v1.7h1.8v4.3h1.8z" />
+      </svg>
+    );
+  }
+  if (type === "tiktok") {
+    const note = "M13.1 6.2h1.6c.2 1.1 1 1.9 2 2.2v1.7c-.8 0-1.5-.3-2-.7v4c0 1.7-1.3 3-3.1 3S8.5 15.1 8.5 13.4s1.4-3 3.1-3c.2 0 .4 0 .6.1v1.8c-.2-.1-.4-.2-.6-.2-.8 0-1.4.6-1.4 1.4s.6 1.4 1.4 1.4 1.4-.6 1.4-1.4V6.2z";
+    return (
+      <svg className="entrance-glyph" viewBox="0 0 24 24" aria-hidden>
+        <rect width="24" height="24" rx="7" fill="#111" />
+        <path d={note} fill="#25F4EE" transform="translate(-0.7 0.5)" />
+        <path d={note} fill="#FE2C55" transform="translate(0.7 -0.5)" />
+        <path d={note} fill="#fff" />
+      </svg>
+    );
+  }
+  if (type === "google_ads") {
+    return (
+      <svg className="entrance-glyph" viewBox="0 0 24 24" aria-hidden>
+        <rect width="24" height="24" rx="7" fill="#fff" />
+        <circle cx="8.2" cy="8.2" r="2.5" fill="#4285F4" />
+        <circle cx="15.8" cy="8.2" r="2.5" fill="#EA4335" />
+        <circle cx="8.2" cy="15.8" r="2.5" fill="#FBBC05" />
+        <circle cx="15.8" cy="15.8" r="2.5" fill="#34A853" />
+      </svg>
+    );
+  }
+  return (
+    <svg className="entrance-glyph" viewBox="0 0 24 24" aria-hidden>
+      <rect width="24" height="24" rx="7" fill="#1a140c" />
+      <path d="M12 4.2 19.2 9.2 17 19H7L4.8 9.2 12 4.2z" fill="#e0b15a" />
+      <path d="M12 4.2 19.2 9.2 12 11 4.8 9.2z" fill="#fff1cc" />
+    </svg>
+  );
+}
+
 function EntranceDeck() {
   return (
     <div className="entrance-deck">
       {CARD_TYPE_ORDER.map((id) => (
-        <a key={id} className={`entrance-card entrance-${id}`} href="#turler">
+        <a key={id} className={`entrance-card entrance-${id}`} href="#turler" aria-label={`${CARD_TYPES[id].name} Clay Virtual Card`}>
           <EntranceWaves />
           <span className="entrance-sheen" aria-hidden />
+          <span className="entrance-beam" aria-hidden />
+          <span className="entrance-beam entrance-beam-hot" aria-hidden />
           <span className="entrance-chip" aria-hidden />
-          <span className="entrance-type">{CARD_TYPES[id].name}</span>
+          <span className="entrance-brand">
+            <BrandGlyph type={id} />
+            <span className="entrance-type">{CARD_TYPES[id].name}</span>
+          </span>
           <span className="entrance-copy">
-            <span className="entrance-clay">CLAY</span>
-            <span className="entrance-service">SANAL KART HİZMETLERİ</span>
+            <span className="entrance-clay">Clay Virtual Card</span>
           </span>
         </a>
       ))}

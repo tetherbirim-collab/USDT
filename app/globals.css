@@ -746,6 +746,45 @@ select.field option {
   .glass-float { width: min(72%, 280px); }
 }
 
+.remain-track {
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.remain-bar {
+  height: 100%;
+  border-radius: 99px;
+}
+
+.remain-note {
+  margin: 0;
+  border-radius: 16px;
+  border: 1px solid rgba(240, 201, 138, 0.28);
+  background: rgba(240, 201, 138, 0.08);
+  padding: 0.7rem 0.85rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #ffe7c2;
+}
+
+.remain-note-hot {
+  border-color: rgba(255, 120, 110, 0.45);
+  background: rgba(255, 70, 60, 0.12);
+  color: #ffd2cc;
+}
+
+.btn-urge {
+  animation: balance-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes balance-pulse {
+  0%,
+  100% { box-shadow: 0 0 0 0 rgba(255, 120, 100, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 120, 100, 0); }
+}
+
 .transfer-panel,
 .transfer-burst {
   display: grid;

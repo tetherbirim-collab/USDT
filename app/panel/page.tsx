@@ -5,6 +5,7 @@ import { Notice } from "@/components/notice";
 import { SpendChart } from "@/components/spend-chart";
 import { VirtualCard } from "@/components/virtual-card";
 import { PLANS } from "@/lib/catalog";
+import { remainLeft, remainMood } from "@/lib/remain";
 import { formatSigned, formatTL, formatWhen } from "@/lib/format";
 import { Boot, useQuery, useUser } from "@/lib/live";
 import { last7Spend, monthSpend, monthTopup } from "@/lib/stats";
@@ -18,7 +19,12 @@ export default function PanelHome() {
   const txs = listTransactions(user.id);
   const notes = listNotices(user.id).slice(0, 3);
   const days = last7Spend(txs);
+  const openCards = cards.filter((card) => card.status === "aktif" || card.status === "donduruldu");
   const open = cards.filter((card) => card.status !== "kapali").length;
+  const tightest = openCards
+    .map((card) => ({ card, left: remainLeft(card.limit, card.spent) }))
+    .sort((a, b) => a.left - b.left)[0];
+  const walletMood = tightest ? remainMood(tightest.left) : null;
 
   return (
     <div className="grid gap-6">
@@ -53,6 +59,11 @@ export default function PanelHome() {
         <p className="mt-2 max-w-lg text-white/70">
           Dolar bakiyesinin sabit kur karşılığı. {PLANS[user.plan].name} planında {open}/{PLANS[user.plan].cardLimit} açık kart var.
         </p>
+        {walletMood?.line && tightest && (
+          <p className={`remain-note mt-4 max-w-lg ${walletMood.urgent ? "remain-note-hot" : ""}`}>
+            {tightest.card.label}: {walletMood.line}
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap gap-3">
           <Link href="/panel/yukle" className="btn btn-gold">
             Bakiye yükle

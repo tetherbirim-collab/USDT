@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { PanelFrame } from "@/components/panel-frame";
-import { SubmitButton } from "@/components/submit-button";
-import { renewAction } from "@/lib/actions";
 import { PLANS } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
 import { Boot, useUser } from "@/lib/live";
+import { remainLeft, remainMood } from "@/lib/remain";
 import { listCards, unreadNoticeCount } from "@/lib/store";
 
 export function PanelShell({ children }: { children: React.ReactNode }) {
@@ -17,12 +16,12 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
     if (user?.role === "yonetici") window.location.replace("/admin/");
   }, [user]);
   if (!user || user.role !== "uye") return <Boot />;
-  const hot = listCards(user.id).filter(
-    (card) =>
-      (card.status === "aktif" || card.status === "donduruldu") &&
-      card.limit > 0 &&
-      card.spent / card.limit >= 0.8,
-  );
+  const ranked = listCards(user.id)
+    .filter((card) => card.status === "aktif" || card.status === "donduruldu")
+    .map((card) => ({ card, left: remainLeft(card.limit, card.spent) }))
+    .sort((a, b) => a.left - b.left);
+  const hot = ranked.filter((item) => item.left <= 20);
+  const lead = hot[0];
   return (
     <PanelFrame
       name={user.name}
@@ -31,24 +30,16 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
       planName={`${PLANS[user.plan].name} · vitrin`}
       unread={unreadNoticeCount(user.id)}
     >
-      {hot.length > 0 && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[#ff6a80]/50 bg-[#ff3b4e]/15 px-4 py-3">
+      {lead && (
+        <div className="remain-note remain-note-hot mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-display text-lg font-extrabold tracking-wide text-[#ffd5dc]">KARTIN BAKİYESİ BİTİYOR</p>
-            <p className="text-sm text-[#ffd5dc]/90">{hot.map((card) => card.label).join(" · ")}</p>
-            <p className="mt-1 text-xs text-[#ffd5dc]/70">Tavanı yenile harcama sayacını sıfırlar. Cüzdan tutarı aynı kalır.</p>
+            <p className="font-display text-lg font-bold tracking-wide">Tavan daralıyor</p>
+            <p className="text-sm">{hot.map((item) => item.card.label).join(" · ")}</p>
+            <p className="mt-1 text-sm">{remainMood(lead.left).line}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {hot.map((card) => (
-              <form key={card.id} action={renewAction}>
-                <input type="hidden" name="id" value={card.id} />
-                <SubmitButton className="btn btn-gold">Tavanı yenile · {card.label}</SubmitButton>
-              </form>
-            ))}
-            <Link href="/panel/yukle" className="btn btn-ghost">
-              Cüzdan
-            </Link>
-          </div>
+          <Link href="/panel/yukle" className="btn btn-gold btn-urge">
+            Bakiye yükle
+          </Link>
         </div>
       )}
       {children}

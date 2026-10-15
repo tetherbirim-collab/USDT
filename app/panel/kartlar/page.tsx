@@ -65,6 +65,7 @@ export default function CardsPage() {
               )}
               <CardActions
                 card={card}
+                drain={query.get("bildirim") === "harcama" && highlight === card.id}
                 peers={cards
                   .filter(
                     (item) =>

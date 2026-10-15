@@ -301,7 +301,7 @@ export async function spendAction(formData: FormData) {
     }
     return "harcama" as const;
   });
-  const target = result === "harcama" || result === "reddedildi" ? "/panel/islemler" : "/panel/kartlar";
+  const target = result === "reddedildi" ? "/panel/islemler" : "/panel/kartlar";
   return bounce(`${target}?vurgu=${encodeURIComponent(id)}`, result);
 }
 

@@ -1,33 +1,50 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { cancelOrderAction, closeAction, freezeAction, refundAction, renewAction, spendAction } from "@/lib/actions";
 import { KIND_LABEL, merchantsFor } from "@/lib/catalog";
 import { formatTL, formatWhen, movementLabel } from "@/lib/format";
+import { remainInk, remainLeft, remainMood } from "@/lib/remain";
 import { listNotices } from "@/lib/store";
 import type { Card, Tx } from "@/lib/types";
 import { OrderSlip } from "./order-slip";
 import { SubmitButton } from "./submit-button";
 import { TransferForm } from "./transfer-form";
 
-function heat(percent: number) {
-  if (percent >= 100) return { bar: "linear-gradient(90deg,#ff6a3d,#ff2d3a)", ink: "#ff8b96" };
-  if (percent >= 80) return { bar: "linear-gradient(90deg,#f0a202,#ff3b4e)", ink: "#ffb0b8" };
-  if (percent >= 50) return { bar: "linear-gradient(90deg,#f0c98a,#e07a2f)", ink: "#f0c98a" };
-  return { bar: "linear-gradient(90deg,#f0c98a,#8dffe4)", ink: "#ffffff" };
-}
-
 export function CardActions({
   card,
   entries = [],
   peers = [],
+  drain = false,
 }: {
   card: Card;
   entries?: Tx[];
   peers?: { id: string; label: string }[];
+  drain?: boolean;
 }) {
   const kalan = card.limit - card.spent;
-  const percent = card.limit > 0 ? Math.min(100, Math.round((card.spent / card.limit) * 100)) : 0;
-  const tone = heat(percent);
-  const finished = kalan <= 0;
+  const left = remainLeft(card.limit, card.spent);
+  const [shown, setShown] = useState(drain ? 100 : left);
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!drain || reduce) {
+      setShown(left);
+      return;
+    }
+    const start = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - start) / 1150);
+      const eased = 1 - (1 - progress) ** 3;
+      setShown(Math.round(100 + (left - 100) * eased));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [left, drain]);
+  const tone = remainInk(shown);
+  const mood = remainMood(left);
   const readyNote = listNotices(card.userId).find((note) => note.ref === `hazir:${card.id}`);
   if (card.status === "hazirlaniyor") {
     return (
@@ -51,23 +68,17 @@ export function CardActions({
       <div className="flex items-center justify-between text-sm text-white/70">
         <span>Kalan tavan</span>
         <span className="font-semibold" style={{ color: tone.ink }}>
-          {formatTL(kalan)}
+          %{shown} · {formatTL(kalan)}
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-white/10">
-        <div
-          className="h-full rounded-full transition-[width,background] duration-300"
-          style={{ width: `${percent}%`, background: tone.bar }}
-        />
+      <div className="remain-track" data-remain={left}>
+        <div className="remain-bar" style={{ width: `${shown}%`, background: tone.bar, boxShadow: `0 0 16px ${tone.ink}` }} />
       </div>
-      {finished ? (
-        <Link href="/panel/yukle" className="btn btn-gold w-fit">
+      {mood.line && <p className={`remain-note ${mood.urgent ? "remain-note-hot" : ""}`}>{mood.line}</p>}
+      {mood.load && (
+        <Link href="/panel/yukle" className={`btn btn-gold w-fit ${mood.urgent ? "btn-urge" : ""}`}>
           Bakiye yükle
         </Link>
-      ) : (
-        <button type="button" className="btn btn-ghost w-fit opacity-40" disabled>
-          Bakiye yükle
-        </button>
       )}
       {card.status !== "kapali" && peers.length > 0 && kalan > 0 && (
         <TransferForm cardId={card.id} kalan={kalan} peers={peers} />

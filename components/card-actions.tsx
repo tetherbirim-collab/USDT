@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { cancelOrderAction, closeAction, freezeAction, refundAction, renewAction, spendAction } from "@/lib/actions";
+import { refundAction, renewAction, spendAction } from "@/lib/actions";
 import { KIND_LABEL, merchantsFor } from "@/lib/catalog";
 import { formatTL, formatWhen, movementLabel } from "@/lib/format";
 import { remainInk, remainLeft, remainMood } from "@/lib/remain";
@@ -50,11 +50,7 @@ export function CardActions({
     return (
       <div className="mt-4 grid gap-3">
         <OrderSlip card={card} />
-        <p className="text-xs text-white/50">Kart hazırlanıyor.</p>
-        <form action={cancelOrderAction}>
-          <input type="hidden" name="id" value={card.id} />
-          <SubmitButton className="btn btn-danger w-fit">Siparişi iptal et</SubmitButton>
-        </form>
+        <p className="text-xs text-white/50">Kart hazırlanıyor. Kapatmak için kartın sağ üstündeki menüyü aç.</p>
       </div>
     );
   }
@@ -88,22 +84,6 @@ export function CardActions({
           <p className="text-xs text-white/50">Harcama sayacı sıfırlanır. Cüzdandan düşen tutar geri gelmez.</p>
         </form>
       )}
-      <div className="flex flex-wrap gap-2">
-        {card.status === "aktif" && (
-          <form action={freezeAction}>
-            <input type="hidden" name="id" value={card.id} />
-            <input type="hidden" name="mod" value="dondur" />
-            <SubmitButton className="btn btn-ghost">Kartı dondur</SubmitButton>
-          </form>
-        )}
-        {card.status === "donduruldu" && (
-          <form action={freezeAction}>
-            <input type="hidden" name="id" value={card.id} />
-            <input type="hidden" name="mod" value="coz" />
-            <SubmitButton className="btn btn-gold">Kartı aktif et</SubmitButton>
-          </form>
-        )}
-      </div>
       {card.status === "aktif" && (
         <details className="rounded-2xl border border-white/10 p-3">
           <summary className="cursor-pointer text-sm font-semibold">Harcama</summary>
@@ -138,19 +118,6 @@ export function CardActions({
               En fazla {formatTL(card.spent)} geri yazılır. Tutar cüzdana döner, tavan açılır.
             </p>
             <SubmitButton className="btn btn-ghost">İade yaz</SubmitButton>
-          </form>
-        </details>
-      )}
-      {card.status !== "kapali" && (
-        <details className="rounded-2xl border border-white/10 p-3">
-          <summary className="cursor-pointer text-sm font-semibold text-[#ffd0dc]">Kartı kapat</summary>
-          <form action={closeAction} className="mt-3 grid gap-2">
-            <input type="hidden" name="id" value={card.id} />
-            <label className="flex items-start gap-2 text-sm text-white/75">
-              <input type="checkbox" name="onay" required className="mt-1" />
-              Bu kartı kapatıyorum. Geri açılmaz. Kart bedeli bakiyeye döner. Karta yazılmış tavan dönmez.
-            </label>
-            <SubmitButton className="btn btn-danger">Kapat</SubmitButton>
           </form>
         </details>
       )}

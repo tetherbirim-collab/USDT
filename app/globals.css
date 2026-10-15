@@ -400,6 +400,77 @@ select.field option {
   background: linear-gradient(90deg, #4285f4, #ea4335, #fbbc05, #34a853);
 }
 
+.card-face {
+  position: relative;
+  width: min(100%, 340px);
+  margin-inline: auto;
+}
+
+.card-face .vcard {
+  width: 100%;
+}
+
+.card-face .vcard-status {
+  right: 52px;
+}
+
+.card-menu {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 40;
+}
+
+.card-menu-btn {
+  display: grid;
+  gap: 3px;
+  width: 34px;
+  height: 34px;
+  place-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.card-menu-btn span {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.card-menu-pop {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  width: 15.5rem;
+  border-radius: 16px;
+  border: 1px solid rgba(240, 201, 138, 0.4);
+  background: #16141c;
+  padding: 0.35rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.card-menu-item {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.card-menu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.card-menu-danger {
+  color: #ffd0dc;
+}
+
 .vcard-status {
   position: absolute;
   top: 14px;

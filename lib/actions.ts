@@ -247,6 +247,45 @@ export async function freezeAction(formData: FormData) {
   return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
 }
 
+export async function activateCardAction(formData: FormData) {
+  const user = await actor();
+  const id = String(formData.get("id") || "");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id);
+    const card = db.cards.find((item) => item.id === id && item.userId === user.id);
+    if (!row || !card) return "e-yok" as const;
+    if (card.status !== "donduruldu" && card.status !== "kapali") return "e-durum" as const;
+    const fee = db.settings.issueFeeKurus;
+    if (card.status === "kapali" && openCardCount(db, row.id) >= db.settings.plans[row.plan].cardLimit) {
+      return "e-plan" as const;
+    }
+    if (row.balance < fee) return "e-bakiye" as const;
+    const closed = card.status === "kapali";
+    row.balance -= fee;
+    card.status = "aktif";
+    card.readyAt = null;
+    db.transactions.push({
+      id: `tx_${rid()}`,
+      userId: row.id,
+      cardId: card.id,
+      kind: "basim",
+      title: `Kart bedeli · ${card.label}`,
+      note: closed ? "Kapanmış kart yeniden açıldı." : "Dondurulmuş kart aktif edildi.",
+      amount: -fee,
+      usdMinor: null,
+      status: "tamamlandi",
+      createdAt: new Date().toISOString(),
+    });
+    pushNotice(db, {
+      userId: row.id,
+      title: closed ? "Kart yeniden açıldı" : "Kart aktif",
+      body: `${card.label} açık bölüme alındı. Kart bedeli ${formatTL(fee)} bakiyeden düştü. Kalan bakiye ${formatTL(row.balance)}.`,
+    });
+    return closed ? ("kart-acildi" as const) : ("cozuldu" as const);
+  });
+  return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
+}
+
 export async function closeAction(formData: FormData) {
   const user = await actor();
   const id = String(formData.get("id") || "");

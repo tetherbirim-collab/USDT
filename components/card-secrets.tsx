@@ -35,11 +35,13 @@ export function CardSecrets({
   card,
   address,
   face = true,
+  menu,
   children,
 }: {
   card: Card;
   address: string;
   face?: boolean;
+  menu?: ReactNode;
   children?: ReactNode;
 }) {
   const [open, setOpen] = useState(true);
@@ -71,7 +73,12 @@ export function CardSecrets({
 
   return (
     <div>
-      {face && <VirtualCard card={{ ...card, hideCvv: !open }} />}
+      {face && (
+        <div className="card-face">
+          {menu}
+          <VirtualCard card={{ ...card, hideCvv: !open }} />
+        </div>
+      )}
       {children}
       <section className="mt-4 rounded-[22px] bg-white/[0.04] p-4">
         <div className="flex items-start justify-between gap-3">

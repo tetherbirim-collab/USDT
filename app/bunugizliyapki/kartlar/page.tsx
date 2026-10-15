@@ -8,6 +8,7 @@ import { CARD_TYPES } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
 import { snapshot } from "@/lib/store";
+import type { Card } from "@/lib/types";
 
 const STATUS_LABEL = {
   hazirlaniyor: "Hazırlanıyor",
@@ -29,12 +30,23 @@ export default function AdminCardsPage() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">KARTLAR</p>
         <h1 className="font-display text-4xl font-extrabold">Kartlar</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Dondurulan kart harcama yapamaz. Aktif et, harcamayı yeniden açar. Ad, tavan ve durum üye detayından yazılır.
+          Açık, dondurulmuş ve kapanmış kartlar ayrı durur. Üye panelinde aktifleştirmek kart bedeli kadar düşer. Buradaki aktif et ücret yazmaz.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
-      <div className="grid gap-3">
-        {cards.map((card) => {
+      {(
+        [
+          ["Açık", cards.filter((card) => card.status === "aktif" || card.status === "hazirlaniyor")],
+          ["Dondurulmuş", cards.filter((card) => card.status === "donduruldu")],
+          ["Kapanmış", cards.filter((card) => card.status === "kapali")],
+        ] as [string, Card[]][]
+      ).map(([title, rows]) => (
+        <section key={title} className="grid gap-3">
+          <h2 className="font-display text-2xl font-bold">
+            {title} <span className="text-base text-white/45">{rows.length}</span>
+          </h2>
+          {rows.length === 0 && <p className="text-sm text-white/50">Bu bölümde kart yok.</p>}
+          {rows.map((card) => {
           const owner = db.users.find((user) => user.id === card.userId);
           return (
             <article
@@ -74,9 +86,9 @@ export default function AdminCardsPage() {
               )}
             </article>
           );
-        })}
-        {cards.length === 0 && <p className="text-sm text-white/50">Kart yok.</p>}
-      </div>
+          })}
+        </section>
+      ))}
     </div>
   );
 }

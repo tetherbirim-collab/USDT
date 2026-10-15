@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-weight-extrabold: 700;
   --color-gold: #f0c98a;
   --color-mint: #8dffe4;
   --color-ink: #07060b;
@@ -220,7 +221,7 @@ select.field option {
 .vcard-title {
   overflow: hidden;
   font-size: 4.35cqw;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.02em;
   text-overflow: ellipsis;
@@ -312,7 +313,7 @@ select.field option {
 
 .vcard-holder {
   font-size: 3.15cqw;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.03em;
 }
 
@@ -344,7 +345,7 @@ select.field option {
   background: rgba(0, 0, 0, 0.5);
   padding: 3px 7px;
   font-size: 9px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.06em;
   color: white;
 }
@@ -453,7 +454,7 @@ select.field option {
 .launch-phrase {
   font-family: var(--font-display);
   font-size: 0.95rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.22em;
   white-space: nowrap;
   color: #f0c98a;
@@ -520,7 +521,7 @@ select.field option {
 
 .launch-brand {
   font-size: 8px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -578,10 +579,88 @@ select.field option {
   to { transform: translateX(-50%); }
 }
 
+.reg-stage {
+  background:
+    radial-gradient(540px 320px at 50% 46%, rgba(240, 201, 138, 0.2), transparent 68%),
+    linear-gradient(180deg, #161d2b 0%, #0c111a 100%);
+}
+
+.reg-fan {
+  position: relative;
+  height: 168px;
+}
+
+.reg-card {
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  animation: reg-float 4.4s ease-in-out infinite;
+}
+
+.reg-card-a {
+  margin-left: -154px;
+  --tilt: -16deg;
+}
+
+.reg-card-b {
+  margin-left: -54px;
+  --tilt: 0deg;
+  animation-delay: 0.35s;
+}
+
+.reg-card-c {
+  margin-left: 46px;
+  --tilt: 14deg;
+  animation-delay: 0.7s;
+}
+
+.reg-lines {
+  position: relative;
+  height: 5.4rem;
+}
+
+.reg-line {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 2.1vw, 1.55rem);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.12em;
+  color: #f0c98a;
+  opacity: 0;
+  animation: reg-line 14s infinite;
+}
+
+.reg-line:nth-child(2) { animation-delay: 3.5s; }
+.reg-line:nth-child(3) { animation-delay: 7s; }
+.reg-line:nth-child(4) { animation-delay: 10.5s; }
+
+@keyframes reg-float {
+  0%,
+  100% { transform: translateY(0) rotate(var(--tilt)); }
+  50% { transform: translateY(-10px) rotate(var(--tilt)); }
+}
+
+@keyframes reg-line {
+  0% { opacity: 0; transform: translateY(12px); }
+  6% { opacity: 1; transform: translateY(0); }
+  22% { opacity: 1; transform: translateY(0); }
+  28%,
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {
     animation: none !important;
     transition: none !important;
+  }
+  .reg-line:first-child {
+    opacity: 1;
+    transform: none;
   }
 }

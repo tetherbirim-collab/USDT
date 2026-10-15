@@ -85,7 +85,7 @@ export function PanelFrame({
               {planName}
             </span>
             <span className="hidden text-white/70 sm:inline">{name}</span>
-            <span className="hidden text-white/40 md:inline">{username}</span>
+            {name !== username && <span className="hidden text-white/40 md:inline">{username}</span>}
             <form action={logoutAction}>
               <button className="btn btn-ghost px-3 py-2 text-sm">Çıkış</button>
             </form>

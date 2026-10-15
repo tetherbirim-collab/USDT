@@ -8,25 +8,23 @@ import {
   MAX_LIMIT_KURUS,
   MIN_LIMIT_KURUS,
 } from "@/lib/catalog";
-import { formatTL } from "@/lib/format";
+import { formatTL, holderLine } from "@/lib/format";
 import { networkOf, previewPan } from "@/lib/pan";
 import type { BinRow, CardTypeId } from "@/lib/types";
 import { SubmitButton } from "./submit-button";
 import { VirtualCard } from "./virtual-card";
 
 export function IssueForm({
-  holder,
   balance,
   slotsLeft,
   bins,
 }: {
-  holder: string;
   balance: number;
   slotsLeft: number;
   bins: Pick<BinRow, "id" | "type" | "label" | "digits">[];
 }) {
   const [type, setType] = useState<CardTypeId>("facebook_ads");
-  const [label, setLabel] = useState("Yeni prova");
+  const [label, setLabel] = useState("");
   const [limit, setLimit] = useState("5000");
   const [binId, setBinId] = useState("");
   const [localError, setLocalError] = useState("");
@@ -40,7 +38,7 @@ export function IssueForm({
     const clean = label.trim();
     const amount = Number(limit.replace(",", "."));
     if (clean.length < 2 || clean.length > 32) {
-      setLocalError("Etiket 2–32 karakter olmalı.");
+      setLocalError("Kart adı 2–32 karakter olmalı.");
       return false;
     }
     if (!Number.isFinite(amount) || amount * 100 < MIN_LIMIT_KURUS || amount * 100 > MAX_LIMIT_KURUS) {
@@ -91,16 +89,18 @@ export function IssueForm({
               </div>
             </fieldset>
             <label className="grid gap-1 text-sm">
-              Etiket
+              Karta isim ver
               <input
                 className="field"
                 name="etiket"
                 value={label}
                 onChange={(event) => setLabel(event.target.value)}
+                placeholder="Kartının adı"
                 minLength={2}
                 maxLength={32}
                 required
               />
+              <span className="text-white/50">Bu ad kartın üzerinde görünür.</span>
             </label>
             <label className="grid gap-1 text-sm">
               Aylık tavan (₺)
@@ -168,8 +168,8 @@ export function IssueForm({
         <VirtualCard
           card={{
             type,
-            label: label || "Etiket",
-            holder,
+            label: label.trim() || "Kart adı",
+            holder: holderLine(label.trim() || "Kart adı"),
             pan: "",
             bin: chosen?.digits,
             panLine: chosen ? previewPan(chosen.digits) : "XXXX XXXX XXXX XXXX",

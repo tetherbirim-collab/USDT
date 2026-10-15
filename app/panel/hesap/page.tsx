@@ -40,7 +40,7 @@ export default function AccountPage() {
           Görünen ad
           <input className="field" name="ad" required minLength={2} maxLength={40} defaultValue={user.name} />
         </label>
-        <p className="text-xs text-white/50">Kartın ad satırında bunun ilk 24 karakteri büyük harfle durur.</p>
+        <p className="text-xs text-white/50">Bu ad panelde görünür. Kartın üzerindeki ad, kartı oluştururken verdiğin addır.</p>
         <button className="btn btn-gold w-fit">Adı kaydet</button>
       </form>
       <form action={addressAction} className="glass grid max-w-md gap-3 rounded-[28px] p-5">

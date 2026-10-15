@@ -755,7 +755,7 @@ export function issueCard(
     binLabel: input.binLabel,
     expiry: makeExpiry(),
     cvv: makeCvv(serial),
-    holder: holderLine(user.name),
+    holder: holderLine(input.label),
     status: "hazirlaniyor",
     readyAt: new Date(Date.now() + CARD_PREP_MS).toISOString(),
     period: 1,

@@ -1,10 +1,10 @@
-export function Wordmark() {
+export function Wordmark({ tone = "dark" }: { tone?: "dark" | "light" }) {
+  const ink = tone === "light" ? "text-[#172033]" : "text-white";
+  const sub = tone === "light" ? "text-[#8a6230]" : "text-gold";
   return (
     <span className="leading-none">
-      <span className="block font-display text-lg font-extrabold tracking-[0.08em]">CLAY</span>
-      <span className="mt-0.5 block text-[9px] font-semibold tracking-[0.16em] text-white/55">
-        SANAL KART HİZMETLERİ
-      </span>
+      <span className={`block font-display text-[1.15rem] font-bold tracking-[0.2em] ${ink}`}>CLAY</span>
+      <span className={`mt-1 block text-[10px] font-semibold tracking-[0.24em] ${sub}`}>SANAL KART HİZMETLERİ</span>
     </span>
   );
 }

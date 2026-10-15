@@ -55,7 +55,7 @@ const STEPS = [
   {
     n: "03",
     title: "Kart bas",
-    text: "Tür, etiket ve tavan seç, sonra o türün BIN listesinden bir satır işaretle.",
+    text: "Karta isim ver, tavanı seç, sonra o türün BIN listesinden bir satır işaretle.",
   },
   {
     n: "04",
@@ -136,7 +136,7 @@ export function Marketing({
       <main>
         <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 lg:grid-cols-[1.05fr_.95fr] lg:py-24">
           <div>
-            <p className="text-xs font-bold tracking-[0.28em] text-gold">SİMÜLASYON STÜDYOSU</p>
+            <p className="text-sm font-bold tracking-[0.28em] text-gold">CLAY SANAL KART HİZMETLERİ</p>
             <h1 className="font-display mt-4 text-4xl font-extrabold leading-[1.05] sm:text-6xl">
               Her iş için ayrı bir sanal kart.
             </h1>
@@ -268,12 +268,9 @@ export function Marketing({
 
       <footer className="border-t border-white/10">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <Mark className="h-7 w-7" />
-            <span>
-              <span className="block font-display font-extrabold tracking-[0.08em]">CLAY</span>
-              <span className="text-xs text-white/55">CLAY Sanal Kart Hizmetleri</span>
-            </span>
+          <div className="flex items-center gap-3">
+            <Mark className="h-9 w-9" />
+            <Wordmark />
           </div>
           <p className="max-w-xl text-sm text-white/55">
             Banka değil. Kart kuruluşu değil. Basılan numaralar gerçek üye işyerinde

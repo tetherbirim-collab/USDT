@@ -122,7 +122,7 @@ export default function AdminUserPage() {
                 <input type="hidden" name="uye" value={user.id} />
                 <input type="hidden" name="donus" value={back} />
                 <label className="grid gap-1 text-sm sm:col-span-2">
-                  Etiket
+                  Kart adı
                   <input className="field" name="etiket" defaultValue={card.label} required minLength={2} maxLength={32} />
                 </label>
                 <label className="grid gap-1 text-sm">

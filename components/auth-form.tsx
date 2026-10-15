@@ -62,7 +62,6 @@ export function RegisterForm() {
           <Boot />
         </div>
       )}
-      <input className="auth-field" name="ad" autoComplete="name" placeholder="Görünen ad" required minLength={2} maxLength={40} />
       <input className="auth-field" name="kullanici" autoComplete="username" placeholder="Kullanıcı adı" required minLength={2} maxLength={24} />
       <input
         className="auth-field"
@@ -70,16 +69,6 @@ export function RegisterForm() {
         type="password"
         autoComplete="new-password"
         placeholder="Parola"
-        required
-        minLength={6}
-        maxLength={72}
-      />
-      <input
-        className="auth-field"
-        name="parola2"
-        type="password"
-        autoComplete="new-password"
-        placeholder="Parola tekrar"
         required
         minLength={6}
         maxLength={72}

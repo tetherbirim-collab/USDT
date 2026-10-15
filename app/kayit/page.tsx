@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { RegisterForm } from "@/components/auth-form";
 import { AuthShell } from "@/components/auth-shell";
+import { RegisterStage } from "@/components/register-stage";
 import { deskPath } from "@/lib/auth";
 import { Boot, useUser } from "@/lib/live";
 
@@ -14,7 +15,11 @@ export default function RegisterPage() {
   }, [user]);
   if (user) return <Boot />;
   return (
-    <AuthShell title="Kayıt ol" lede="Görünen ad kartın üzerine yazılır. Kimlik belgesi yok.">
+    <AuthShell
+      title="Kayıt ol"
+      lede="Kullanıcı adı ve parola yeter. Kartın adını oluştururken verirsin."
+      visual={<RegisterStage />}
+    >
       <RegisterForm />
       <Link href="/giris" className="auth-outline mt-3">
         Giriş yap

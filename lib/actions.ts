@@ -70,15 +70,11 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
 
 export async function registerAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const username = parseUsername(String(formData.get("kullanici") || ""));
-  const name = parseDisplayName(String(formData.get("ad") || ""));
   const password = String(formData.get("parola") || "");
-  const again = String(formData.get("parola2") || "");
-  if (!name) return { error: "Görünen ad 2–40 karakter olmalı ve bir harfle başlamalı." };
   if (!username) return { error: "Kullanıcı adı 2–24 karakter olmalı; yalnızca harf, rakam ve alt çizgi." };
   if (password.length < 6 || password.length > 72) return { error: "Parola 6–72 karakter olmalı." };
-  if (password !== again) return { error: "Parolalar eşleşmiyor." };
   if (findUserByUsername(username)) return { error: "Bu kullanıcı adı zaten var." };
-  const user = createUser({ username, password, name });
+  const user = createUser({ username, password, name: username });
   if (!user) return { error: "Bu kullanıcı adı zaten var." };
   await setSession(user.id);
   return go("/panel?bildirim=hosgeldin");
@@ -560,6 +556,7 @@ export async function adminEditCardAction(formData: FormData) {
       return "e-limit" as const;
     }
     card.label = label;
+    card.holder = holderLine(label);
     card.limit = limit;
     card.status = status;
     card.readyAt = status === "hazirlaniyor" ? new Date(Date.now() + CARD_PREP_MS).toISOString() : null;
@@ -840,10 +837,6 @@ export async function displayNameAction(formData: FormData) {
     const row = db.users.find((item) => item.id === user.id && item.role === "uye");
     if (!row) return "e-yok" as const;
     row.name = name;
-    const line = holderLine(name);
-    for (const card of db.cards) {
-      if (card.userId === row.id) card.holder = line;
-    }
     return "ad" as const;
   });
   return bounce("/panel/hesap", result);

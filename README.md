@@ -26,7 +26,7 @@ Defter tarayıcıda durur. İlk açılışta hazır hesap vardır: `demo` / `dem
 - Kullanıcı adı: `demo`
 - Parola: `demo123`
 
-Hazır hesapta bakiye, birkaç kart ve işlem dökümü hazır gelir. Yeni hesaplar görünen ad, kullanıcı adı, parola ve parola tekrar ile açılır. Görünen ad kartın üzerine yazılır; Hesap sayfasından değiştirilebilir. Kıvılcım planında 1.500 ₺ hoş geldin bakiyesi yazılır. Bu tutar da simülasyondur. Üye hesabı yönetim masasına giremez.
+Hazır hesapta bakiye, birkaç kart ve işlem dökümü hazır gelir. Yeni hesaplar kullanıcı adı ve parola ile açılır. Kartın üzerindeki ad, kart oluşturulurken verilir. Kıvılcım planında 1.500 ₺ hoş geldin bakiyesi yazılır. Bu tutar da simülasyondur. Üye hesabı yönetim masasına giremez.
 
 İki hazır giriş vardır: üye `demo` / `demo123` ve yönetici `admin` / `admin123`.
 

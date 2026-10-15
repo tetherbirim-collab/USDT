@@ -42,6 +42,41 @@ function LaunchRail() {
   );
 }
 
+function EntranceWaves() {
+  return (
+    <svg className="entrance-waves" viewBox="0 0 240 150" aria-hidden>
+      {Array.from({ length: 16 }, (_, index) => (
+        <path
+          key={index}
+          d={`M${128 + index * 5.4} 170 C ${146 + index * 3} 96, ${168 + index * 2} 28, 270 ${-16 + index * 7}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.15"
+        />
+      ))}
+    </svg>
+  );
+}
+
+function EntranceDeck() {
+  return (
+    <div className="entrance-deck">
+      {CARD_TYPE_ORDER.map((id) => (
+        <a key={id} className={`entrance-card entrance-${id}`} href="#turler">
+          <EntranceWaves />
+          <span className="entrance-sheen" aria-hidden />
+          <span className="entrance-chip" aria-hidden />
+          <span className="entrance-type">{CARD_TYPES[id].name}</span>
+          <span className="entrance-copy">
+            <span className="entrance-clay">CLAY</span>
+            <span className="entrance-service">SANAL KART HİZMETLERİ</span>
+          </span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
 const STEPS = [
   {
     n: "01",
@@ -136,9 +171,12 @@ export function Marketing({
 
       <main>
         <section className="mx-auto max-w-6xl px-4 pb-8 pt-10">
-          <div className="hero-mark">
-            <img className="hero-still" src="/clay-hero.png" alt="" width={420} height={420} />
-            <img className="hero-motion" src="/clay-hero.gif" alt="CLAY Virtual Card, sanal kart hizmeti" width={420} height={420} />
+          <div className="entrance">
+            <div className="hero-mark">
+              <img className="hero-still" src="/clay-hero.png" alt="" width={420} height={420} />
+              <img className="hero-motion" src="/clay-hero.gif" alt="CLAY Virtual Card, sanal kart hizmeti" width={420} height={420} />
+            </div>
+            <EntranceDeck />
           </div>
           <div className="mx-auto mt-8 max-w-2xl text-center">
             <p className="text-sm font-bold tracking-[0.28em] text-gold">CLAY VIRTUAL CARD</p>

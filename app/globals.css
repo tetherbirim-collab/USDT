@@ -1196,6 +1196,152 @@ select.field option {
   pointer-events: none;
 }
 
+.entrance {
+  width: min(100%, 920px);
+  margin-inline: auto;
+}
+
+.entrance-deck {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+  margin-top: -1.35rem;
+}
+
+.entrance-card {
+  position: relative;
+  display: flex;
+  min-height: 132px;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 14px 14px 13px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  color: #fff;
+  text-decoration: none;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.42), transparent 38%),
+    var(--entrance-wash);
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -14px 24px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(16px) saturate(1.4);
+}
+
+.entrance-facebook_ads {
+  --entrance-wash: linear-gradient(160deg, rgba(159, 206, 255, 0.72) 0%, rgba(24, 119, 242, 0.58) 48%, rgba(10, 52, 130, 0.78) 100%);
+}
+
+.entrance-tiktok {
+  --entrance-wash: linear-gradient(165deg, rgba(42, 42, 48, 0.72) 0%, rgba(8, 8, 12, 0.78) 100%);
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 3px 0 18px rgba(37, 244, 238, 0.28),
+    inset -3px 0 18px rgba(254, 44, 85, 0.28);
+}
+
+.entrance-google_ads {
+  --entrance-wash: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(232, 240, 252, 0.74) 100%);
+  color: #1a2744;
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -10px 18px rgba(66, 133, 244, 0.12);
+}
+
+.entrance-ultima {
+  --entrance-wash: linear-gradient(150deg, rgba(255, 236, 196, 0.55) 0%, rgba(90, 74, 48, 0.62) 42%, rgba(16, 14, 12, 0.82) 100%);
+}
+
+.entrance-waves {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+
+.entrance-google_ads .entrance-waves {
+  color: rgba(66, 133, 244, 0.28);
+}
+
+.entrance-sheen {
+  position: absolute;
+  inset: -30% auto -30% 0;
+  width: 46%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  translate: -140% 0;
+  pointer-events: none;
+}
+
+.entrance-chip {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 28px;
+  height: 20px;
+  border-radius: 5px;
+  background: linear-gradient(160deg, #fff1cf, #c4924a);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.entrance-type {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.88;
+}
+
+.entrance-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.entrance-clay {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-shadow: 0 8px 18px rgba(8, 20, 60, 0.28);
+}
+
+.entrance-service {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+}
+
+.entrance-google_ads .entrance-clay {
+  text-shadow: none;
+}
+
+@media (min-width: 860px) {
+  .entrance-deck {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-top: -2.6rem;
+    padding-bottom: 1.4rem;
+  }
+
+  .entrance-card:nth-child(1) { rotate: -9deg; margin-top: 0.15rem; }
+  .entrance-card:nth-child(2) { rotate: -3.5deg; margin-top: 1.55rem; }
+  .entrance-card:nth-child(3) { rotate: 3.5deg; margin-top: 1.55rem; }
+  .entrance-card:nth-child(4) { rotate: 9deg; margin-top: 0.15rem; }
+}
+
 .plan-grid {
   display: grid;
   gap: 1rem;
@@ -1334,6 +1480,22 @@ select.field option {
   .spend-area {
     animation: spend-fade 1.15s ease both;
   }
+
+  .entrance-sheen {
+    animation: entrance-sheen 4.8s ease-in-out infinite;
+  }
+
+  .entrance-card:nth-child(2) .entrance-sheen { animation-delay: 0.7s; }
+  .entrance-card:nth-child(3) .entrance-sheen { animation-delay: 1.3s; }
+  .entrance-card:nth-child(4) .entrance-sheen { animation-delay: 0.4s; }
+
+  .entrance-card {
+    animation: entrance-float 5.6s ease-in-out infinite;
+  }
+
+  .entrance-card:nth-child(2) { animation-delay: 0.35s; }
+  .entrance-card:nth-child(3) { animation-delay: 0.7s; }
+  .entrance-card:nth-child(4) { animation-delay: 0.2s; }
 }
 
 @keyframes spend-draw {
@@ -1368,6 +1530,18 @@ select.field option {
   0%,
   100% { translate: 0 0; rotate: 0deg; }
   50% { translate: 0 -4px; rotate: -7deg; }
+}
+
+@keyframes entrance-sheen {
+  0%,
+  34% { translate: -150% 0; }
+  100% { translate: 280% 0; }
+}
+
+@keyframes entrance-float {
+  0%,
+  100% { translate: 0 0; }
+  50% { translate: 0 -7px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

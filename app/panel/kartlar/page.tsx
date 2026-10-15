@@ -61,21 +61,16 @@ export default function CardsPage() {
           Kart bas
         </Link>
       </div>
-      <ol className="grid gap-3 sm:grid-cols-4">
-        {[
-          ["1", "Kart bas", "Bedel 300₺. Ödeyecek hesabı ve BIN’i seç."],
-          ["2", "Bakiye yaz", "Ayırdığın tutardan %7,3 kesilir, kalan kullanılabilir bakiye olur."],
-          ["3", "Aktar", "Kullanılabilir bakiye karşı karta gider. Karşı karta %4 yazılır. Ana bakiye durur."],
-          ["4", "Harcama", "Tutar kendiliğinden düşer ve ödemelerde görünür."],
-          ["5", "Destek", "Takılırsan menüden talep aç. Yanıt zilde gelir."],
-        ].map(([step, title, line]) => (
-          <li key={step} className="glass rounded-[22px] p-4">
-            <p className="text-xs font-bold tracking-[0.16em] text-gold">{step}</p>
-            <p className="mt-1 font-semibold">{title}</p>
-            <p className="mt-1 text-sm text-white/60">{line}</p>
-          </li>
-        ))}
-      </ol>
+      <div className="mission-pair">
+        <article className="mission-card">
+          <p className="mission-kicker">Misyon</p>
+          <p className="mission-line">KYC’siz, anonim sanal kart. Reklamını bugün aç, harcamayı aynı masadan izle.</p>
+        </article>
+        <article className="mission-card mission-card-quiet">
+          <p className="mission-kicker">Sözümüz</p>
+          <p className="mission-line">Bakiyen ve kartın sende kalır. Kayıt tutulmaz. Tamamen güvenli ve anonim.</p>
+        </article>
+      </div>
       {query.get("bildirim") === "transfer" && fromCard && toCard && sent && got ? (
         <TransferBurst
           from={fromCard}

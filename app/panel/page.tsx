@@ -29,29 +29,6 @@ export default function PanelHome() {
   return (
     <div className="grid gap-6">
       <Notice code={query?.get("bildirim") || undefined} />
-      <section className="glass rounded-[28px] p-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-display text-2xl font-bold">Bildirimler</h2>
-          <Link href="/panel/bildirimler" className="text-sm font-semibold text-gold">
-            Tümü
-          </Link>
-        </div>
-        {notes.length === 0 ? (
-          <p className="mt-3 text-sm text-white/55">Henüz bildirim yok.</p>
-        ) : (
-          <ul className="mt-3 grid gap-2">
-            {notes.map((note) => (
-              <li key={note.id} className="rounded-2xl bg-black/25 px-3 py-3">
-                <p className="font-semibold">{note.title}</p>
-                <p className="text-sm text-white/70">{note.body}</p>
-                <p className="mt-1 text-xs text-white/45">
-                  {formatWhen(note.createdAt)} · {note.readAt ? "Okundu" : "Okunmadı"}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
       <section className="relative overflow-hidden rounded-[32px] border border-gold/30 bg-gradient-to-br from-[#2a2114] via-[#14121c] to-[#0c1c1a] p-6 sm:p-8">
         <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(240,201,138,.45),transparent_68%)]" />
         <p className="text-xs font-bold tracking-[0.22em] text-gold">CÜZDAN</p>
@@ -140,6 +117,29 @@ export default function PanelHome() {
             </li>
           ))}
         </ul>
+      </section>
+      <section className="glass rounded-[28px] p-5">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-display text-2xl font-bold">Bildirimler</h2>
+          <Link href="/panel/bildirimler" className="text-sm font-semibold text-gold">
+            Tümü
+          </Link>
+        </div>
+        {notes.length === 0 ? (
+          <p className="mt-3 text-sm text-white/55">Henüz bildirim yok.</p>
+        ) : (
+          <ul className="mt-3 grid gap-2">
+            {notes.map((note) => (
+              <li key={note.id} className="rounded-2xl bg-black/25 px-3 py-3">
+                <p className="font-semibold">{note.title}</p>
+                <p className="text-sm text-white/70">{note.body}</p>
+                <p className="mt-1 text-xs text-white/45">
+                  {formatWhen(note.createdAt)} · {note.readAt ? "Okundu" : "Okunmadı"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

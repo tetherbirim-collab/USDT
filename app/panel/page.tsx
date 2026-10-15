@@ -133,7 +133,7 @@ export default async function PanelHome({
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-2xl font-bold">Son işlemler</h2>
           <Link href="/panel/islemler" className="text-sm font-semibold text-gold">
-            Döküm
+            Ödemeler
           </Link>
         </div>
         <ul className="glass divide-y divide-white/10 rounded-[24px] px-4">

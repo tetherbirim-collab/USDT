@@ -148,7 +148,7 @@ export function CardActions({
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold">Bu kartın hareketi</p>
             <Link href={`/panel/islemler?kart=${card.id}`} className="text-xs font-semibold text-gold">
-              Tüm döküm
+              Ödemeler
             </Link>
           </div>
           <ul className="mt-2 grid gap-2">

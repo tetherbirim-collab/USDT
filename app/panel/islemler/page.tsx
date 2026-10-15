@@ -1,8 +1,17 @@
 import Link from "next/link";
 import { Notice } from "@/components/notice";
+import { PaymentsBoard } from "@/components/payments-board";
 import { getCurrentUser } from "@/lib/auth";
 import { KIND_LABEL } from "@/lib/catalog";
-import { formatSigned, formatWhen, istanbulKey, parseTryToKurus } from "@/lib/format";
+import { formatTL } from "@/lib/format";
+import {
+  PAY_TILES,
+  bucketTotals,
+  filterLedger,
+  paymentHref,
+  paymentQueryFrom,
+  presentPayments,
+} from "@/lib/payments";
 import { listCards, listTransactions } from "@/lib/store";
 import type { TxKind } from "@/lib/types";
 import { redirect } from "next/navigation";
@@ -11,19 +20,9 @@ function one(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-const FILTERS: [string, string][] = [
-  ["", "Tümü"],
-  ["yukleme", "Yükleme"],
-  ["harcama", "Harcama"],
-  ["iade", "İade"],
-  ["basim", "Basım"],
-  ["duzeltme", "Düzeltme"],
-  ["yenileme", "Tavan yenileme"],
-  ["transfer", "Aktarım"],
-  ["reddedilen", "Reddedilen"],
-];
+const KINDS = Object.keys(KIND_LABEL) as TxKind[];
 
-export default async function TransactionsPage({
+export default async function PaymentsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -31,82 +30,81 @@ export default async function TransactionsPage({
   const user = await getCurrentUser();
   if (!user) redirect("/giris");
   const sp = await searchParams;
-  const tur = one(sp.tur) || "";
-  const q = (one(sp.q) || "").trim();
-  const kart = one(sp.kart) || "";
-  const bas = one(sp.bas) || "";
-  const bit = one(sp.bit) || "";
-  const enaz = one(sp.enaz) || "";
-  const encok = one(sp.encok) || "";
+  const query = paymentQueryFrom({
+    tur: one(sp.tur),
+    durum: one(sp.durum),
+    kart: one(sp.kart),
+    q: one(sp.q),
+    bas: one(sp.bas),
+    bit: one(sp.bit),
+    enaz: one(sp.enaz),
+    encok: one(sp.encok),
+  });
   const cards = listCards(user.id);
-  const labels = new Map(cards.map((card) => [card.id, card.label]));
-  const minKurus = enaz ? parseTryToKurus(enaz) : null;
-  const maxKurus = encok ? parseTryToKurus(encok) : null;
-
-  let rows = listTransactions(user.id);
-  if (tur === "reddedilen") rows = rows.filter((entry) => entry.status === "reddedildi");
-  else if (
-    tur === "yukleme" ||
-    tur === "harcama" ||
-    tur === "iade" ||
-    tur === "basim" ||
-    tur === "duzeltme" ||
-    tur === "yenileme" ||
-    tur === "transfer"
-  ) {
-    rows = rows.filter((entry) => entry.kind === (tur as TxKind));
-  }
-  if (kart) rows = rows.filter((entry) => entry.cardId === kart);
-  if (q) {
-    const needle = q.toLocaleLowerCase("tr-TR");
-    rows = rows.filter((entry) =>
-      `${entry.title} ${entry.note}`.toLocaleLowerCase("tr-TR").includes(needle),
-    );
-  }
-  if (/^\d{4}-\d{2}-\d{2}$/.test(bas)) rows = rows.filter((entry) => istanbulKey(entry.createdAt) >= bas);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(bit)) rows = rows.filter((entry) => istanbulKey(entry.createdAt) <= bit);
-  if (minKurus !== null) rows = rows.filter((entry) => Math.abs(entry.amount) >= minKurus);
-  if (maxKurus !== null) rows = rows.filter((entry) => Math.abs(entry.amount) <= maxKurus);
+  const all = listTransactions(user.id);
+  const rows = filterLedger(all, query);
+  const totals = bucketTotals(all);
+  const csvHref = paymentHref("/panel/islemler/dokum", query);
+  const xlsxHref = paymentHref("/panel/islemler/xlsx", query);
 
   return (
     <div className="grid gap-5">
-      <div>
-        <p className="text-xs font-bold tracking-[0.22em] text-mint">DÖKÜM</p>
-        <h1 className="font-display text-4xl font-extrabold">İşlemler</h1>
-        <p className="mt-2 text-white/65">Hepsi simülasyon kaydıdır. Banka ekstresi değildir.</p>
-        <Link href="/panel/islemler/dokum" className="btn btn-ghost mt-3">
-          CSV indir
-        </Link>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold tracking-[0.22em] text-gold">HAREKET</p>
+          <h1 className="font-display text-4xl font-extrabold">Ödemeler</h1>
+          <p className="mt-2 max-w-xl text-white/65">
+            Her harcamanın gittiği yer burada durur. Kayıtlar bu hesabın simülasyon defterindendir.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a href={csvHref} className="btn btn-ghost px-3 py-2 text-sm">
+            Dışa aktar
+          </a>
+          <a href={csvHref} className="btn btn-ghost px-3 py-2 text-sm">
+            CSV
+          </a>
+          <a href={xlsxHref} className="btn btn-ghost px-3 py-2 text-sm">
+            XLSX
+          </a>
+        </div>
       </div>
       <Notice code={one(sp.bildirim)} />
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map(([id, label]) => {
-          const params = new URLSearchParams();
-          if (id) params.set("tur", id);
-          if (kart) params.set("kart", kart);
-          if (q) params.set("q", q);
-          if (bas) params.set("bas", bas);
-          if (bit) params.set("bit", bit);
-          if (enaz) params.set("enaz", enaz);
-          if (encok) params.set("encok", encok);
-          const href = params.size ? `/panel/islemler?${params}` : "/panel/islemler";
-          const active = tur === id;
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {PAY_TILES.map((tile) => {
+          const active = query.durum === tile.id;
+          const href = paymentHref("/panel/islemler", query, { durum: active ? "" : tile.id });
           return (
-            <a
-              key={label}
+            <Link
+              key={tile.id}
               href={href}
-              className={`rounded-full px-3 py-2 text-sm font-semibold ${active ? "bg-gold text-[#24180a]" : "bg-white/5 text-white/75"}`}
+              className={`overflow-hidden rounded-[24px] border bg-white/[0.04] p-4 transition ${active ? "border-gold shadow-[0_0_0_1px_rgba(240,201,138,0.35)]" : "border-white/10 hover:border-white/25"}`}
             >
-              {label}
-            </a>
+              <p className={`text-sm font-bold ${tile.tone === "ok" ? "text-mint" : tile.tone === "bad" ? "text-[#ffb4c0]" : tile.tone === "hold" ? "text-gold" : tile.tone === "refund" ? "text-[#e6d4ff]" : tile.tone === "cash" ? "text-[#ffc6ee]" : "text-white/70"}`}>
+                {tile.label}
+              </p>
+              <p className="mt-3 truncate font-display text-3xl font-extrabold tracking-tight">{formatTL(totals[tile.id])}</p>
+            </Link>
           );
         })}
       </div>
-      <form className="glass grid gap-3 rounded-[24px] p-4 sm:grid-cols-2 lg:grid-cols-3" action="/panel/islemler">
-        {tur && <input type="hidden" name="tur" value={tur} />}
-        <label className="grid gap-1 text-sm">
+      <form action="/panel/islemler" className="flex flex-wrap items-end gap-2">
+        {query.durum && <input type="hidden" name="durum" value={query.durum} />}
+        <label className="grid gap-1 text-xs text-white/55">
+          Tür
+          <select className="field w-40" name="tur" defaultValue={query.tur}>
+            <option value="">Tümü</option>
+            <option value="reddedilen">Reddedilen</option>
+            {KINDS.map((kind) => (
+              <option key={kind} value={kind}>
+                {KIND_LABEL[kind]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1 text-xs text-white/55">
           Kart
-          <select className="field" name="kart" defaultValue={kart}>
+          <select className="field w-44" name="kart" defaultValue={query.kart}>
             <option value="">Tüm kartlar</option>
             {cards.map((card) => (
               <option key={card.id} value={card.id}>
@@ -115,51 +113,26 @@ export default async function TransactionsPage({
             ))}
           </select>
         </label>
-        <label className="grid gap-1 text-sm">
+        <label className="grid gap-1 text-xs text-white/55">
           Ara
-          <input className="field" name="q" defaultValue={q} placeholder="İşletme adı" />
+          <input className="field w-44" name="q" defaultValue={query.q} placeholder="Nereye gitti" />
         </label>
-        <label className="grid gap-1 text-sm">
+        <label className="grid gap-1 text-xs text-white/55">
           Başlangıç
-          <input className="field" type="date" name="bas" defaultValue={bas} />
+          <input className="field w-40" type="date" name="bas" defaultValue={query.bas} />
         </label>
-        <label className="grid gap-1 text-sm">
+        <label className="grid gap-1 text-xs text-white/55">
           Bitiş
-          <input className="field" type="date" name="bit" defaultValue={bit} />
+          <input className="field w-40" type="date" name="bit" defaultValue={query.bit} />
         </label>
-        <label className="grid gap-1 text-sm">
-          En az (₺)
-          <input className="field" name="enaz" inputMode="decimal" defaultValue={enaz} placeholder="10" />
-        </label>
-        <label className="grid gap-1 text-sm">
-          En çok (₺)
-          <input className="field" name="encok" inputMode="decimal" defaultValue={encok} placeholder="500" />
-        </label>
-        <button className="btn btn-ghost self-end">Süz</button>
+        <button className="btn btn-gold px-4 py-2">Süz</button>
+        <Link href="/panel/islemler" className="btn btn-ghost px-4 py-2">
+          Temizle
+        </Link>
       </form>
-      {rows.length === 0 ? (
-        <p className="glass rounded-[24px] p-5 text-white/70">Bu süzgeçte kayıt yok.</p>
-      ) : (
-        <ul className="glass divide-y divide-white/10 rounded-[24px] px-4">
-          {rows.map((entry) => (
-            <li key={entry.id} className="grid gap-1 py-4 sm:grid-cols-[1fr_auto] sm:items-center">
-              <div>
-                <p className="font-semibold">{entry.title}</p>
-                <p className="text-xs text-white/50">
-                  {formatWhen(entry.createdAt)} · {KIND_LABEL[entry.kind]}
-                  {entry.cardId ? ` · ${labels.get(entry.cardId) ?? "Kart"}` : ""}
-                  {entry.status === "reddedildi" ? " · Reddedildi" : ""}
-                  {entry.note ? ` · ${entry.note}` : ""}
-                </p>
-              </div>
-              <p
-                className={`font-bold ${entry.status === "reddedildi" ? "text-white/40 line-through" : entry.amount > 0 ? "text-mint" : ""}`}
-              >
-                {formatSigned(entry.amount)}
-              </p>
-            </li>
-          ))}
-        </ul>
+      <PaymentsBoard rows={presentPayments(rows, cards)} />
+      {Object.values(query).some(Boolean) && (
+        <p className="text-xs text-white/40">{rows.length} hareket süzgeçte. Kutular tüm defterin özetidir.</p>
       )}
     </div>
   );

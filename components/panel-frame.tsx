@@ -9,7 +9,7 @@ const LINKS = [
   ["/panel", "Özet"],
   ["/panel/kartlar", "Kartlar"],
   ["/panel/siparisler", "Siparişler"],
-  ["/panel/islemler", "İşlemler"],
+  ["/panel/islemler", "Ödemeler"],
   ["/panel/bildirimler", "Bildirimler"],
   ["/panel/yukle", "Cüzdan"],
   ["/panel/hesap", "Hesap"],

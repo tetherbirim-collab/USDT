@@ -1031,6 +1031,30 @@ select.field option {
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
+.load-ad {
+  margin-top: 0.9rem;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid rgba(240, 201, 138, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+
+.load-ad-track {
+  display: flex;
+  width: max-content;
+}
+
+.load-ad-track span {
+  padding: 0.5rem 0 0.5rem 1.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #f0c98a;
+  white-space: nowrap;
+  text-shadow: 0 0 16px rgba(240, 201, 138, 0.35);
+}
+
 @keyframes note-pop {
   0%,
   100% { transform: scale(1); }
@@ -1173,9 +1197,18 @@ select.field option {
   box-shadow: 0 8px 14px rgba(0, 0, 0, 0.28);
 }
 
+@keyframes load-ad {
+  from { translate: 0 0; }
+  to { translate: -50% 0; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .hero-still { display: none; }
   .hero-motion { display: block; }
+
+  .load-ad-track {
+    animation: load-ad 16s linear infinite;
+  }
 
   .plan-card::after {
     animation: plan-sheen 4.8s ease-in-out infinite;

@@ -20,7 +20,13 @@ function Loaded({ show }: { show: boolean }) {
       <div className="load-card" role="status">
         <p className="text-xs font-bold tracking-[0.22em] text-gold">BAKİYE</p>
         <h2 className="font-display mt-2 text-3xl font-extrabold">Bakiyeniz yüklendi</h2>
-        <p className="mt-2 text-sm text-white/75">Tutar cüzdana yazıldı. Aynı haber zilde de durur.</p>
+        <p className="load-ad" aria-label="CLAY sanal kart. KYC gerekmez. Anonim sanal kart oluştur ve hemen harca.">
+          <span className="load-ad-track">
+            <span>CLAY SANAL KART · KYC GEREKMEZ · ANONİM SANAL KART · HEMEN HARCA · </span>
+            <span aria-hidden="true">CLAY SANAL KART · KYC GEREKMEZ · ANONİM SANAL KART · HEMEN HARCA · </span>
+          </span>
+        </p>
+        <p className="mt-3 text-sm text-white/75">Tutar cüzdana yazıldı. Aynı haber zilde de durur.</p>
         <button type="button" className="btn btn-gold mt-4" onClick={() => setOpen(false)}>
           Tamam
         </button>

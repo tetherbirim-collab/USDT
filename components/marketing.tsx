@@ -134,17 +134,19 @@ export function Marketing({
       <LaunchRail />
 
       <main>
-        <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 lg:grid-cols-[1.05fr_.95fr] lg:py-24">
-          <div>
-            <p className="text-sm font-bold tracking-[0.28em] text-gold">CLAY SANAL KART HİZMETLERİ</p>
-            <h1 className="font-display mt-4 text-4xl font-extrabold leading-[1.05] sm:text-6xl">
-              Her iş için ayrı bir sanal kart.
-            </h1>
-            <p className="mt-5 max-w-xl text-lg text-white/75">
+        <section className="mx-auto max-w-6xl px-4 pb-8 pt-10">
+          <div className="hero-mark">
+            <img className="hero-still" src="/clay-hero.png" alt="" width={420} height={420} />
+            <img className="hero-motion" src="/clay-hero.gif" alt="CLAY Virtual Card, sanal kart hizmeti" width={420} height={420} />
+          </div>
+          <div className="mx-auto mt-8 max-w-2xl text-center">
+            <p className="text-sm font-bold tracking-[0.28em] text-gold">CLAY VIRTUAL CARD</p>
+            <h1 className="font-display mt-3 text-4xl font-extrabold leading-[1.05] sm:text-6xl">SANAL KART HİZMETİ</h1>
+            <p className="mt-5 text-lg text-white/75">
               Facebook Ads, TikTok, Google Ads ve Ultima kartlarını aynı cüzdanda tut. CLAY
               kartı basar, tavan koyar, dondurur ve işlem dökümünü tutar. Bakiye, doların sabit kur karşılığıdır.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link href={loggedIn ? deskHref : "/kayit"} className="btn btn-gold">
                 {loggedIn ? deskLabel : "Hesap aç"}
               </Link>
@@ -152,7 +154,7 @@ export function Marketing({
                 Giriş yap
               </Link>
             </div>
-            <dl className="mt-10 grid grid-cols-3 gap-3 text-sm">
+            <dl className="mt-10 grid grid-cols-3 gap-3 text-left text-sm">
               {[
                 ["49,3929", "sabit kur"],
                 [String(CARD_TYPE_ORDER.length), "kart türü"],
@@ -165,13 +167,11 @@ export function Marketing({
               ))}
             </dl>
           </div>
-          <div className="mx-auto w-full max-w-[460px]">
+          <div className="mx-auto mt-12 w-full max-w-[340px]">
             <TiltCard>
               <VirtualCard card={sample} />
             </TiltCard>
-            <p className="mt-4 text-center text-sm text-white/60">
-              Örnek görünüm.
-            </p>
+            <p className="mt-4 text-center text-sm text-white/60">Örnek kart.</p>
           </div>
         </section>
 

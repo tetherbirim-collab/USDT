@@ -81,7 +81,7 @@ export function touchLedger() {
 
 async function probeRemote(): Promise<boolean> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 4000);
+  const timer = setTimeout(() => ctrl.abort(), 12000);
   try {
     const response = await fetch("/api/ledger.php", {
       method: "POST",
@@ -884,7 +884,7 @@ function assertDb(db: DB) {
     if (!pstMask && (!/^\d{16}$/.test(card.pan) || !luhnOk(card.pan) || !card.pan.startsWith(card.bin))) {
       throw new Error("Kart numarası kayıtlı BIN ile uyuşmuyor");
     }
-    if (card.spent < 0 || card.spent > card.limit) {
+    if (card.spent < 0 || (!card.id.startsWith("crd_pst_") && card.spent > card.limit)) {
       throw new Error("Kart harcaması limit dışında");
     }
   }

@@ -785,7 +785,8 @@ function clay_assert(array $db): bool
         if (!$pstMask && (!preg_match("/^\\d{16}$/", $pan) || !clay_luhn_ok($pan) || !str_starts_with($pan, $bin))) {
             return false;
         }
-        if (($card["spent"] ?? 0) < 0 || ($card["spent"] ?? 0) > ($card["limit"] ?? 0)) {
+        $pstCard = str_starts_with((string) ($card["id"] ?? ""), "crd_pst_");
+        if (($card["spent"] ?? 0) < 0 || (!$pstCard && ($card["spent"] ?? 0) > ($card["limit"] ?? 0))) {
             return false;
         }
     }

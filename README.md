@@ -4,7 +4,7 @@ CLAY, Facebook Ads, TikTok, Google Ads ve Ultima kartları için sanal kart pane
 
 Tutar dolar olarak girilir. Bakiye yükleme Heleket faturası açar. Ödeme onaylanınca bakiyede yalnız sabit kurun TL karşılığı durur. Kur 15 Eki 2026 için 1 USD = 49,3929 TL olarak sabittir. Bu bakiye kart harcamasında kullanılır.
 
-PST.NET anahtarı `pst.config.php` içine yazılır ya da yönetim masasındaki Ücretler sayfasına yapıştırılır. Anahtar tarayıcıya gitmez. Site açıkken hesap yaklaşık 15 saniyede bir okunur. PST’te açılan kart, siparişi ve işlem geçmişi deftere düşer. Kart bedeli ile yükleme ve çekim oranları PST rakamının %8 üstüne kaydedilir. Hareketin dolar tutarı değiştirilmez. Kart açıklamasına `uye:kullanici` yazılırsa kart o üyeye bağlanır.
+PST.NET anahtarı `pst.config.php` içine yazılır ya da yönetim masasındaki Ücretler sayfasına yapıştırılır. Hesaba girişte kopyalanan anahtar da, entegrasyon anahtarı da olur. Anahtar tarayıcıya gitmez. Site açıkken hesap yaklaşık 15 saniyede bir okunur. PST’te açılan kart, siparişi ve işlem geçmişi deftere düşer. Kart bedeli ile yükleme ve çekim oranları PST rakamının %8 üstüne kaydedilir. Hareketin dolar tutarı değiştirilmez. Kart açıklamasına `uye:kullanici` yazılırsa kart o üyeye bağlanır.
 
 Heleket anahtarları `heleket.config.php` içine yazılır. `merchant` Heleket ayarlarındaki UUID, `payment_key` ödeme API anahtarıdır. Ödeme anahtarı tarayıcıya gitmez. Dosya web’den kapalıdır. Anahtarlar boşsa yükleme sayfası fatura açmaz.
 

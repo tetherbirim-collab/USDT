@@ -111,7 +111,7 @@ function pst_type(array $card, array $tariffs): string
         . (string) ($tariff["slug"] ?? "") . " "
         . (string) ($tariff["name"] ?? "")
     ));
-    if (str_contains($blob, "tiktok")) {
+    if (str_contains($blob, "tiktok") || str_contains($blob, "tik-tok") || str_contains($blob, "tik_tok")) {
         return "tiktok";
     }
     if (str_contains($blob, "google")) {
@@ -129,11 +129,27 @@ function pst_status(array $card): string
     if ($simple === "active") {
         return "aktif";
     }
-    $text = strtolower((string) ($card["status_text"] ?? "") . " " . (string) ($card["status_name"] ?? ""));
-    if (str_contains($text, "clos") || str_contains($text, "block") || str_contains($text, "expir") || str_contains($text, "delet")) {
+    $tags = "";
+    foreach ($card["tags"] ?? [] as $tag) {
+        if (is_array($tag)) {
+            $tags .= " " . strtolower((string) ($tag["slug"] ?? "") . " " . (string) ($tag["name"] ?? ""));
+        }
+    }
+    $text = strtolower((string) ($card["status_text"] ?? "") . " " . (string) ($card["status_name"] ?? "")) . $tags;
+    $code = is_numeric($card["status"] ?? null) ? (int) $card["status"] : 0;
+    if ($simple === "inactive" || $code >= 20 || str_contains($text, "clos") || str_contains($text, "block") || str_contains($text, "expir") || str_contains($text, "delet")) {
         return "kapali";
     }
     return "donduruldu";
+}
+
+function pst_expiry(array $card): string
+{
+    $until = (string) ($card["ordered_until"] ?? "");
+    if (preg_match("/^(\\d{4})-(\\d{2})/", $until, $hit)) {
+        return $hit[2] . "/" . substr($hit[1], 2);
+    }
+    return "12/29";
 }
 
 function pst_iso(string $value): string
@@ -165,13 +181,18 @@ function pst_kind(array $tx): string
 
 function pst_tx_ok(array $tx): bool
 {
-    $text = strtolower((string) ($tx["status_text"] ?? "") . " " . (string) ($tx["custom_status"] ?? ""));
-    foreach (["declin", "reject", "fail", "cancel", "error"] as $needle) {
+    $statusText = strtolower(trim((string) ($tx["status_text"] ?? "")));
+    $custom = strtolower(trim((string) ($tx["custom_status"] ?? "")));
+    $text = $statusText . " " . $custom;
+    foreach (["declin", "reject", "fail", "cancel", "error", "block", "insufficient", "restrict"] as $needle) {
         if (str_contains($text, $needle)) {
             return false;
         }
     }
-    return true;
+    if ($statusText === "") {
+        return true;
+    }
+    return in_array($statusText, ["approved", "success", "completed", "settled"], true);
 }
 
 function pst_merchant(array $tx): string
@@ -217,8 +238,8 @@ function pst_http(string $url, string $token): array
     }
     curl_setopt_array($handle, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 4,
-        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_TIMEOUT => 12,
+        CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_HTTPHEADER => [
             "Authorization: Bearer " . $token,
             "Accept: application/json",
@@ -234,25 +255,113 @@ function pst_http(string $url, string $token): array
     return is_array($json) ? $json : ["_error" => 0];
 }
 
-function pst_list(string $path, string $token): array
+function pst_http_many(array $urls, string $token): array
 {
-    $next = "https://api.pst.net" . $path;
+    $out = [];
+    foreach ($urls as $i => $url) {
+        $out[$i] = ["_error" => 0];
+    }
+    if (!$urls) {
+        return $out;
+    }
+    if (!function_exists("curl_multi_init")) {
+        foreach ($urls as $i => $url) {
+            $out[$i] = pst_http($url, $token);
+        }
+        return $out;
+    }
+    $multi = curl_multi_init();
+    $handles = [];
+    foreach ($urls as $i => $url) {
+        $handle = curl_init($url);
+        if ($handle === false) {
+            continue;
+        }
+        curl_setopt_array($handle, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 12,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_HTTPHEADER => [
+                "Authorization: Bearer " . $token,
+                "Accept: application/json",
+            ],
+        ]);
+        curl_multi_add_handle($multi, $handle);
+        $handles[$i] = $handle;
+    }
+    $running = null;
+    do {
+        $status = curl_multi_exec($multi, $running);
+        if ($running) {
+            curl_multi_select($multi, 1.0);
+        }
+    } while ($running && $status === CURLM_OK);
+    foreach ($handles as $i => $handle) {
+        $body = curl_multi_getcontent($handle);
+        $code = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+        curl_multi_remove_handle($multi, $handle);
+        curl_close($handle);
+        if (!is_string($body) || $code < 200 || $code >= 300) {
+            $out[$i] = ["_error" => $code];
+            continue;
+        }
+        $json = json_decode($body, true);
+        $out[$i] = is_array($json) ? $json : ["_error" => 0];
+    }
+    curl_multi_close($multi);
+    return $out;
+}
+
+/**
+ * @return array{rows?: array, next?: int, _error?: int}
+ */
+function pst_collect(string $path, array $query, string $token, int $maxPages, int $start = 1): array
+{
     $rows = [];
-    for ($page = 0; $page < 8; $page += 1) {
-        $json = pst_http($next, $token);
-        if (isset($json["_error"])) {
-            return $json;
+    $page = max(1, $start);
+    $guard = 0;
+    $lastPage = 0;
+    while ($guard < $maxPages) {
+        $room = min(($start === 1 && $guard === 0) ? 1 : 4, $maxPages - $guard);
+        $batch = [];
+        for ($i = 0; $i < $room; $i += 1) {
+            $number = $page + $i;
+            if ($lastPage > 0 && $number > $lastPage) {
+                break;
+            }
+            $batch[] = $number;
         }
-        foreach (pst_rows($json) as $row) {
-            $rows[] = $row;
-        }
-        $link = $json["links"]["next"] ?? $json["next_page_url"] ?? null;
-        if (!is_string($link) || $link === "") {
+        if (!$batch) {
             break;
         }
-        $next = $link;
+        $urls = [];
+        foreach ($batch as $number) {
+            $query["page"] = $number;
+            $urls[] = "https://api.pst.net" . $path . "?" . http_build_query($query);
+        }
+        $bodies = pst_http_many($urls, $token);
+        foreach ($bodies as $i => $json) {
+            if (isset($json["_error"])) {
+                if (!$rows) {
+                    return ["_error" => (int) $json["_error"]];
+                }
+                return ["rows" => $rows, "next" => $batch[$i]];
+            }
+            foreach (pst_rows($json) as $row) {
+                $rows[] = $row;
+            }
+            $metaLast = (int) ($json["meta"]["last_page"] ?? 0);
+            if ($metaLast > $lastPage) {
+                $lastPage = $metaLast;
+            }
+        }
+        $page += count($batch);
+        $guard += count($batch);
+        if ($lastPage === 0 || $page > $lastPage) {
+            return ["rows" => $rows, "next" => 0];
+        }
     }
-    return $rows;
+    return ["rows" => $rows, "next" => $page];
 }
 
 function pst_owner(array $db, array $card): string
@@ -271,17 +380,21 @@ function pst_owner(array $db, array $card): string
 
 function pst_balance_kurus(array $card): ?int
 {
-    foreach (["balance", "available", "available_balance", "card_balance", "amount"] as $key) {
-        if (!isset($card[$key]) || !is_numeric($card[$key])) {
-            continue;
+    $raw = null;
+    if (isset($card["account"]) && is_array($card["account"]) && is_numeric($card["account"]["balance"] ?? null)) {
+        $raw = $card["account"]["balance"];
+    } else {
+        foreach (["balance", "available", "available_balance", "card_balance", "amount"] as $key) {
+            if (isset($card[$key]) && is_numeric($card[$key])) {
+                $raw = $card[$key];
+                break;
+            }
         }
-        $cents = (int) round(((float) $card[$key]) * 100);
-        if ($cents < 0) {
-            continue;
-        }
-        return clay_kurus($cents);
     }
-    return null;
+    if ($raw === null) {
+        return null;
+    }
+    return clay_kurus((int) round(((float) $raw) * 100));
 }
 
 function clay_pst_apply(array &$db, array $cards, array $transactions, array $tariffs, array $fees): bool
@@ -296,6 +409,9 @@ function clay_pst_apply(array &$db, array $cards, array $transactions, array $ta
             continue;
         }
         $byId[(string) ($tariff["id"] ?? "")] = $tariff;
+        if (array_key_exists("is_allowed_for_user", $tariff) && !$tariff["is_allowed_for_user"]) {
+            continue;
+        }
         $price = pst_usd($tariff["card_price"] ?? null);
         $load = pst_percent($tariff["fee_topup"] ?? null);
         if ($price !== null && ($issueSource === null || $price > $issueSource)) {
@@ -380,7 +496,7 @@ function clay_pst_apply(array &$db, array $cards, array $transactions, array $ta
             "pan" => $mask,
             "bin" => substr($mask, 0, 6),
             "binLabel" => "PST",
-            "expiry" => "12/29",
+            "expiry" => pst_expiry($card),
             "cvv" => "•••",
             "holder" => clay_holder((string) ($card["holder_name"] ?? "CLAY")),
             "status" => pst_status($card),
@@ -425,10 +541,14 @@ function clay_pst_apply(array &$db, array $cards, array $transactions, array $ta
         $cardCount += 1;
     }
 
-    $spentByCard = [];
     $txCount = 0;
     foreach ($transactions as $tx) {
         if (!is_array($tx) || !isset($tx["id"])) {
+            continue;
+        }
+        $enum = strtolower((string) ($tx["type_enum"] ?? ""));
+        $total = is_numeric($tx["amount_total"] ?? null) ? (float) $tx["amount_total"] : null;
+        if ($enum === "settlement" && $total !== null && abs($total) < 0.0000001) {
             continue;
         }
         $ref = "pst:" . preg_replace("/\\D/", "", (string) $tx["id"]);
@@ -466,14 +586,32 @@ function clay_pst_apply(array &$db, array $cards, array $transactions, array $ta
             $db["transactions"][] = $entry;
             $txIndex[$ref] = count($db["transactions"]) - 1;
         }
-        if ($ok && $cardId !== null && $kind === "harcama" && $amount < 0) {
-            $spentByCard[$cardId] = ($spentByCard[$cardId] ?? 0) + (-$amount);
-        }
         $txCount += 1;
     }
 
-    foreach ($spentByCard as $id => $spent) {
-        $index = $cardIndex[$id];
+    $spentByCard = [];
+    foreach ($db["transactions"] as $entry) {
+        $cid = (string) ($entry["cardId"] ?? "");
+        if (!str_starts_with($cid, "crd_pst_")) {
+            continue;
+        }
+        if (($entry["status"] ?? "") !== "tamamlandi" || ($entry["kind"] ?? "") !== "harcama") {
+            continue;
+        }
+        $moved = (int) ($entry["amount"] ?? 0);
+        if ($moved < 0) {
+            $spentByCard[$cid] = ($spentByCard[$cid] ?? 0) + (-$moved);
+        }
+    }
+    foreach ($db["cards"] as $index => $card) {
+        $id = (string) ($card["id"] ?? "");
+        if (!str_starts_with($id, "crd_pst_") || !isset($cardIndex[$id])) {
+            continue;
+        }
+        if (!isset($knownBalance[$id]) && !isset($spentByCard[$id])) {
+            continue;
+        }
+        $spent = $spentByCard[$id] ?? 0;
         $db["cards"][$index]["spent"] = $spent;
         if (isset($knownBalance[$id])) {
             $db["cards"][$index]["limit"] = $knownBalance[$id] + $spent;
@@ -481,8 +619,22 @@ function clay_pst_apply(array &$db, array $cards, array $transactions, array $ta
             $db["cards"][$index]["limit"] = max((int) $db["cards"][$index]["limit"], $spent);
         }
     }
+    foreach ($db["orders"] as $index => $order) {
+        $cid = (string) ($order["cardId"] ?? "");
+        if (!str_starts_with($cid, "crd_pst_") || !isset($cardIndex[$cid])) {
+            continue;
+        }
+        $db["orders"][$index]["limit"] = (int) $db["cards"][$cardIndex[$cid]]["limit"];
+    }
+    $txCount = 0;
+    foreach ($db["transactions"] as $entry) {
+        if (str_starts_with((string) ($entry["ref"] ?? ""), "pst:")) {
+            $txCount += 1;
+        }
+    }
 
     $token = pst_config()["token"];
+    $prev = $db["settings"]["pst"];
     $db["settings"]["pst"] = [
         "on" => $token !== "",
         "markup" => (int) round(($markup - 1) * 100),
@@ -490,13 +642,80 @@ function clay_pst_apply(array &$db, array $cards, array $transactions, array $ta
         "cards" => $cardCount,
         "transactions" => $txCount,
         "orders" => $cardCount,
-        "loadSource" => $loadSource ?? 0,
-        "issueSourceUsd" => $issueSource ?? 0,
-        "transferSource" => $transferSource ?? 0,
+        "loadSource" => $loadSource ?? (float) ($prev["loadSource"] ?? 0),
+        "issueSourceUsd" => $issueSource ?? (float) ($prev["issueSourceUsd"] ?? 0),
+        "transferSource" => $transferSource ?? (float) ($prev["transferSource"] ?? 0),
         "error" => "",
         "tokenTail" => $token === "" ? "" : substr($token, -4),
     ];
     return true;
+}
+
+function pst_pull(string $token, bool $cabinet, int $txPages, bool $rates = true): array
+{
+    if ($cabinet) {
+        $cardPath = "/card";
+        $txPath = "/transactions-v2";
+        $txQuery = ["direction" => "desc", "per_page" => 100];
+        $tariffPath = "/user/tariff";
+        $feeUrl = "https://api.pst.net/dictionary/fees";
+    } else {
+        $cardPath = "/integration/members/cards";
+        $txPath = "/integration/transactions-v2";
+        $txQuery = ["sort" => "processed_at", "direction" => "desc", "per_page" => 100];
+        $tariffPath = "/integration/user/tariff";
+        $feeUrl = "https://api.pst.net/integration/dictionary/fees";
+    }
+    $cardQuery = ["per_page" => 100, "page" => 1];
+    $firstTx = $txQuery;
+    $firstTx["page"] = 1;
+    $urls = [
+        "https://api.pst.net" . $cardPath . "?" . http_build_query($cardQuery),
+        "https://api.pst.net" . $txPath . "?" . http_build_query($firstTx),
+    ];
+    if ($rates) {
+        $urls[] = "https://api.pst.net" . $tariffPath . "?" . http_build_query(["per_page" => 100, "page" => 1]);
+        $urls[] = $feeUrl;
+    }
+    $bodies = pst_http_many($urls, $token);
+    $cardsJson = $bodies[0];
+    $txJson = $bodies[1];
+    $tariffJson = $rates ? $bodies[2] : ["data" => []];
+    $fees = $rates ? $bodies[3] : ["data" => []];
+    if ($cabinet && isset($cardsJson["_error"]) && (int) $cardsJson["_error"] === 401) {
+        return ["denied" => true];
+    }
+    $cards = isset($cardsJson["_error"]) ? $cardsJson : pst_rows($cardsJson);
+    $transactions = isset($txJson["_error"]) ? $txJson : pst_rows($txJson);
+    $tariffs = isset($tariffJson["_error"]) ? $tariffJson : pst_rows($tariffJson);
+    if ($txPages > 1 && !isset($transactions["_error"])) {
+        $last = (int) ($txJson["meta"]["last_page"] ?? 1);
+        $morePages = min($txPages, max($last, 1)) - 1;
+        if ($morePages > 0) {
+            $more = pst_collect($txPath, $txQuery, $token, $morePages, 2);
+            if (!isset($more["_error"])) {
+                foreach ($more["rows"] ?? [] as $row) {
+                    $transactions[] = $row;
+                }
+            }
+        }
+    }
+    $cardLast = (int) ($cardsJson["meta"]["last_page"] ?? 1);
+    if ($cardLast > 1 && !isset($cards["_error"])) {
+        $moreCards = pst_collect($cardPath, ["per_page" => 100], $token, min(3, $cardLast - 1), 2);
+        if (!isset($moreCards["_error"])) {
+            foreach ($moreCards["rows"] ?? [] as $row) {
+                $cards[] = $row;
+            }
+        }
+    }
+    return [
+        "denied" => false,
+        "cards" => $cards,
+        "transactions" => $transactions,
+        "tariffs" => $tariffs,
+        "fees" => $fees,
+    ];
 }
 
 function clay_pst_sync(array &$db, bool $force): bool
@@ -518,10 +737,17 @@ function clay_pst_sync(array &$db, bool $force): bool
     if (!$force && $seen > 0 && (int) round(microtime(true) * 1000) - $seen < 15000) {
         return false;
     }
-    $cards = pst_list("/integration/members/cards", $config["token"]);
-    $transactions = pst_list("/integration/transactions-v2?sort=processed_at&direction=desc", $config["token"]);
-    $tariffs = pst_list("/integration/user/tariff", $config["token"]);
-    $feeJson = pst_http("https://api.pst.net/integration/dictionary/fees", $config["token"]);
+    set_time_limit(120);
+    $txPages = $force ? 20 : 1;
+    $rates = $force || (float) ($db["settings"]["pst"]["loadSource"] ?? 0) <= 0;
+    $pulled = pst_pull($config["token"], true, $txPages, $rates);
+    if (!empty($pulled["denied"])) {
+        $pulled = pst_pull($config["token"], false, $txPages, $rates);
+    }
+    $cards = $pulled["cards"];
+    $transactions = $pulled["transactions"];
+    $tariffs = $pulled["tariffs"];
+    $feeJson = $pulled["fees"];
     if (isset($cards["_error"]) || isset($transactions["_error"]) || isset($tariffs["_error"]) || isset($feeJson["_error"])) {
         $code = (int) ($cards["_error"] ?? $transactions["_error"] ?? $tariffs["_error"] ?? $feeJson["_error"] ?? 0);
         $db["settings"]["pst"]["on"] = true;

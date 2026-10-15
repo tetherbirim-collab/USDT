@@ -1,23 +1,45 @@
+import Link from "next/link";
 import { closeAction, freezeAction, spendAction } from "@/lib/actions";
 import { merchantsFor } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
 import type { Card } from "@/lib/types";
 import { SubmitButton } from "./submit-button";
 
+function heat(percent: number) {
+  if (percent >= 100) return { bar: "linear-gradient(90deg,#ff6a3d,#ff2d3a)", ink: "#ff8b96" };
+  if (percent >= 80) return { bar: "linear-gradient(90deg,#f0a202,#ff3b4e)", ink: "#ffb0b8" };
+  if (percent >= 50) return { bar: "linear-gradient(90deg,#f0c98a,#e07a2f)", ink: "#f0c98a" };
+  return { bar: "linear-gradient(90deg,#f0c98a,#8dffe4)", ink: "#ffffff" };
+}
+
 export function CardActions({ card }: { card: Card }) {
   const kalan = card.limit - card.spent;
+  const percent = card.limit > 0 ? Math.min(100, Math.round((card.spent / card.limit) * 100)) : 0;
+  const tone = heat(percent);
+  const finished = kalan <= 0;
   return (
     <div className="mt-4 grid gap-3">
       <div className="flex items-center justify-between text-sm text-white/70">
         <span>Kalan tavan</span>
-        <span className="font-semibold text-white">{formatTL(kalan)}</span>
+        <span className="font-semibold" style={{ color: tone.ink }}>
+          {formatTL(kalan)}
+        </span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-white/10">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-gold to-mint"
-          style={{ width: `${Math.min(100, Math.round((card.spent / card.limit) * 100))}%` }}
+          className="h-full rounded-full transition-[width,background] duration-300"
+          style={{ width: `${percent}%`, background: tone.bar }}
         />
       </div>
+      {finished ? (
+        <Link href="/panel/yukle" className="btn btn-gold w-fit">
+          Bakiye yükle
+        </Link>
+      ) : (
+        <button type="button" className="btn btn-ghost w-fit opacity-40" disabled>
+          Bakiye yükle
+        </button>
+      )}
       <p className="text-xs text-white/50">
         Bu bilgiler simülasyon test verisidir. Gerçek üye işyerinde kullanılamaz.
       </p>

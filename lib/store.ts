@@ -411,6 +411,10 @@ function normalize(db: DB): DB {
       note.readAt = null;
       dirty = true;
     }
+    if (note.ref === undefined) {
+      note.ref = null;
+      dirty = true;
+    }
   }
   for (const card of db.cards) {
     if (!/^\d{6,8}$/.test(card.bin ?? "")) {

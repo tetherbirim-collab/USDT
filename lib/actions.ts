@@ -225,6 +225,21 @@ export async function spendAction(formData: FormData) {
       status: "tamamlandi",
       createdAt: now,
     });
+    if (card.limit > 0 && card.spent / card.limit >= 0.5) {
+      const ref = `tavan50:${card.id}`;
+      if (!db.notices.some((note) => note.ref === ref)) {
+        db.notices.push({
+          id: `nt_${randomUUID()}`,
+          userId: row.id,
+          batch: randomUUID(),
+          title: "Tavan yarıda",
+          body: `${card.label} kartının tavanının yarısı kullanıldı.`,
+          createdAt: now,
+          readAt: null,
+          ref,
+        });
+      }
+    }
     return "harcama" as const;
   });
   const target = result === "harcama" || result === "reddedildi" ? "/panel/islemler" : "/panel/kartlar";
@@ -344,6 +359,7 @@ export async function adminNoticeAction(formData: FormData) {
         body,
         createdAt,
         readAt: null,
+        ref: null,
       });
     }
     return "gonderildi" as const;

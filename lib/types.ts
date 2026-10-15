@@ -92,6 +92,8 @@ export type InboxNote = {
   createdAt: string;
   /** Null until the member marks the note read. Opening the page does not set this. */
   readAt: string | null;
+  /** Stable key so a limit warning is sent once per card. */
+  ref: string | null;
 };
 
 export type DB = {

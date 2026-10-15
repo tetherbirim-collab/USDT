@@ -1367,6 +1367,39 @@ select.field option {
   text-shadow: none;
 }
 
+.entrance-card:nth-child(1) { --out-x: 28px; --out-y: -120px; }
+.entrance-card:nth-child(2) { --out-x: -28px; --out-y: -120px; }
+.entrance-card:nth-child(3) { --out-x: 22px; --out-y: -230px; }
+.entrance-card:nth-child(4) { --out-x: -22px; --out-y: -230px; }
+
+.hero-word {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 68%;
+  display: grid;
+  width: min(240px, 68vw);
+  height: 108px;
+  place-items: center;
+  translate: -50% -50%;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.42), transparent 38%),
+    linear-gradient(165deg, rgba(90, 42, 28, 0.72), rgba(12, 8, 10, 0.82));
+  box-shadow:
+    0 22px 40px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-indent: 0.32em;
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(16px) saturate(1.35);
+}
+
 @media (min-width: 860px) {
   .entrance-deck {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1375,10 +1408,12 @@ select.field option {
     padding-bottom: 1.4rem;
   }
 
-  .entrance-card:nth-child(1) { rotate: -9deg; margin-top: 0.15rem; }
-  .entrance-card:nth-child(2) { rotate: -3.5deg; margin-top: 1.55rem; }
-  .entrance-card:nth-child(3) { rotate: 3.5deg; margin-top: 1.55rem; }
-  .entrance-card:nth-child(4) { rotate: 9deg; margin-top: 0.15rem; }
+  .hero-word { top: 72%; width: 280px; }
+
+  .entrance-card:nth-child(1) { --out-x: 160px; --out-y: -70px; rotate: -9deg; margin-top: 0.15rem; }
+  .entrance-card:nth-child(2) { --out-x: 54px; --out-y: -130px; rotate: -3.5deg; margin-top: 1.55rem; }
+  .entrance-card:nth-child(3) { --out-x: -54px; --out-y: -130px; rotate: 3.5deg; margin-top: 1.55rem; }
+  .entrance-card:nth-child(4) { --out-x: -160px; --out-y: -70px; rotate: 9deg; margin-top: 0.15rem; }
 }
 
 .plan-grid {
@@ -1530,13 +1565,17 @@ select.field option {
   .entrance-card:nth-child(3) .entrance-sheen { animation-delay: 1.3s; }
   .entrance-card:nth-child(4) .entrance-sheen { animation-delay: 0.4s; }
 
-  .entrance-card {
-    animation: entrance-float 5.6s ease-in-out infinite;
+  .hero-word {
+    animation: hero-word 9s ease-in-out infinite;
   }
 
-  .entrance-card:nth-child(2) { animation-delay: 0.35s; }
-  .entrance-card:nth-child(3) { animation-delay: 0.7s; }
-  .entrance-card:nth-child(4) { animation-delay: 0.2s; }
+  .entrance-card {
+    animation: entrance-cycle 9s ease-in-out infinite;
+  }
+
+  .entrance-card:nth-child(2) { animation-delay: 0.12s; }
+  .entrance-card:nth-child(3) { animation-delay: 0.24s; }
+  .entrance-card:nth-child(4) { animation-delay: 0.36s; }
 }
 
 @keyframes spend-draw {
@@ -1579,10 +1618,22 @@ select.field option {
   100% { translate: 280% 0; }
 }
 
-@keyframes entrance-float {
+@keyframes hero-word {
   0%,
-  100% { translate: 0 0; }
-  50% { translate: 0 -7px; }
+  24% { opacity: 1; scale: 1; }
+  40%,
+  72% { opacity: 0; scale: 0.86; }
+  88%,
+  100% { opacity: 1; scale: 1; }
+}
+
+@keyframes entrance-cycle {
+  0%,
+  20% { opacity: 0; translate: var(--out-x) var(--out-y); scale: 0.42; }
+  38%,
+  70% { opacity: 1; translate: 0 0; scale: 1; }
+  88%,
+  100% { opacity: 0; translate: var(--out-x) var(--out-y); scale: 0.42; }
 }
 
 @media (prefers-reduced-motion: reduce) {

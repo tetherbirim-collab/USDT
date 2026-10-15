@@ -176,6 +176,9 @@ export function Marketing({
               <img className="hero-still" src="/clay-hero.png" alt="" width={420} height={420} />
               <img className="hero-motion" src="/clay-hero.gif" alt="CLAY Virtual Card, sanal kart hizmeti" width={420} height={420} />
             </div>
+            <p className="hero-word" aria-hidden>
+              CLAY
+            </p>
             <EntranceDeck />
           </div>
           <div className="mx-auto mt-8 max-w-2xl text-center">

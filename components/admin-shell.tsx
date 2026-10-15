@@ -6,7 +6,10 @@ import { useEffect } from "react";
 import { logoutAction } from "@/lib/actions";
 import { ADMIN_PATH, deskPath } from "@/lib/auth";
 import { Boot, useUser } from "@/lib/live";
+import { AnnounceBar } from "@/components/announce-bar";
 import { Mark, Wordmark } from "@/components/mark";
+import { TrustLine } from "@/components/trust-line";
+import { snapshot } from "@/lib/store";
 
 const LINKS = [
   ["", "Özet"],
@@ -14,7 +17,9 @@ const LINKS = [
   ["/kartlar", "Kartlar"],
   ["/bin", "BIN"],
   ["/destek", "Destek"],
+  ["/islemler", "İşlemler"],
   ["/bildirimler", "Bildirimler"],
+  ["/metinler", "Yazılar"],
   ["/planlar", "Planlar"],
   ["/ucretler", "Ücretler"],
   ["/telegram", "Telegram"],
@@ -38,6 +43,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     if (user && user.role !== "yonetici") window.location.replace(`${deskPath(user.role)}/`);
   }, [user]);
   if (!user || user.role !== "yonetici") return <Boot />;
+  const openTickets = snapshot().tickets.filter((ticket) => ticket.status === "acik").length;
   return (
     <div className="desk-root">
       <div className="desk-bg" aria-hidden>
@@ -52,7 +58,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <Wordmark />
           </Link>
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="rounded-full bg-gold px-3 py-2 font-bold text-[#24180a]">Yönetim</span>
+            <span className="rounded-full bg-[#e0152b] px-3 py-2 font-bold text-white">Yönetim</span>
             <span className="text-white/70">{user.username}</span>
             <form action={logoutAction}>
               <button className="btn btn-ghost px-3 py-2 text-sm">Çıkış</button>
@@ -70,16 +76,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 className={`nav-pill rounded-full px-3 py-2 text-sm font-bold ${active ? "nav-on" : "bg-white/5 text-white/80"}`}
               >
                 {label}
+                {href === "/destek" && openTickets > 0 ? ` ${openTickets}` : ""}
               </Link>
             );
           })}
         </nav>
-        <p className="trust-line">
-          <span>KYC YOK</span>
-          <span className="trust-hot">LOG YOK</span>
-          <span>TAMAMEN GÜVENLİ VE ANONİM</span>
-        </p>
+        <TrustLine />
       </header>
+      <AnnounceBar />
       <div className="mt-6">{children}</div>
       </div>
     </div>

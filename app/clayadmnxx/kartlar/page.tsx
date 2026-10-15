@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { AdminCardOps } from "@/components/admin-member-tools";
 import { adminCardAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { ADMIN_PATH } from "@/lib/auth";
@@ -115,6 +116,7 @@ export default function AdminCardsPage() {
                   <button className="btn btn-gold">Kartı aktif et</button>
                 </form>
               )}
+              <AdminCardOps cardId={card.id} userId={card.userId} status={card.status} back={`${ADMIN_PATH}/kartlar`} />
             </article>
           );
         });

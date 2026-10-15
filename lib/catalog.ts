@@ -163,6 +163,8 @@ export function defaultSettings(): SiteSettings {
       galeri: plan("galeri"),
     },
     telegram: "",
+    announcement: { title: "", body: "", on: false },
+    copy: {},
   };
 }
 
@@ -269,6 +271,11 @@ export const NOTICES: Record<string, string> = {
   "e-transfer-kart": "Aktarılacak başka bir açık kart seç.",
   "e-transfer-tavan": "Karşı kartın kullanılabilir bakiyesi bu aktarımı almıyor.",
   okundu: "Bildirim okundu sayıldı.",
+  duyuru: "Duyuru kaydedildi. Açıksa ana sayfada ve panelde durur.",
+  "duyuru-sil": "Duyuru kapatıldı.",
+  metin: "Yazılar kaydedildi. Boş bırakılan satır varsayılan metne döner.",
+  "talep-kapandi": "Talep kapatıldı.",
+  "bildirim-sil": "Bildirim silindi.",
 };
 
 export function noticeText(code?: string): string | null {

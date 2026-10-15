@@ -22,6 +22,7 @@ import {
   usdMinorToKurus,
 } from "./catalog";
 import { formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
+import { COPY, COPY_KEYS } from "./copy";
 import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, pushNotice, readSettings, remoteCall, usingRemoteLedger } from "./store";
 import type { DB, User, Card } from "./types";
 
@@ -588,8 +589,10 @@ export async function adminCardAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") || "");
   const mode = String(formData.get("mod") || "");
-  const remote = await remoteCall("admin-card", pack(formData, ["id", "mod"]));
-  if (remote) return bounce(`/clayadm!nxx/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
+  const rawBack = String(formData.get("donus") || "");
+  const dest = rawBack.startsWith("/clayadm!nxx") ? rawBack : `/clayadm!nxx/kartlar?vurgu=${encodeURIComponent(id)}`;
+  const remote = await remoteCall("admin-card", pack(formData, ["id", "mod", "donus"]));
+  if (remote) return bounce(dest, remote.code);
   const result = mutate((db) => {
     const card = db.cards.find((item) => item.id === id);
     if (!card) return { code: "e-yok" as const, userId: "" };
@@ -616,7 +619,7 @@ export async function adminCardAction(formData: FormData) {
     }
     return { code: "e-durum" as const, userId: card.userId };
   });
-  return bounce(`/clayadm!nxx/kartlar?vurgu=${encodeURIComponent(id)}`, result.code);
+  return bounce(dest, result.code);
 }
 
 export async function adminAccountAction(formData: FormData) {
@@ -1327,4 +1330,250 @@ export async function adminEditTopupAction(formData: FormData) {
     return "zaman" as const;
   });
   return bounce(back, result);
+}
+
+function memberBack(formData: FormData, userId: string) {
+  return safeAdminReturn(formData, userId);
+}
+
+export async function adminIssueAction(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("uye") || "");
+  const back = memberBack(formData, userId);
+  const typeRaw = String(formData.get("tur") || "");
+  const label = String(formData.get("etiket") || "").replace(/\s+/g, " ").trim();
+  const limitCents = parseTryToKurus(String(formData.get("limit") || ""));
+  if (!isCardType(typeRaw)) return bounce(back, "e-tur");
+  if (label.length < 2 || label.length > 32) return bounce(back, "e-etiket");
+  if (limitCents === null || limitCents < MIN_LIMIT_USD_MINOR || limitCents > MAX_LIMIT_USD_MINOR) return bounce(back, "e-limit");
+  const remote = await remoteCall("admin-issue", pack(formData, ["uye", "tur", "etiket", "limit", "bin", "donus"]));
+  if (remote) {
+    if (remote.code !== "basildi" || !remote.id) return bounce(back, remote.code);
+    const join = back.includes("?") ? "&" : "?";
+    return bounce(`${back}${join}vurgu=${encodeURIComponent(remote.id)}`, remote.code);
+  }
+  const gross = usdMinorToKurus(limitCents);
+  const tuned = readSettings();
+  const commission = loadFeeAt(tuned.loadFeePercent, gross);
+  const net = gross - commission;
+  const binId = String(formData.get("bin") || "");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === userId && item.role === "uye");
+    const chosen = db.bins.find((item) => item.id === binId && item.type === typeRaw);
+    if (!row || !chosen) return { code: row ? ("e-bin" as const) : ("e-yok" as const), id: "" };
+    const fee = db.settings.issueFeeKurus;
+    if (net < 1 || row.balance < fee + gross) return { code: "e-bakiye" as const, id: "" };
+    if (openCardCount(db, row.id) >= db.settings.plans[row.plan].cardLimit) return { code: "e-plan" as const, id: "" };
+    const card = issueCard(db, { userId: row.id, type: typeRaw, label, limit: net, fee, bin: chosen.digits, binLabel: chosen.label });
+    row.balance -= gross;
+    db.transactions.push({
+      id: `tx_${rid()}`,
+      userId: row.id,
+      cardId: card.id,
+      kind: "yukleme",
+      title: `Karta yükleme · ${card.label}`,
+      note: `Yönetici bastı. Hesaptan ${formatTL(gross)} ayrıldı. Komisyon ${formatTL(commission)}. Karta ${formatTL(net)} yazıldı.`,
+      amount: -gross,
+      usdMinor: -limitCents,
+      status: "tamamlandi",
+      createdAt: new Date().toISOString(),
+    });
+    pushNotice(db, { userId: row.id, title: "Kart hazırlanıyor", body: `${label} yönetim masasından basıldı.` });
+    return { code: "basildi" as const, id: card.id };
+  });
+  if (result.code !== "basildi") return bounce(back, result.code);
+  const join = back.includes("?") ? "&" : "?";
+  return bounce(`${back}${join}vurgu=${encodeURIComponent(result.id)}`, "basildi");
+}
+
+export async function adminCloseCardAction(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("uye") || "");
+  const id = String(formData.get("id") || "");
+  const back = memberBack(formData, userId);
+  if (String(formData.get("onay") || "") !== "on") return bounce(back, "e-onay");
+  const remote = await remoteCall("admin-close", pack(formData, ["id", "onay", "uye", "donus"]));
+  if (remote) return bounce(back, remote.code);
+  const result = mutate((db) => {
+    const card = db.cards.find((item) => item.id === id);
+    const row = card ? db.users.find((item) => item.id === card.userId) : undefined;
+    if (!card || !row) return "e-yok" as const;
+    if (card.status === "kapali" || card.status === "hazirlaniyor") return "e-durum" as const;
+    const refund = refundIssueFee(db, row, card);
+    if (refund === "tavan") return "e-tavan" as const;
+    card.status = "kapali";
+    card.readyAt = null;
+    pushNotice(db, { userId: row.id, title: "Kart kapatıldı", body: `${card.label} yönetim masasında kapatıldı. Basım ücreti bakiyeye geri yazıldı.` });
+    return "kapatildi" as const;
+  });
+  return bounce(back, result);
+}
+
+export async function adminPurgeCardAction(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("uye") || "");
+  const id = String(formData.get("id") || "");
+  const back = memberBack(formData, userId);
+  if (String(formData.get("onay") || "") !== "on") return bounce(back, "e-onay");
+  const remote = await remoteCall("admin-purge", pack(formData, ["id", "onay", "uye", "donus"]));
+  if (remote) return bounce(back, remote.code);
+  const result = mutate((db) => {
+    const card = db.cards.find((item) => item.id === id);
+    if (!card) return "e-yok" as const;
+    if (card.status !== "kapali") return "e-durum" as const;
+    const label = card.label;
+    const owner = card.userId;
+    db.cards = db.cards.filter((item) => item.id !== id);
+    db.orders = db.orders.filter((item) => item.cardId !== id);
+    pushNotice(db, { userId: owner, title: "Kart silindi", body: `${label} yönetim masasında kalıcı olarak silindi. Cüzdan hareketi duruyor.` });
+    return "silindi" as const;
+  });
+  return bounce(back, result);
+}
+
+export async function adminTransferAction(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("uye") || "");
+  const id = String(formData.get("id") || "");
+  const hedef = String(formData.get("hedef") || "");
+  const back = memberBack(formData, userId);
+  const cents = parseTryToKurus(String(formData.get("tutar") || ""));
+  if (hedef === "" || hedef === id) return bounce(back, "e-transfer-kart");
+  if (cents === null || cents < MIN_TRANSFER_USD_MINOR) return bounce(back, "e-transfer");
+  const amount = usdMinorToKurus(cents);
+  const fee = transferFeeAt(readSettings().transferFeePercent, amount);
+  const credit = amount - fee;
+  if (fee < 1 || credit < 1) return bounce(back, "e-transfer");
+  const remote = await remoteCall("admin-transfer", pack(formData, ["uye", "id", "hedef", "tutar", "donus"]));
+  if (remote) return bounce(back, remote.code);
+  const result = mutate((db) => {
+    const source = db.cards.find((item) => item.id === id && item.userId === userId);
+    const dest = db.cards.find((item) => item.id === hedef && item.userId === userId);
+    if (!source || !dest) return "e-yok" as const;
+    const movable = (card: Card) => card.status === "aktif" || card.status === "donduruldu";
+    if (!movable(source) || !movable(dest)) return "e-durum" as const;
+    if (amount > source.limit - source.spent) return "e-transfer" as const;
+    if (dest.limit + credit > MAX_LIMIT_KURUS) return "e-transfer-tavan" as const;
+    source.limit -= amount;
+    dest.limit += credit;
+    const now = new Date().toISOString();
+    const route = `${source.pan.slice(-4)} karttan ${dest.pan.slice(-4)} karta`;
+    db.transactions.push(
+      {
+        id: `tx_${rid()}`,
+        userId,
+        cardId: source.id,
+        kind: "transfer",
+        title: route,
+        note: `Yönetici aktardı. ${source.label} kartından ${dest.label} kartına. Komisyon ${formatTL(fee)}.`,
+        amount: -amount,
+        usdMinor: null,
+        status: "tamamlandi",
+        createdAt: now,
+      },
+      {
+        id: `tx_${rid()}`,
+        userId,
+        cardId: dest.id,
+        kind: "transfer",
+        title: route,
+        note: `Yönetici aktardı. Karşı karta ${formatTL(credit)} yazıldı. Ana bakiye değişmedi.`,
+        amount: credit,
+        usdMinor: null,
+        status: "tamamlandi",
+        createdAt: now,
+      },
+    );
+    pushNotice(db, { userId, title: "Bakiye aktarıldı", body: `${source.label} kartından ${dest.label} kartına ${formatTL(credit)} yazıldı.` });
+    return "transfer" as const;
+  });
+  return bounce(back, result);
+}
+
+export async function adminTicketCloseAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  const remote = await remoteCall("admin-ticket-close", pack(formData, ["id"]));
+  if (remote) return bounce("/clayadm!nxx/destek", remote.code);
+  const result = mutate((db) => {
+    const ticket = db.tickets.find((item) => item.id === id);
+    if (!ticket) return "e-yok" as const;
+    ticket.status = "kapandi";
+    pushNotice(db, { userId: ticket.userId, title: "Talep kapatıldı", body: `${ticket.subject} kapatıldı.` });
+    return "talep-kapandi" as const;
+  });
+  return bounce("/clayadm!nxx/destek", result);
+}
+
+export async function adminNoticeSaveAction(formData: FormData) {
+  await requireAdmin();
+  const remote = await remoteCall("admin-notice-save", pack(formData, ["batch", "baslik", "mesaj"]));
+  if (remote) return bounce("/clayadm!nxx/bildirimler", remote.code);
+  const batch = String(formData.get("batch") || "");
+  const title = String(formData.get("baslik") || "").trim();
+  const body = String(formData.get("mesaj") || "").trim();
+  if (title.length < 2 || title.length > 80 || body.length < 2 || body.length > 400) return bounce("/clayadm!nxx/bildirimler", "e-mesaj");
+  const result = mutate((db) => {
+    const rows = db.notices.filter((item) => item.batch === batch);
+    if (rows.length === 0) return "e-yok" as const;
+    if (rows.some((item) => item.ref)) return "e-durum" as const;
+    for (const row of rows) {
+      row.title = title;
+      row.body = body;
+    }
+    return "gonderildi" as const;
+  });
+  return bounce("/clayadm!nxx/bildirimler", result);
+}
+
+export async function adminNoticeRemoveAction(formData: FormData) {
+  await requireAdmin();
+  const remote = await remoteCall("admin-notice-remove", pack(formData, ["batch"]));
+  if (remote) return bounce("/clayadm!nxx/bildirimler", remote.code);
+  const batch = String(formData.get("batch") || "");
+  const result = mutate((db) => {
+    const rows = db.notices.filter((item) => item.batch === batch);
+    if (rows.length === 0) return "e-yok" as const;
+    if (rows.some((item) => item.ref)) return "e-durum" as const;
+    db.notices = db.notices.filter((item) => item.batch !== batch);
+    return "bildirim-sil" as const;
+  });
+  return bounce("/clayadm!nxx/bildirimler", result);
+}
+
+export async function adminAnnounceAction(formData: FormData) {
+  await requireAdmin();
+  const remote = await remoteCall("admin-announce", pack(formData, ["baslik", "mesaj", "yayin"]));
+  if (remote) return bounce("/clayadm!nxx/bildirimler", remote.code);
+  const title = String(formData.get("baslik") || "").replace(/\s+/g, " ").trim();
+  const body = String(formData.get("mesaj") || "").replace(/\s+/g, " ").trim();
+  const on = String(formData.get("yayin") || "") === "on";
+  if (on && (title.length < 2 || title.length > 80)) return bounce("/clayadm!nxx/bildirimler", "e-mesaj");
+  if (title.length > 80 || body.length > 240) return bounce("/clayadm!nxx/bildirimler", "e-mesaj");
+  const result = mutate((db) => {
+    db.settings.announcement = { title, body, on: on && title !== "" };
+    return db.settings.announcement.on ? ("duyuru" as const) : ("duyuru-sil" as const);
+  });
+  return bounce("/clayadm!nxx/bildirimler", result);
+}
+
+export async function adminCopyAction(formData: FormData) {
+  await requireAdmin();
+  const next: Record<string, string> = {};
+  for (const key of COPY_KEYS) {
+    const value = String(formData.get(key) || "").replace(/\s+/g, " ").trim();
+    if (value.length > COPY[key].max) return bounce("/clayadm!nxx/metinler", "e-mesaj");
+    next[key] = value;
+  }
+  const remote = await remoteCall("admin-copy", pack(formData, COPY_KEYS));
+  if (remote) return bounce("/clayadm!nxx/metinler", remote.code);
+  const result = mutate((db) => {
+    if (!db.settings.copy) db.settings.copy = {};
+    for (const key of COPY_KEYS) {
+      if (!next[key]) delete db.settings.copy[key];
+      else db.settings.copy[key] = next[key];
+    }
+    return "metin" as const;
+  });
+  return bounce("/clayadm!nxx/metinler", result);
 }

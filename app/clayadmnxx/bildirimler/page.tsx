@@ -1,6 +1,6 @@
 "use client";
 
-import { adminNoticeAction } from "@/lib/actions";
+import { adminAnnounceAction, adminNoticeAction, adminNoticeRemoveAction, adminNoticeSaveAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { formatWhen } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
@@ -11,7 +11,7 @@ function batches(notices: InboxNote[], users: User[]) {
   const names = new Map(users.map((user) => [user.id, user.username]));
   const seen = new Map<
     string,
-    { batch: string; title: string; body: string; createdAt: string; who: string[]; read: number }
+    { batch: string; title: string; body: string; createdAt: string; who: string[]; read: number; editable: boolean }
   >();
   for (const note of [...notices].sort((a, b) => b.createdAt.localeCompare(a.createdAt))) {
     const row = seen.get(note.batch);
@@ -24,10 +24,12 @@ function batches(notices: InboxNote[], users: User[]) {
         createdAt: note.createdAt,
         who: [name],
         read: note.readAt ? 1 : 0,
+        editable: note.ref == null,
       });
     } else {
       row.who.push(name);
       if (note.readAt) row.read += 1;
+      if (note.ref) row.editable = false;
     }
   }
   return [...seen.values()];
@@ -38,6 +40,7 @@ export default function AdminNoticesPage() {
   if (!query) return <Boot />;
   const db = snapshot();
   const members = db.users.filter((user) => user.role === "uye").sort((a, b) => a.username.localeCompare(b.username, "tr"));
+  const announce = db.settings.announcement;
 
   return (
     <div className="grid gap-5">
@@ -47,6 +50,24 @@ export default function AdminNoticesPage() {
         <p className="mt-2 max-w-2xl text-white/70">Mesaj üye paneline düşer. E-posta veya kısa mesaj gitmez.</p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
+      <form action={adminAnnounceAction} className="glass grid gap-3 rounded-[28px] p-5">
+        <p className="text-xs font-bold tracking-[0.18em] text-gold">DUYURU</p>
+        <h2 className="font-display text-2xl font-bold">Sitede yayınla</h2>
+        <p className="text-sm text-white/70">Açık duyuru ana sayfada ve üye panelinin üstünde durur. Kutuyu boşaltıp kaydedersen şerit kalkar.</p>
+        <label className="grid gap-1 text-sm">
+          Başlık
+          <input className="field" name="baslik" maxLength={80} defaultValue={announce?.title ?? ""} placeholder="Kısa duyuru" />
+        </label>
+        <label className="grid gap-1 text-sm">
+          Metin
+          <textarea className="field min-h-20" name="mesaj" maxLength={240} defaultValue={announce?.body ?? ""} placeholder="İsteğe bağlı açıklama" />
+        </label>
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" name="yayin" value="on" defaultChecked={Boolean(announce?.on)} />
+          Yayında
+        </label>
+        <button className="btn btn-gold w-fit">Duyuruyu kaydet</button>
+      </form>
       <form action={adminNoticeAction} className="glass grid gap-3 rounded-[28px] p-5">
         <label className="grid gap-1 text-sm">
           Başlık
@@ -77,6 +98,19 @@ export default function AdminNoticesPage() {
             <p className="mt-1 text-xs text-white/45">
               {formatWhen(item.createdAt)} · {item.who.join(", ")} · {item.read}/{item.who.length} okudu
             </p>
+            {item.editable && (
+              <form action={adminNoticeSaveAction} className="mt-3 grid gap-2">
+                <input type="hidden" name="batch" value={item.batch} />
+                <input className="field" name="baslik" defaultValue={item.title} required minLength={2} maxLength={80} />
+                <textarea className="field min-h-16" name="mesaj" defaultValue={item.body} required minLength={2} maxLength={400} />
+                <div className="flex flex-wrap gap-2">
+                  <button className="btn btn-gold">Yazıyı güncelle</button>
+                  <button className="btn btn-ghost" formAction={adminNoticeRemoveAction}>
+                    Bildirimi sil
+                  </button>
+                </div>
+              </form>
+            )}
           </li>
         ))}
         {db.notices.length === 0 && <li className="text-sm text-white/50">Henüz gönderilmedi.</li>}

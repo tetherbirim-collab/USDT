@@ -3,17 +3,20 @@
 import { Notice } from "@/components/notice";
 import { ticketAction } from "@/lib/actions";
 import { formatWhen } from "@/lib/format";
-import { Boot, useQuery, useUser } from "@/lib/live";
+import { siteText } from "@/lib/copy";
+import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import { listTickets } from "@/lib/store";
 
 const STATUS = {
   acik: "Açık",
   yanitlandi: "Yanıtlandı",
+  kapandi: "Kapandı",
 } as const;
 
 export default function SupportPage() {
   const user = useUser();
   const query = useQuery();
+  const settings = useSiteSettings();
   if (!user || !query) return <Boot />;
   const tickets = listTickets(user.id);
 
@@ -21,10 +24,8 @@ export default function SupportPage() {
     <div className="grid gap-5">
       <div>
         <p className="text-xs font-bold tracking-[0.22em] text-gold">DESTEK</p>
-        <h1 className="font-display text-4xl font-extrabold">Yeni talep</h1>
-        <p className="mt-2 max-w-xl text-white/70">
-          Şikayetini yaz. Talep yönetim masasına düşer. Yanıt zilde ve bu listede görünür.
-        </p>
+        <h1 className="font-display text-4xl font-extrabold">{siteText(settings, "supportTitle")}</h1>
+        <p className="mt-2 max-w-xl text-white/70">{siteText(settings, "supportLede")}</p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
       <form action={ticketAction} className="glass grid max-w-xl gap-3 rounded-[28px] p-5">
@@ -54,7 +55,7 @@ export default function SupportPage() {
             <article key={ticket.id} className="glass rounded-[24px] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <h3 className="font-display text-xl font-bold">{ticket.subject}</h3>
-                <span className={`rounded-full px-3 py-1 text-xs font-bold ${ticket.status === "yanitlandi" ? "bg-mint text-[#10241f]" : "bg-gold text-[#24180a]"}`}>
+                <span className={`rounded-full px-3 py-1 text-xs font-bold ${ticket.status === "yanitlandi" ? "bg-mint text-[#10241f]" : ticket.status === "kapandi" ? "bg-white text-[#7a2432]" : "bg-gold text-white"}`}>
                   {STATUS[ticket.status]}
                 </span>
               </div>

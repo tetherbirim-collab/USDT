@@ -6,17 +6,19 @@ import { AuthShell } from "@/components/auth-shell";
 import { LoginForm } from "@/components/auth-form";
 import { Notice } from "@/components/notice";
 import { deskPath } from "@/lib/auth";
-import { Boot, useQuery, useUser } from "@/lib/live";
+import { siteText } from "@/lib/copy";
+import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 
 export default function LoginPage() {
   const user = useUser();
   const query = useQuery();
+  const settings = useSiteSettings();
   useEffect(() => {
     if (user) window.location.replace(`${deskPath(user.role)}/`);
   }, [user]);
   if (user) return <Boot />;
   return (
-    <AuthShell title="Hoş geldin" lede="CLAY hesabına gir veya yeni bir hesap aç.">
+    <AuthShell title={siteText(settings, "loginTitle")} lede={siteText(settings, "loginLede")}>
       <Notice code={query?.get("bildirim") || undefined} />
       <LoginForm />
       <Link href="/kayit" className="auth-outline mt-3">

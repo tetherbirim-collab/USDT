@@ -292,6 +292,8 @@ function clay_default_settings(): array
             ],
         ],
         "telegram" => "",
+        "announcement" => ["title" => "", "body" => "", "on" => false],
+        "copy" => [],
     ];
 }
 
@@ -581,6 +583,18 @@ function clay_normalize(array &$db): bool
         }
         if (!is_string($db["settings"]["telegram"])) {
             $db["settings"]["telegram"] = "";
+            $dirty = true;
+        }
+        $announce = $db["settings"]["announcement"] ?? null;
+        if (!is_array($announce) || !isset($announce["title"], $announce["body"]) || !is_string($announce["title"]) || !is_string($announce["body"])) {
+            $db["settings"]["announcement"] = $fresh["announcement"];
+            $dirty = true;
+        } elseif (!isset($db["settings"]["announcement"]["on"])) {
+            $db["settings"]["announcement"]["on"] = false;
+            $dirty = true;
+        }
+        if (!isset($db["settings"]["copy"]) || !is_array($db["settings"]["copy"])) {
+            $db["settings"]["copy"] = [];
             $dirty = true;
         }
         foreach (["kivilcim", "atolye", "galeri"] as $id) {
@@ -1189,7 +1203,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
     }
 
     $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "purge", "plan", "spend", "ticket", "refund", "renew", "transfer", "address", "name", "password", "notice-read", "notice-read-all"];
-    $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup"];
+    $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-ticket-close", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup", "admin-issue", "admin-close", "admin-purge", "admin-transfer", "admin-notice-save", "admin-notice-remove", "admin-announce", "admin-copy"];
     if (in_array($action, $memberActions, true)) {
         $gate = clay_member($me);
         if ($gate) {
@@ -2244,6 +2258,337 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         }
         $db["transactions"][$latest]["createdAt"] = $iso;
         return clay_ok("zaman");
+    }
+
+    if ($action === "admin-issue") {
+        $type = clay_in($in, "tur");
+        $label = trim((string) preg_replace("/\\s+/u", " ", clay_in($in, "etiket")));
+        $limitCents = clay_cents(clay_in($in, "limit"));
+        $binId = clay_in($in, "bin");
+        $index = clay_user_index($db, clay_in($in, "uye"));
+        if (!clay_is_type($type)) {
+            return clay_fail("e-tur");
+        }
+        if (mb_strlen($label) < 2 || mb_strlen($label) > 32) {
+            return clay_fail("e-etiket");
+        }
+        if ($limitCents === null || $limitCents < 1000 || $limitCents > 1000000) {
+            return clay_fail("e-limit");
+        }
+        if ($index < 0 || ($db["users"][$index]["role"] ?? "") !== "uye") {
+            return clay_fail("e-yok");
+        }
+        $gross = clay_kurus($limitCents);
+        $percent = (float) $db["settings"]["loadFeePercent"];
+        $commission = clay_load_fee($percent, $gross);
+        $net = $gross - $commission;
+        if ($net < 1 || $net > clay_max_limit()) {
+            return clay_fail("e-limit");
+        }
+        $chosen = null;
+        foreach ($db["bins"] as $row) {
+            if (($row["id"] ?? "") === $binId && ($row["type"] ?? "") === $type) {
+                $chosen = $row;
+                break;
+            }
+        }
+        if (!$chosen) {
+            return clay_fail("e-bin");
+        }
+        $fee = (int) $db["settings"]["issueFeeKurus"];
+        $ownerId = (string) $db["users"][$index]["id"];
+        if ($db["users"][$index]["balance"] < $fee + $gross) {
+            return clay_fail("e-bakiye");
+        }
+        if (clay_open_count($db, $ownerId) >= (int) $db["settings"]["plans"][$db["users"][$index]["plan"]]["cardLimit"]) {
+            return clay_fail("e-plan");
+        }
+        $serial = (int) $db["nextSerial"];
+        $db["nextSerial"] = $serial + 1;
+        $now = clay_now();
+        $readyAt = clay_iso(clay_ms($now) + 15000);
+        $cardId = "crd_" . clay_rid();
+        $db["users"][$index]["balance"] -= $fee + $gross;
+        $db["cards"][] = [
+            "id" => $cardId,
+            "userId" => $ownerId,
+            "type" => $type,
+            "label" => $label,
+            "limit" => $net,
+            "spent" => 0,
+            "pan" => clay_pan($serial, (string) $chosen["digits"]),
+            "bin" => (string) $chosen["digits"],
+            "binLabel" => (string) $chosen["label"],
+            "expiry" => clay_expiry(),
+            "cvv" => clay_cvv($serial),
+            "holder" => clay_holder($label),
+            "status" => "hazirlaniyor",
+            "readyAt" => $readyAt,
+            "period" => 1,
+            "createdAt" => $now,
+            "feeDueAt" => null,
+        ];
+        $db["orders"][] = [
+            "id" => "ord_" . clay_rid(),
+            "userId" => $ownerId,
+            "cardId" => $cardId,
+            "type" => $type,
+            "label" => $label,
+            "limit" => $net,
+            "fee" => $fee,
+            "status" => "hazirlaniyor",
+            "createdAt" => $now,
+            "readyAt" => $readyAt,
+        ];
+        $db["transactions"][] = [
+            "id" => "tx_" . clay_rid(),
+            "userId" => $ownerId,
+            "cardId" => $cardId,
+            "kind" => "basim",
+            "title" => "Basım · " . $label,
+            "note" => "Yönetici kartı bastı. Sipariş " . $cardId . ".",
+            "amount" => -$fee,
+            "usdMinor" => null,
+            "status" => "tamamlandi",
+            "createdAt" => $now,
+            "ref" => null,
+        ];
+        $db["transactions"][] = [
+            "id" => "tx_" . clay_rid(),
+            "userId" => $ownerId,
+            "cardId" => $cardId,
+            "kind" => "yukleme",
+            "title" => "Karta yükleme · " . $label,
+            "note" => "Hesaptan " . clay_tl($gross) . " ayrıldı. %" . clay_percent($percent) . " komisyon " . clay_tl($commission) . ". Karta " . clay_tl($net) . " yazıldı.",
+            "amount" => -$gross,
+            "usdMinor" => -$limitCents,
+            "status" => "tamamlandi",
+            "createdAt" => $now,
+            "ref" => null,
+        ];
+        clay_notice($db, $ownerId, "Kart hazırlanıyor", $label . " yönetim masasından basıldı. Kart bedeli " . clay_tl($fee) . ". Karta " . clay_tl($net) . " yazıldı.");
+        return clay_ok("basildi", $cardId);
+    }
+
+    if ($action === "admin-close") {
+        if (clay_in($in, "onay") !== "on") {
+            return clay_fail("e-onay");
+        }
+        $cardIndex = clay_card_index($db, clay_in($in, "id"));
+        if ($cardIndex < 0) {
+            return clay_fail("e-yok");
+        }
+        $owner = clay_user_index($db, (string) $db["cards"][$cardIndex]["userId"]);
+        $status = $db["cards"][$cardIndex]["status"];
+        if ($owner < 0 || $status === "kapali" || $status === "hazirlaniyor") {
+            return clay_fail("e-durum");
+        }
+        $refund = clay_refund_fee($db, $owner, $db["cards"][$cardIndex]);
+        if ($refund === "tavan") {
+            return clay_fail("e-tavan");
+        }
+        $db["cards"][$cardIndex]["status"] = "kapali";
+        $db["cards"][$cardIndex]["readyAt"] = null;
+        clay_notice($db, $db["cards"][$cardIndex]["userId"], "Kart kapatıldı", $db["cards"][$cardIndex]["label"] . " yönetim masasında kapatıldı. Basım ücreti bakiyeye geri yazıldı.");
+        return clay_ok("kapatildi");
+    }
+
+    if ($action === "admin-purge") {
+        if (clay_in($in, "onay") !== "on") {
+            return clay_fail("e-onay");
+        }
+        $cardIndex = clay_card_index($db, clay_in($in, "id"));
+        if ($cardIndex < 0 || ($db["cards"][$cardIndex]["status"] ?? "") !== "kapali") {
+            return clay_fail($cardIndex < 0 ? "e-yok" : "e-durum");
+        }
+        $cardId = (string) $db["cards"][$cardIndex]["id"];
+        $label = (string) $db["cards"][$cardIndex]["label"];
+        $ownerId = (string) $db["cards"][$cardIndex]["userId"];
+        array_splice($db["cards"], $cardIndex, 1);
+        $db["orders"] = array_values(array_filter(
+            $db["orders"],
+            static function ($order) use ($cardId): bool {
+                return ($order["cardId"] ?? "") !== $cardId;
+            }
+        ));
+        clay_notice($db, $ownerId, "Kart silindi", $label . " yönetim masasında kalıcı olarak silindi. Cüzdan hareketi duruyor.");
+        return clay_ok("silindi");
+    }
+
+    if ($action === "admin-transfer") {
+        $cents = clay_cents(clay_in($in, "tutar"));
+        $ownerId = clay_in($in, "uye");
+        $sourceIndex = clay_card_index($db, clay_in($in, "id"), $ownerId);
+        $destIndex = clay_card_index($db, clay_in($in, "hedef"), $ownerId);
+        if ($destIndex < 0 || $sourceIndex < 0 || $sourceIndex === $destIndex) {
+            return clay_fail("e-transfer-kart");
+        }
+        if ($cents === null || $cents < 100) {
+            return clay_fail("e-transfer");
+        }
+        $amount = clay_kurus($cents);
+        $percent = (float) $db["settings"]["transferFeePercent"];
+        $fee = clay_xfer_fee($percent, $amount);
+        $credit = $amount - $fee;
+        if ($fee < 1 || $credit < 1) {
+            return clay_fail("e-transfer");
+        }
+        $source = $db["cards"][$sourceIndex];
+        $dest = $db["cards"][$destIndex];
+        $movable = static function (array $card): bool {
+            return $card["status"] === "aktif" || $card["status"] === "donduruldu";
+        };
+        if (!$movable($source) || !$movable($dest)) {
+            return clay_fail("e-durum");
+        }
+        if ($amount > $source["limit"] - $source["spent"]) {
+            return clay_fail("e-transfer");
+        }
+        if ($dest["limit"] + $credit > clay_max_limit()) {
+            return clay_fail("e-transfer-tavan");
+        }
+        $db["cards"][$sourceIndex]["limit"] -= $amount;
+        $db["cards"][$destIndex]["limit"] += $credit;
+        $now = clay_now();
+        $route = substr($source["pan"], -4) . " karttan " . substr($dest["pan"], -4) . " karta";
+        $db["transactions"][] = [
+            "id" => "tx_" . clay_rid(),
+            "userId" => $ownerId,
+            "cardId" => $source["id"],
+            "kind" => "transfer",
+            "title" => $route,
+            "note" => "Yönetici aktardı. " . $source["label"] . " kartından " . $dest["label"] . " kartına. Komisyon " . clay_tl($fee) . ".",
+            "amount" => -$amount,
+            "usdMinor" => null,
+            "status" => "tamamlandi",
+            "createdAt" => $now,
+            "ref" => null,
+        ];
+        $db["transactions"][] = [
+            "id" => "tx_" . clay_rid(),
+            "userId" => $ownerId,
+            "cardId" => $dest["id"],
+            "kind" => "transfer",
+            "title" => $route,
+            "note" => "Yönetici aktardı. Karşı karta " . clay_tl($credit) . " yazıldı. Ana bakiye değişmedi.",
+            "amount" => $credit,
+            "usdMinor" => null,
+            "status" => "tamamlandi",
+            "createdAt" => $now,
+            "ref" => null,
+        ];
+        clay_notice($db, $ownerId, "Bakiye aktarıldı", $source["label"] . " kartından " . $dest["label"] . " kartına " . clay_tl($credit) . " yazıldı. Komisyon " . clay_tl($fee) . ".");
+        return clay_ok("transfer");
+    }
+
+    if ($action === "admin-ticket-close") {
+        $found = false;
+        foreach ($db["tickets"] as $i => $ticket) {
+            if (($ticket["id"] ?? "") !== clay_in($in, "id")) {
+                continue;
+            }
+            $db["tickets"][$i]["status"] = "kapandi";
+            clay_notice($db, (string) $ticket["userId"], "Talep kapatıldı", (string) $ticket["subject"] . " kapatıldı.");
+            $found = true;
+            break;
+        }
+        return $found ? clay_ok("talep-kapandi") : clay_fail("e-yok");
+    }
+
+    if ($action === "admin-notice-save" || $action === "admin-notice-remove") {
+        $batch = clay_in($in, "batch");
+        if ($batch === "") {
+            return clay_fail("e-yok");
+        }
+        $hits = [];
+        foreach ($db["notices"] as $i => $note) {
+            if (($note["batch"] ?? "") === $batch) {
+                $hits[] = $i;
+            }
+        }
+        if ($hits === []) {
+            return clay_fail("e-yok");
+        }
+        foreach ($hits as $i) {
+            if (($db["notices"][$i]["ref"] ?? null) !== null) {
+                return clay_fail("e-durum");
+            }
+        }
+        if ($action === "admin-notice-remove") {
+            $db["notices"] = array_values(array_filter(
+                $db["notices"],
+                static function ($note) use ($batch): bool {
+                    return ($note["batch"] ?? "") !== $batch;
+                }
+            ));
+            return clay_ok("bildirim-sil");
+        }
+        $title = trim(clay_in($in, "baslik"));
+        $body = trim(clay_in($in, "mesaj"));
+        if (mb_strlen($title) < 2 || mb_strlen($title) > 80 || mb_strlen($body) < 2 || mb_strlen($body) > 400) {
+            return clay_fail("e-mesaj");
+        }
+        foreach ($hits as $i) {
+            $db["notices"][$i]["title"] = $title;
+            $db["notices"][$i]["body"] = $body;
+        }
+        return clay_ok("gonderildi");
+    }
+
+    if ($action === "admin-announce") {
+        $title = trim(clay_in($in, "baslik"));
+        $body = trim(clay_in($in, "mesaj"));
+        $on = clay_in($in, "yayin") === "on";
+        if ($on && (mb_strlen($title) < 2 || mb_strlen($title) > 80)) {
+            return clay_fail("e-mesaj");
+        }
+        if (mb_strlen($title) > 80 || mb_strlen($body) > 240) {
+            return clay_fail("e-mesaj");
+        }
+        $db["settings"]["announcement"] = [
+            "title" => $title,
+            "body" => $body,
+            "on" => $on && $title !== "",
+        ];
+        return clay_ok($db["settings"]["announcement"]["on"] ? "duyuru" : "duyuru-sil");
+    }
+
+    if ($action === "admin-copy") {
+        $limits = [
+            "sloganKyc" => 40, "sloganLog" => 40, "sloganSafe" => 80,
+            "phraseFacebook" => 40, "phraseTiktok" => 40, "phraseGoogle" => 48, "phraseUltima" => 40,
+            "heroKicker" => 48, "heroTitle" => 80, "heroLede" => 400,
+            "navTypes" => 24, "navHow" => 24, "navPlans" => 24, "navFaq" => 24,
+            "typesKicker" => 24, "typesTitle" => 60, "typesLede" => 240,
+            "stepsTitle" => 40,
+            "step1Title" => 40, "step1Text" => 180, "step2Title" => 40, "step2Text" => 220,
+            "step3Title" => 40, "step3Text" => 220, "step4Title" => 40, "step4Text" => 180,
+            "plansKicker" => 24, "plansTitle" => 40,
+            "faqTitle" => 40, "faq1q" => 80, "faq1a" => 240, "faq2q" => 80, "faq2a" => 240, "faq3q" => 80, "faq3a" => 240,
+            "footerLine" => 180,
+            "loginTitle" => 40, "loginLede" => 160, "signupTitle" => 40, "signupLede" => 180,
+            "panelOzet" => 24, "panelKart" => 24, "panelSiparis" => 24, "panelOdeme" => 24,
+            "panelCuzdan" => 24, "panelDestek" => 24, "panelHesap" => 24,
+            "supportTitle" => 40, "supportLede" => 200,
+        ];
+        if (!isset($db["settings"]["copy"]) || !is_array($db["settings"]["copy"])) {
+            $db["settings"]["copy"] = [];
+        }
+        foreach ($limits as $key => $max) {
+            if (!array_key_exists($key, $in)) {
+                continue;
+            }
+            $value = trim((string) preg_replace("/\\s+/u", " ", (string) $in[$key]));
+            if (mb_strlen($value) > $max) {
+                return clay_fail("e-mesaj");
+            }
+            if ($value === "") {
+                unset($db["settings"]["copy"][$key]);
+            } else {
+                $db["settings"]["copy"][$key] = $value;
+            }
+        }
+        return clay_ok("metin");
     }
 
     return clay_fail("e-yok");

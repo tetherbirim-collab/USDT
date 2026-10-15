@@ -728,6 +728,15 @@ function normalize(db: DB): DB {
       db.settings.telegram = "";
       dirty = true;
     }
+    const announce = db.settings.announcement;
+    if (!announce || typeof announce.title !== "string" || typeof announce.body !== "string" || typeof announce.on !== "boolean") {
+      db.settings.announcement = fresh.announcement;
+      dirty = true;
+    }
+    if (!db.settings.copy || typeof db.settings.copy !== "object" || Array.isArray(db.settings.copy)) {
+      db.settings.copy = {};
+      dirty = true;
+    }
   }
   if (!Array.isArray(db.notices)) {
     db.notices = [];
@@ -749,7 +758,7 @@ function normalize(db: DB): DB {
         ticket.subject = "Talep";
         dirty = true;
       }
-      if (ticket.status !== "acik" && ticket.status !== "yanitlandi") {
+      if (ticket.status !== "acik" && ticket.status !== "yanitlandi" && ticket.status !== "kapandi") {
         ticket.status = "acik";
         dirty = true;
       }

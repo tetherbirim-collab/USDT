@@ -7,18 +7,23 @@ import { logoutAction } from "@/lib/actions";
 import { PLANS } from "@/lib/catalog";
 import { daysLeftLine, daysUntil, formatDay } from "@/lib/format";
 import type { PlanId } from "@/lib/types";
+import { AnnounceBar } from "./announce-bar";
 import { Mark, Wordmark } from "./mark";
+import { TrustLine } from "./trust-line";
+import { siteText } from "@/lib/copy";
+import type { CopyKey } from "@/lib/copy";
+import { useSiteSettings } from "@/lib/live";
 
 const PLAN_EMOJI = { bronze: "🥉", silver: "🥈", gold: "🥇" } as const;
 
 const LINKS = [
-  ["/panel", "Özet"],
-  ["/panel/kartlar", "Kartlarım"],
-  ["/panel/siparisler", "Siparişler"],
-  ["/panel/islemler", "Ödemeler"],
-  ["/panel/yukle", "Cüzdan"],
-  ["/panel/destek", "Destek"],
-  ["/panel/hesap", "Hesap"],
+  ["/panel", "panelOzet"],
+  ["/panel/kartlar", "panelKart"],
+  ["/panel/siparisler", "panelSiparis"],
+  ["/panel/islemler", "panelOdeme"],
+  ["/panel/yukle", "panelCuzdan"],
+  ["/panel/destek", "panelDestek"],
+  ["/panel/hesap", "panelHesap"],
 ] as const;
 
 function Bell({ unread }: { unread: number }) {
@@ -41,9 +46,11 @@ function Bell({ unread }: { unread: number }) {
 
 function NavLinks({ path, metal, stacked = false }: { path: string; metal: keyof typeof PLAN_EMOJI; stacked?: boolean }) {
   const emoji = PLAN_EMOJI[metal];
+  const settings = useSiteSettings();
   return (
     <>
-      {LINKS.map(([href, label]) => {
+      {LINKS.map(([href, key]) => {
+        const label = siteText(settings, key as CopyKey);
         const active = href === "/panel" ? path === href : path.startsWith(href);
         return (
           <Link
@@ -142,12 +149,9 @@ export function PanelFrame({
             <NavLinks path={path} metal={metal} stacked />
           </div>
         </details>
-        <p className="trust-line">
-          <span>KYC YOK</span>
-          <span className="trust-hot">LOG YOK</span>
-          <span>TAMAMEN GÜVENLİ VE ANONİM</span>
-        </p>
+        <TrustLine />
       </header>
+      <AnnounceBar />
       <div className="mt-6">{children}</div>
     </div>
   );

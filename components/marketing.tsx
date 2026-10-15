@@ -1,6 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { CARD_TYPES, CARD_TYPE_ORDER } from "@/lib/catalog";
+import { siteText, type CopyKey } from "@/lib/copy";
+import { useSiteSettings } from "@/lib/live";
+import { AnnounceBar } from "./announce-bar";
 import { PlanGrid } from "./plan-grid";
+import { TrustLine } from "./trust-line";
 import { formatTL } from "@/lib/format";
 import { makeCvv, makePan } from "@/lib/pan";
 import type { CardTypeId } from "@/lib/types";
@@ -8,14 +14,15 @@ import { Mark, Wordmark } from "./mark";
 import { TiltCard } from "./tilt-card";
 import { VirtualCard } from "./virtual-card";
 
-const LAUNCH: { type: CardTypeId; phrase: string }[] = [
-  { type: "facebook_ads", phrase: "KYC GEREKMEZ" },
-  { type: "tiktok", phrase: "ANONİM SANAL KART" },
-  { type: "google_ads", phrase: "OLUŞTUR VE HEMEN HARCA" },
-  { type: "ultima", phrase: "CLAY SANAL KART" },
+const LAUNCH: { type: CardTypeId; phrase: CopyKey }[] = [
+  { type: "facebook_ads", phrase: "phraseFacebook" },
+  { type: "tiktok", phrase: "phraseTiktok" },
+  { type: "google_ads", phrase: "phraseGoogle" },
+  { type: "ultima", phrase: "phraseUltima" },
 ];
 
 function LaunchUnit() {
+  const settings = useSiteSettings();
   return (
     <div className="launch-unit">
       {LAUNCH.map((beat) => (
@@ -24,7 +31,7 @@ function LaunchUnit() {
             <span className="launch-chip" />
             <span className="launch-brand">{CARD_TYPES[beat.type].name}</span>
           </span>
-          <span className="launch-phrase">{beat.phrase}</span>
+          <span className="launch-phrase">{siteText(settings, beat.phrase)}</span>
         </span>
       ))}
     </div>
@@ -77,44 +84,6 @@ function EntranceDeck() {
   );
 }
 
-const STEPS = [
-  {
-    n: "01",
-    title: "Hesap aç",
-    text: "Kullanıcı adı ve parola yeter. Kimlik belgesi istenmez.",
-  },
-  {
-    n: "02",
-    title: "Bakiye yükle",
-    text: "Tutarı dolar olarak girersin. Heleket ödemesi onaylanınca bakiyede sabit kurun TL karşılığı durur.",
-  },
-  {
-    n: "03",
-    title: "Kart bas",
-    text: "Karta isim ver, kullanılabilir bakiyeyi seç, sonra o türün BIN listesinden bir satır işaretle.",
-  },
-  {
-    n: "04",
-    title: "İzle ve dondur",
-    text: "Harcama limite işlenir. İstediğin an dondur veya kapat.",
-  },
-];
-
-const FAQ = [
-  {
-    q: "Kart nasıl oluşur?",
-    a: "Türü, adı ve kullanılabilir bakiyeyi seçersin. Üzerindeki ad, verdiğin addır.",
-  },
-  {
-    q: "Bakiye nasıl durur?",
-    a: "Tutar dolar olarak girilir. Ekranda yalnız sabit kurun TL karşılığı görünür.",
-  },
-  {
-    q: "Numara ne zaman görünür?",
-    a: "Satın almadan önce BIN kalır, kalan haneler X olur. Kart oluşunca 16 hane yazılır. CVV’yi sen açarsın.",
-  },
-];
-
 export function Marketing({
   loggedIn,
   deskHref = "/panel",
@@ -124,6 +93,19 @@ export function Marketing({
   deskHref?: string;
   deskLabel?: string;
 }) {
+  const settings = useSiteSettings();
+  const line = (key: Parameters<typeof siteText>[1]) => siteText(settings, key);
+  const steps = [
+    { n: "01", title: line("step1Title"), text: line("step1Text") },
+    { n: "02", title: line("step2Title"), text: line("step2Text") },
+    { n: "03", title: line("step3Title"), text: line("step3Text") },
+    { n: "04", title: line("step4Title"), text: line("step4Text") },
+  ];
+  const faq = [
+    { q: line("faq1q"), a: line("faq1a") },
+    { q: line("faq2q"), a: line("faq2a") },
+    { q: line("faq3q"), a: line("faq3a") },
+  ];
   const sample = {
     type: "facebook_ads" as const,
     label: "Kampanya",
@@ -136,17 +118,17 @@ export function Marketing({
 
   return (
     <div>
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#07060bcc] backdrop-blur-md">
+      <header className="site-bar sticky top-0 z-40">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
             <Mark />
             <Wordmark />
           </Link>
           <nav className="hidden items-center gap-5 text-sm text-white/75 md:flex" aria-label="Sayfa">
-            <a href="#turler">Türler</a>
-            <a href="#nasil">Nasıl işler</a>
-            <a href="#fiyat">Vitrin</a>
-            <a href="#sorular">Sorular</a>
+            <a href="#turler">{line("navTypes")}</a>
+            <a href="#nasil">{line("navHow")}</a>
+            <a href="#fiyat">{line("navPlans")}</a>
+            <a href="#sorular">{line("navFaq")}</a>
           </nav>
           <div className="flex items-center gap-2">
             {loggedIn ? (
@@ -165,12 +147,9 @@ export function Marketing({
             )}
           </div>
         </div>
-        <p className="trust-bar trust-line">
-          <span>KYC YOK</span>
-          <span className="trust-hot">LOG YOK</span>
-          <span>TAMAMEN GÜVENLİ VE ANONİM</span>
-        </p>
+        <TrustLine className="trust-bar" />
       </header>
+      <AnnounceBar />
 
       <LaunchRail />
 
@@ -187,12 +166,9 @@ export function Marketing({
             <EntranceDeck />
           </div>
           <div className="mx-auto mt-8 max-w-2xl text-center">
-            <p className="text-sm font-bold tracking-[0.28em] text-gold">CLAY VIRTUAL CARD</p>
-            <h1 className="font-display mt-3 text-4xl font-extrabold leading-[1.05] sm:text-6xl">SANAL KART HİZMETİ</h1>
-            <p className="mt-5 text-lg text-white/75">
-              Facebook Ads, TikTok, Google Ads ve Ultima kartlarını aynı cüzdanda tut. CLAY
-              kartı basar, kullanılabilir bakiyeyi yazar, dondurur ve işlem dökümünü tutar. Bakiye, doların sabit kur karşılığıdır.
-            </p>
+            <p className="eyebrow">{line("heroKicker")}</p>
+            <h1 className="font-display mt-3 text-4xl font-extrabold leading-[1.05] sm:text-6xl">{line("heroTitle")}</h1>
+            <p className="mt-5 text-lg text-white/75">{line("heroLede")}</p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link href={loggedIn ? deskHref : "/kayit"} className="btn btn-gold">
                 {loggedIn ? deskLabel : "Hesap aç"}
@@ -223,11 +199,9 @@ export function Marketing({
 
         <section id="turler" className="mx-auto max-w-6xl px-4 py-8">
           <div className="mb-8 max-w-2xl">
-            <p className="text-xs font-bold tracking-[0.22em] text-mint">TÜRLER</p>
-            <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">Ayrı sahneler</h2>
-            <p className="mt-3 text-white/70">
-              Her kart 300₺. Karta ayırdığın tutardan %7,3 kesilir. Tutar dolar cinsindendir, ekranda TL karşılığı durur.
-            </p>
+            <p className="eyebrow">{line("typesKicker")}</p>
+            <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">{line("typesTitle")}</h2>
+            <p className="mt-3 text-white/70">{line("typesLede")}</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             {CARD_TYPE_ORDER.map((id, index) => (
@@ -252,9 +226,9 @@ export function Marketing({
         </section>
 
         <section id="nasil" className="mx-auto max-w-6xl px-4 py-16">
-          <h2 className="font-display text-3xl font-bold sm:text-4xl">Dört adım</h2>
+          <h2 className="font-display text-3xl font-bold sm:text-4xl">{line("stepsTitle")}</h2>
           <ol className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((step) => (
+            {steps.map((step) => (
               <li key={step.n} className="glass rounded-[24px] p-5">
                 <p className="font-display text-3xl font-extrabold text-gold">{step.n}</p>
                 <h3 className="mt-3 text-lg font-bold">{step.title}</h3>
@@ -266,16 +240,16 @@ export function Marketing({
 
         <section id="fiyat" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-8">
           <div className="mb-8 max-w-2xl">
-            <p className="text-xs font-bold tracking-[0.22em] text-gold">VİTRİN</p>
-            <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">Planlar</h2>
+            <p className="eyebrow">{line("plansKicker")}</p>
+            <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">{line("plansTitle")}</h2>
           </div>
           <PlanGrid />
         </section>
 
         <section id="sorular" className="mx-auto max-w-3xl px-4 py-16">
-          <h2 className="font-display text-3xl font-bold">Merak edilenler</h2>
+          <h2 className="font-display text-3xl font-bold">{line("faqTitle")}</h2>
           <div className="mt-6 grid gap-3">
-            {FAQ.map((item) => (
+            {faq.map((item) => (
               <details key={item.q} className="glass rounded-2xl p-4">
                 <summary className="cursor-pointer font-semibold">{item.q}</summary>
                 <p className="mt-3 text-sm text-white/75">{item.a}</p>
@@ -286,19 +260,13 @@ export function Marketing({
       </main>
 
       <footer className="border-t border-white/10">
-        <p className="trust-line trust-foot">
-          <span>KYC YOK</span>
-          <span className="trust-hot">LOG YOK</span>
-          <span>TAMAMEN GÜVENLİ VE ANONİM</span>
-        </p>
+        <TrustLine className="trust-foot" />
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Mark className="h-9 w-9" />
             <Wordmark />
           </div>
-          <p className="max-w-xl text-sm text-white/55">
-            CLAY Sanal Kart Hizmetleri. Bakiye, doların sabit kur karşılığıdır.
-          </p>
+          <p className="max-w-xl text-sm text-white/55">{line("footerLine")}</p>
         </div>
       </footer>
     </div>

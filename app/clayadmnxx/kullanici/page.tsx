@@ -8,6 +8,7 @@ import {
   adminEditTxAction,
   adminSetBalanceAction,
 } from "@/lib/actions";
+import { AdminCardOps, AdminIssueForm, AdminTransferForm } from "@/components/admin-member-tools";
 import { Notice } from "@/components/notice";
 import { ADMIN_PATH } from "@/lib/auth";
 import { CARD_TYPES, KIND_LABEL, kurusToUsdMinor } from "@/lib/catalog";
@@ -100,6 +101,13 @@ export default function AdminUserPage() {
         )}
       </section>
 
+      {member && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <AdminIssueForm userId={user.id} bins={db.bins} back={back} />
+          <AdminTransferForm userId={user.id} cards={cards} back={back} />
+        </div>
+      )}
+
       <section className="grid gap-3">
         <h2 className="font-display text-2xl font-bold">Kartlar</h2>
         {cards.length === 0 && <p className="text-sm text-white/55">Bu hesapta kart yok.</p>}
@@ -116,6 +124,7 @@ export default function AdminUserPage() {
                 {formatTL(card.spent)} / {formatTL(card.limit)}
               </p>
             </div>
+            {member && <AdminCardOps cardId={card.id} userId={user.id} status={card.status} back={back} />}
             {member && (
               <form action={adminEditCardAction} className="mt-4 grid gap-3 sm:grid-cols-4">
                 <input type="hidden" name="id" value={card.id} />

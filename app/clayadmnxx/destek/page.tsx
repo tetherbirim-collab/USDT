@@ -1,6 +1,6 @@
 "use client";
 
-import { adminTicketReplyAction } from "@/lib/actions";
+import { adminTicketCloseAction, adminTicketReplyAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { formatWhen } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
@@ -27,8 +27,8 @@ export default function AdminSupportPage() {
             <li key={ticket.id} className="glass rounded-[28px] px-4 py-4 text-sm">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <p className="font-semibold">{ticket.subject}</p>
-                <span className={`rounded-full px-3 py-1 text-xs font-bold ${ticket.status === "yanitlandi" ? "bg-mint text-[#10241f]" : "bg-gold text-[#24180a]"}`}>
-                  {ticket.status === "yanitlandi" ? "Yanıtlandı" : "Açık"}
+                <span className={`rounded-full px-3 py-1 text-xs font-bold ${ticket.status === "acik" ? "bg-gold text-white" : "bg-mint text-[#10241f]"}`}>
+                  {ticket.status === "yanitlandi" ? "Yanıtlandı" : ticket.status === "kapandi" ? "Kapandı" : "Açık"}
                 </span>
               </div>
               <p className="mt-1 text-white/70">{ticket.body}</p>
@@ -41,6 +41,12 @@ export default function AdminSupportPage() {
                 <textarea className="field min-h-20" name="yanit" required minLength={2} maxLength={400} placeholder="Üyeye kısa yanıt" defaultValue={ticket.reply ?? ""} />
                 <button className="btn btn-gold w-fit">Yanıtla</button>
               </form>
+              {ticket.status !== "kapandi" && (
+                <form action={adminTicketCloseAction} className="mt-2">
+                  <input type="hidden" name="id" value={ticket.id} />
+                  <button className="btn btn-ghost">Talebi kapat</button>
+                </form>
+              )}
             </li>
           );
         })}

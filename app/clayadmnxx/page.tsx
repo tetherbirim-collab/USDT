@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { ADMIN_PATH } from "@/lib/auth";
 import { Boot, useQuery, useSiteSettings } from "@/lib/live";
-import { formatTL } from "@/lib/format";
+import { formatSigned, formatTL, formatWhen } from "@/lib/format";
+import { KIND_LABEL } from "@/lib/catalog";
 import { snapshot } from "@/lib/store";
 import { Notice } from "@/components/notice";
 
@@ -15,6 +16,8 @@ export default function AdminHome() {
   const members = db.users.filter((user) => user.role === "uye");
   const openCards = db.cards.filter((card) => card.status === "aktif" || card.status === "donduruldu");
   const openTickets = db.tickets.filter((ticket) => ticket.status === "acik");
+  const latestTickets = [...db.tickets].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
+  const latestTx = [...db.transactions].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
   const cards = [
     ["Üyeler", String(members.length), `${ADMIN_PATH}/uyeler`],
     ["Açık kart", String(openCards.length), `${ADMIN_PATH}/kartlar`],
@@ -50,6 +53,58 @@ export default function AdminHome() {
             </li>
           ))}
         </ul>
+      </section>
+      <section className="grid gap-3">
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="font-display text-2xl font-bold">Son talepler</h2>
+          <Link href={`${ADMIN_PATH}/destek`} className="text-sm font-semibold text-gold">
+            Destek masası
+          </Link>
+        </div>
+        {latestTickets.length === 0 && <p className="text-sm text-white/60">Henüz talep yok.</p>}
+        {latestTickets.map((ticket) => {
+          const owner = db.users.find((user) => user.id === ticket.userId);
+          return (
+            <Link key={ticket.id} href={`${ADMIN_PATH}/destek`} className="glass rounded-[24px] px-4 py-3 text-sm">
+              <p className="font-semibold">{ticket.subject}</p>
+              <p className="text-white/70">{ticket.body}</p>
+              <p className="mt-1 text-xs text-white/50">
+                {owner?.username ?? "üye"} · {formatWhen(ticket.createdAt)} · {ticket.status === "kapandi" ? "Kapandı" : ticket.status === "yanitlandi" ? "Yanıtlandı" : "Açık"}
+              </p>
+            </Link>
+          );
+        })}
+      </section>
+      <section className="grid gap-3">
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="font-display text-2xl font-bold">Son işlemler</h2>
+          <Link href={`${ADMIN_PATH}/islemler`} className="text-sm font-semibold text-gold">
+            Tüm döküm
+          </Link>
+        </div>
+        {latestTx.length === 0 && <p className="text-sm text-white/60">İşlem yok.</p>}
+        {latestTx.map((entry) => {
+          const owner = db.users.find((user) => user.id === entry.userId);
+          return (
+            <article key={entry.id} className="glass flex flex-wrap items-start justify-between gap-3 rounded-[24px] px-4 py-3 text-sm">
+              <div>
+                <p className="font-semibold">{entry.title}</p>
+                <p className="text-xs text-white/50">
+                  {owner ? (
+                    <Link href={`${ADMIN_PATH}/kullanici?id=${owner.id}`} className="text-gold">
+                      {owner.username}
+                    </Link>
+                  ) : (
+                    "üye"
+                  )}
+                  {" · "}
+                  {KIND_LABEL[entry.kind]} · {formatWhen(entry.createdAt)}
+                </p>
+              </div>
+              <p className={entry.amount > 0 ? "font-bold text-mint" : "font-semibold"}>{formatSigned(entry.amount)}</p>
+            </article>
+          );
+        })}
       </section>
     </div>
   );

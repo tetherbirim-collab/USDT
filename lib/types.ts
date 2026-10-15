@@ -124,7 +124,7 @@ export type Order = {
   readyAt: string | null;
 };
 
-export type TicketStatus = "acik" | "yanitlandi";
+export type TicketStatus = "acik" | "yanitlandi" | "kapandi";
 
 export type Ticket = {
   id: string;
@@ -144,6 +144,12 @@ export type PlanSetting = {
   blurb: string;
 };
 
+export type Announcement = {
+  title: string;
+  body: string;
+  on: boolean;
+};
+
 export type SiteSettings = {
   issueFeeKurus: number;
   loadFeePercent: number;
@@ -151,6 +157,10 @@ export type SiteSettings = {
   plans: Record<PlanId, PlanSetting>;
   /** Telegram username without @. Empty hides the corner button. */
   telegram: string;
+  /** Public strip on the launchpad and the member panel. */
+  announcement: Announcement;
+  /** Admin overrides. Empty or missing keys keep the built-in Turkish line. */
+  copy: Record<string, string>;
 };
 
 export type InboxNote = {

@@ -4,13 +4,15 @@ import { useEffect, useSyncExternalStore } from "react";
 import { Mark } from "@/components/mark";
 import { getCurrentUser } from "./auth";
 import { defaultSettings } from "./catalog";
-import { bootLedger, ledgerSnapshot, subscribeLedger } from "./store";
+import { bootLedger, ledgerSnapshot, subscribeLedger, touchLedger } from "./store";
 import type { DB, PublicUser, SiteSettings } from "./types";
 
 export function useLedger(): DB | null {
   const snap = useSyncExternalStore(subscribeLedger, ledgerSnapshot, () => null);
   useEffect(() => {
     bootLedger();
+    const timer = window.setInterval(() => touchLedger(), 15000);
+    return () => window.clearInterval(timer);
   }, []);
   return snap;
 }

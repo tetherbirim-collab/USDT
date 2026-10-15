@@ -4,6 +4,10 @@ DirectoryIndex index.php index.html
   Require all denied
 </Files>
 
+<Files "pst.config.php">
+  Require all denied
+</Files>
+
 <Files "heleket-payments.json">
   Require all denied
 </Files>

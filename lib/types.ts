@@ -150,6 +150,20 @@ export type Announcement = {
   on: boolean;
 };
 
+export type PstLink = {
+  on: boolean;
+  markup: number;
+  syncedAt: string;
+  cards: number;
+  transactions: number;
+  orders: number;
+  loadSource: number;
+  issueSourceUsd: number;
+  transferSource: number;
+  error: string;
+  tokenTail: string;
+};
+
 export type SiteSettings = {
   issueFeeKurus: number;
   loadFeePercent: number;
@@ -161,6 +175,8 @@ export type SiteSettings = {
   announcement: Announcement;
   /** Admin overrides. Empty or missing keys keep the built-in Turkish line. */
   copy: Record<string, string>;
+  /** PST.NET mirror. The bearer token never sits in this object. */
+  pst: PstLink;
 };
 
 export type InboxNote = {

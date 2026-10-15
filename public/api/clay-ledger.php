@@ -387,6 +387,9 @@ function clay_sweep_fees(array &$db): bool
     $fee = (int) ($db["settings"]["issueFeeKurus"] ?? 30000);
     $dirty = false;
     foreach ($db["cards"] as $i => $card) {
+        if (str_starts_with((string) ($card["id"] ?? ""), "crd_pst_")) {
+            continue;
+        }
         if (($card["status"] ?? "") === "kapali") {
             continue;
         }
@@ -497,6 +500,9 @@ function clay_sweep_spend(array &$db): bool
     }
     $dirty = false;
     foreach ($db["cards"] as $i => $card) {
+        if (str_starts_with((string) ($card["id"] ?? ""), "crd_pst_")) {
+            continue;
+        }
         if (($card["status"] ?? "") !== "aktif") {
             continue;
         }
@@ -604,6 +610,9 @@ function clay_normalize(array &$db): bool
                 $dirty = true;
             }
         }
+    }
+    if (clay_pst_ensure($db["settings"])) {
+        $dirty = true;
     }
     $hasAdmin = false;
     foreach ($db["users"] as $i => $user) {
@@ -770,7 +779,10 @@ function clay_assert(array $db): bool
     foreach ($db["cards"] as $card) {
         $pan = (string) ($card["pan"] ?? "");
         $bin = (string) ($card["bin"] ?? "");
-        if (!preg_match("/^\\d{16}$/", $pan) || !clay_luhn_ok($pan) || !str_starts_with($pan, $bin)) {
+        $pstMask = str_starts_with((string) ($card["id"] ?? ""), "crd_pst_")
+            && preg_match("/^\\d{6}\\*{6}\\d{4}$/", $pan)
+            && str_starts_with($pan, $bin);
+        if (!$pstMask && (!preg_match("/^\\d{16}$/", $pan) || !clay_luhn_ok($pan) || !str_starts_with($pan, $bin))) {
             return false;
         }
         if (($card["spent"] ?? 0) < 0 || ($card["spent"] ?? 0) > ($card["limit"] ?? 0)) {
@@ -1203,7 +1215,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
     }
 
     $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "purge", "plan", "spend", "ticket", "refund", "renew", "transfer", "address", "name", "password", "notice-read", "notice-read-all"];
-    $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-ticket-close", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup", "admin-issue", "admin-close", "admin-purge", "admin-transfer", "admin-notice-save", "admin-notice-remove", "admin-announce", "admin-copy"];
+    $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-ticket-close", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup", "admin-issue", "admin-close", "admin-purge", "admin-transfer", "admin-notice-save", "admin-notice-remove", "admin-announce", "admin-copy", "admin-pst"];
     if (in_array($action, $memberActions, true)) {
         $gate = clay_member($me);
         if ($gate) {
@@ -2591,5 +2603,27 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         return clay_ok("metin");
     }
 
+    if ($action === "admin-pst") {
+        $clear = clay_in($in, "sil") === "on";
+        $token = trim(clay_in($in, "anahtar"));
+        if ($clear) {
+            if (!pst_save_token("")) {
+                return clay_fail("e-pst");
+            }
+        } elseif ($token !== "") {
+            if (!preg_match("/^[A-Za-z0-9._\\-]{16,400}$/", $token) || !pst_save_token($token)) {
+                return clay_fail("e-pst-anahtar");
+            }
+        }
+        clay_pst_sync($db, true);
+        $err = (string) ($db["settings"]["pst"]["error"] ?? "");
+        if ($err !== "") {
+            return ["code" => "e-pst", "save" => true];
+        }
+        return clay_ok($clear ? "pst-kapandi" : "pst");
+    }
+
     return clay_fail("e-yok");
 }
+
+require_once __DIR__ . "/pst-sync.php";

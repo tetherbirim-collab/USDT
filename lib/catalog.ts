@@ -165,6 +165,19 @@ export function defaultSettings(): SiteSettings {
     telegram: "",
     announcement: { title: "", body: "", on: false },
     copy: {},
+    pst: {
+      on: false,
+      markup: 8,
+      syncedAt: "",
+      cards: 0,
+      transactions: 0,
+      orders: 0,
+      loadSource: 0,
+      issueSourceUsd: 0,
+      transferSource: 0,
+      error: "",
+      tokenTail: "",
+    },
   };
 }
 
@@ -274,6 +287,10 @@ export const NOTICES: Record<string, string> = {
   duyuru: "Duyuru kaydedildi. Açıksa ana sayfada ve panelde durur.",
   "duyuru-sil": "Duyuru kapatıldı.",
   metin: "Yazılar kaydedildi. Boş bırakılan satır varsayılan metne döner.",
+  pst: "PST bağlandı. Kartlar, siparişler ve hareketler aktarıldı. Ücretler onların oranının %8 üstünde.",
+  "pst-kapandi": "PST bağlantısı kapatıldı. Eski kart kayıtları duruyor.",
+  "e-pst": "PST aktarımı tamamlanmadı. Anahtarı ve PST hesabını kontrol et.",
+  "e-pst-anahtar": "PST anahtarı 16–400 karakter olmalı. Boşluk koyma.",
   "talep-kapandi": "Talep kapatıldı.",
   "bildirim-sil": "Bildirim silindi.",
 };

@@ -46,6 +46,7 @@ if (!$handle || !is_array($db)) {
 }
 
 $dirty = clay_normalize($db);
+$pstDirty = clay_pst_sync($db, false);
 $before = $db;
 $me = clay_session_user($db);
 $result = clay_act($db, $me, (string) ($input["action"] ?? ""), $input);
@@ -59,7 +60,7 @@ if (!empty($result["save"])) {
     $db = $before;
 }
 $me = clay_session_user($db);
-if (!empty($result["save"]) || $dirty) {
+if (!empty($result["save"]) || $dirty || $pstDirty) {
     clay_commit($handle, $db);
 } else {
     clay_release($handle);

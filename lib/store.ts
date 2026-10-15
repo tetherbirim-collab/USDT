@@ -527,6 +527,7 @@ function sweepCardFees(db: DB): boolean {
   const fee = db.settings.issueFeeKurus;
   let dirty = false;
   for (const card of db.cards) {
+    if (card.id.startsWith("crd_pst_")) continue;
     if (card.status === "kapali") continue;
     const start = Date.parse(card.createdAt);
     if (!Number.isFinite(start)) continue;
@@ -598,6 +599,7 @@ function sweepAutoSpend(db: DB): boolean {
   if (amount < 1) return false;
   let dirty = false;
   for (const card of db.cards) {
+    if (card.id.startsWith("crd_pst_")) continue;
     if (card.status !== "aktif") continue;
     const user = db.users.find((item) => item.id === card.userId);
     const merchant = merchantsFor(card.type)[0];
@@ -878,7 +880,8 @@ function assertDb(db: DB) {
     if (user.balance < 0 || user.usdMinor < 0) throw new Error("Bakiye eksi olamaz");
   }
   for (const card of db.cards) {
-    if (!/^\d{16}$/.test(card.pan) || !luhnOk(card.pan) || !card.pan.startsWith(card.bin)) {
+    const pstMask = card.id.startsWith("crd_pst_") && /^\d{6}\*{6}\d{4}$/.test(card.pan) && card.pan.startsWith(card.bin);
+    if (!pstMask && (!/^\d{16}$/.test(card.pan) || !luhnOk(card.pan) || !card.pan.startsWith(card.bin))) {
       throw new Error("Kart numarası kayıtlı BIN ile uyuşmuyor");
     }
     if (card.spent < 0 || card.spent > card.limit) {

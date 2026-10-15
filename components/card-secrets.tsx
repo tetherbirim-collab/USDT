@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { formatDay, formatPan, plusDaysIso } from "@/lib/format";
 import type { Card } from "@/lib/types";
 import { VirtualCard } from "./virtual-card";
@@ -31,7 +31,17 @@ function CopyButton({ copied, onCopy }: { copied: boolean; onCopy: () => void })
   );
 }
 
-export function CardSecrets({ card, address }: { card: Card; address: string }) {
+export function CardSecrets({
+  card,
+  address,
+  face = true,
+  children,
+}: {
+  card: Card;
+  address: string;
+  face?: boolean;
+  children?: ReactNode;
+}) {
   const [open, setOpen] = useState(true);
   const [copied, setCopied] = useState("");
   const due = formatDay(plusDaysIso(card.createdAt, 30));
@@ -61,7 +71,8 @@ export function CardSecrets({ card, address }: { card: Card; address: string }) 
 
   return (
     <div>
-      <VirtualCard card={{ ...card, hideCvv: !open }} />
+      {face && <VirtualCard card={{ ...card, hideCvv: !open }} />}
+      {children}
       <section className="mt-4 rounded-[22px] bg-white/[0.04] p-4">
         <div className="flex items-start justify-between gap-3">
           <div>

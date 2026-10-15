@@ -11,18 +11,15 @@ import type { Card, Tx } from "@/lib/types";
 import { FundForm } from "./fund-form";
 import { OrderSlip } from "./order-slip";
 import { SubmitButton } from "./submit-button";
-import { TransferForm } from "./transfer-form";
 
 export function CardActions({
   card,
   entries = [],
-  peers = [],
   balance = 0,
   drain = false,
 }: {
   card: Card;
   entries?: Tx[];
-  peers?: { id: string; label: string }[];
   balance?: number;
   drain?: boolean;
 }) {
@@ -83,18 +80,7 @@ export function CardActions({
           Bakiye yükle
         </Link>
       )}
-      {card.status !== "kapali" && (
-        <div className="rounded-2xl border border-white/10 p-3">
-          <p className="text-xs font-bold tracking-[0.16em] text-gold">HESAPTAN KARTA</p>
-          <FundForm cardId={card.id} balance={balance} />
-        </div>
-      )}
-      {card.status !== "kapali" && peers.length > 0 && kalan > 0 && (
-        <div className="rounded-2xl border border-white/10 p-3">
-          <p className="text-xs font-bold tracking-[0.16em] text-gold">KARTLAR ARASI</p>
-          <TransferForm cardId={card.id} kalan={kalan} peers={peers} />
-        </div>
-      )}
+      {card.status !== "kapali" && <FundForm cardId={card.id} balance={balance} />}
       {card.spent > 0 && (
         <form action={renewAction} className="grid gap-1">
           <input type="hidden" name="id" value={card.id} />

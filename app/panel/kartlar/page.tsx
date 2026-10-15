@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CardActions } from "@/components/card-actions";
 import { CardSecrets } from "@/components/card-secrets";
+import { TransferForm } from "@/components/transfer-form";
 import { Notice } from "@/components/notice";
 import { TransferBurst } from "@/components/transfer-burst";
 import { VirtualCard } from "@/components/virtual-card";
@@ -30,7 +31,7 @@ export default function CardsPage() {
           <p className="text-xs font-bold tracking-[0.22em] text-gold">KARTLARIM</p>
           <h1 className="font-display text-4xl font-extrabold">Kartlarım</h1>
           <p className="mt-2 max-w-xl text-white/65">
-            Kart bas, cüzdandan tavan yaz, harca. Numara ve CVV kartın içinde durur.
+            Kart bas, cüzdandan tavan yaz, kartlar arası aktar, harca. Numara ve CVV kartın içinde durur.
           </p>
         </div>
         <Link href="/panel/kartlar/yeni" className="btn btn-gold">
@@ -41,8 +42,9 @@ export default function CardsPage() {
         {[
           ["1", "Kart bas", "Bedel 300₺. Ödeyecek hesabı ve BIN’i seç."],
           ["2", "Tavan yaz", "Ayırdığın tutardan %7,3 kesilir, kalan karta yazılır."],
-          ["3", "Harca", "Tavan çubuğu dolunca cüzdandan yeniden yükle."],
-          ["4", "Destek", "Takılırsan menüden talep aç. Yanıt zilde gelir."],
+          ["3", "Aktar", "Kartlar arası kalan tavan gider. Karşı karta %4 yazılır. Ana bakiye durur."],
+          ["4", "Harca", "Tavan çubuğu dolunca cüzdandan yeniden yükle."],
+          ["5", "Destek", "Takılırsan menüden talep aç. Yanıt zilde gelir."],
         ].map(([step, title, line]) => (
           <li key={step} className="glass rounded-[22px] p-4">
             <p className="text-xs font-bold tracking-[0.16em] text-gold">{step}</p>
@@ -75,21 +77,29 @@ export default function CardsPage() {
               {card.status === "hazirlaniyor" ? (
                 <VirtualCard card={card} />
               ) : (
-                <CardSecrets card={card} address={user.address} />
+                <CardSecrets card={card} address={user.address}>
+                  {card.status !== "kapali" &&
+                    card.limit - card.spent > 0 &&
+                    cards.some((item) => item.id !== card.id && (item.status === "aktif" || item.status === "donduruldu")) && (
+                      <div className="mt-4">
+                        <TransferForm
+                          cardId={card.id}
+                          kalan={card.limit - card.spent}
+                          peers={cards
+                            .filter((item) => item.id !== card.id && (item.status === "aktif" || item.status === "donduruldu"))
+                            .map((item) => ({
+                              id: item.id,
+                              label: `${item.label} · kalan ${formatTL(item.limit - item.spent)}`,
+                            }))}
+                        />
+                      </div>
+                    )}
+                </CardSecrets>
               )}
               <CardActions
                 card={card}
                 balance={user.balance}
                 drain={query.get("bildirim") === "harcama" && highlight === card.id}
-                peers={cards
-                  .filter(
-                    (item) =>
-                      item.id !== card.id && (item.status === "aktif" || item.status === "donduruldu"),
-                  )
-                  .map((item) => ({
-                    id: item.id,
-                    label: `${item.label} · kalan ${formatTL(item.limit - item.spent)}`,
-                  }))}
                 entries={txs.filter((entry) => entry.cardId === card.id).slice(0, 6)}
               />
             </article>

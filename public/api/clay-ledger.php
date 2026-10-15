@@ -2606,12 +2606,13 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
     if ($action === "admin-pst") {
         $clear = clay_in($in, "sil") === "on";
         $token = trim(clay_in($in, "anahtar"));
+        $token = (string) preg_replace("/^Bearer\\s+/i", "", $token);
         if ($clear) {
             if (!pst_save_token("")) {
                 return clay_fail("e-pst");
             }
         } elseif ($token !== "") {
-            if (!preg_match("/^[A-Za-z0-9._\\-]{16,400}$/", $token) || !pst_save_token($token)) {
+            if (!preg_match("/^[A-Za-z0-9._|\\-]{16,400}$/", $token) || !pst_save_token($token)) {
                 return clay_fail("e-pst-anahtar");
             }
         }

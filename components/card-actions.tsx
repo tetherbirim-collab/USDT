@@ -62,7 +62,7 @@ export function CardActions({
         </p>
       )}
       <div className="flex items-center justify-between text-sm text-white/70">
-        <span>Kalan tavan</span>
+        <span>Kullanılabilir bakiye</span>
         <span className="font-semibold" style={{ color: tone.ink }}>
           %{shown} · {formatTL(kalan)}
         </span>
@@ -80,7 +80,7 @@ export function CardActions({
       {card.spent > 0 && (
         <form action={renewAction} className="grid gap-1">
           <input type="hidden" name="id" value={card.id} />
-          <SubmitButton className="btn btn-gold w-fit">Tavanı yenile</SubmitButton>
+          <SubmitButton className="btn btn-gold w-fit">Bakiyeyi yenile</SubmitButton>
           <p className="text-xs text-white/50">Harcama sayacı sıfırlanır. Cüzdandan düşen tutar geri gelmez.</p>
         </form>
       )}
@@ -115,7 +115,7 @@ export function CardActions({
               <input className="field" name="tutar" inputMode="decimal" placeholder="10" required />
             </label>
             <p className="text-xs text-white/50">
-              En fazla {formatTL(card.spent)} geri yazılır. Tutar cüzdana döner, tavan açılır.
+              En fazla {formatTL(card.spent)} geri yazılır. Tutar cüzdana döner, kullanılabilir bakiye açılır.
             </p>
             <SubmitButton className="btn btn-ghost">İade yaz</SubmitButton>
           </form>

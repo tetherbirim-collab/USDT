@@ -56,7 +56,7 @@ const STEPS = [
   {
     n: "03",
     title: "Kart bas",
-    text: "Karta isim ver, tavanı seç, sonra o türün BIN listesinden bir satır işaretle.",
+    text: "Karta isim ver, kullanılabilir bakiyeyi seç, sonra o türün BIN listesinden bir satır işaretle.",
   },
   {
     n: "04",
@@ -68,7 +68,7 @@ const STEPS = [
 const FAQ = [
   {
     q: "Kart nasıl oluşur?",
-    a: "Türü, adı ve tavanı seçersin. Üzerindeki ad, verdiğin addır.",
+    a: "Türü, adı ve kullanılabilir bakiyeyi seçersin. Üzerindeki ad, verdiğin addır.",
   },
   {
     q: "Bakiye nasıl durur?",
@@ -91,7 +91,7 @@ export function Marketing({
 }) {
   const sample = {
     type: "facebook_ads" as const,
-    label: "Örnek görünüm",
+    label: "Kampanya",
     holder: "CLAY",
     pan: makePan(100_000_042),
     expiry: "12/29",
@@ -145,7 +145,7 @@ export function Marketing({
             <h1 className="font-display mt-3 text-4xl font-extrabold leading-[1.05] sm:text-6xl">SANAL KART HİZMETİ</h1>
             <p className="mt-5 text-lg text-white/75">
               Facebook Ads, TikTok, Google Ads ve Ultima kartlarını aynı cüzdanda tut. CLAY
-              kartı basar, tavan koyar, dondurur ve işlem dökümünü tutar. Bakiye, doların sabit kur karşılığıdır.
+              kartı basar, kullanılabilir bakiyeyi yazar, dondurur ve işlem dökümünü tutar. Bakiye, doların sabit kur karşılığıdır.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link href={loggedIn ? deskHref : "/kayit"} className="btn btn-gold">
@@ -172,7 +172,6 @@ export function Marketing({
             <TiltCard>
               <VirtualCard card={sample} />
             </TiltCard>
-            <p className="mt-4 text-center text-sm text-white/60">Örnek kart.</p>
           </div>
         </section>
 

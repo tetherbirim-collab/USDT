@@ -15,10 +15,10 @@ export function remainInk(left: number): { bar: string; ink: string } {
 
 export function remainMood(left: number): { line: string; load: boolean; urgent: boolean } {
   if (left <= 0) {
-    return { line: "Tavan doldu. Harcamaya devam etmek için bakiye yükle.", load: true, urgent: true };
+    return { line: "Kullanılabilir bakiye bitti. Harcamaya devam etmek için bakiye yükle.", load: true, urgent: true };
   }
   if (left <= 10) {
-    return { line: "Son dilim. Tavan tükenmeden bakiye yükle.", load: true, urgent: true };
+    return { line: "Son dilim. Kullanılabilir bakiye tükenmeden yükle.", load: true, urgent: true };
   }
   if (left <= 20) {
     return { line: "Kalan yüzde yirmi. Bir yükleme kampanyayı açık tutar.", load: true, urgent: true };
@@ -27,7 +27,7 @@ export function remainMood(left: number): { line: string; load: boolean; urgent:
     return { line: "Kalan yüzde otuz. Tempo bozulmasın, bakiye yükle.", load: true, urgent: false };
   }
   if (left <= 50) {
-    return { line: "Tavanın yarısı kullanıldı. Cüzdanı şimdiden doldurmak rahat ettirir.", load: false, urgent: false };
+    return { line: "Kullanılabilir bakiyenin yarısı kullanıldı. Cüzdanı şimdiden doldurmak rahat ettirir.", load: false, urgent: false };
   }
   return { line: "", load: false, urgent: false };
 }

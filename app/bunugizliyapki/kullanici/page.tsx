@@ -126,7 +126,7 @@ export default function AdminUserPage() {
                   <input className="field" name="etiket" defaultValue={card.label} required minLength={2} maxLength={32} />
                 </label>
                 <label className="grid gap-1 text-sm">
-                  Tavan (USD)
+                  Kullanılabilir bakiye (USD)
                   <input className="field" name="limit" inputMode="decimal" defaultValue={kurusToInput(kurusToUsdMinor(card.limit))} required />
                 </label>
                 <label className="grid gap-1 text-sm">

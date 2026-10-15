@@ -41,16 +41,6 @@ export function LoginForm() {
       <button className="auth-primary mt-2" disabled={pending}>
         Giriş yap
       </button>
-      <button
-        type="button"
-        className="text-sm font-semibold text-[#2f78ff]"
-        onClick={() => {
-          setUsername("demo");
-          setPassword("demo123");
-        }}
-      >
-        Hazır hesabı doldur
-      </button>
     </form>
   );
 }

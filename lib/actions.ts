@@ -387,7 +387,7 @@ export async function spendAction(formData: FormData) {
       pushNotice(db, {
         userId: row.id,
         title: "Harcama reddedildi",
-        body: `${card.label} kartında ${merchant} işlemi tavanı aştığı için geçmedi.`,
+        body: `${card.label} kartında ${merchant} işlemi kullanılabilir bakiyeyi aştığı için geçmedi.`,
       });
       return "reddedildi" as const;
     }
@@ -433,8 +433,8 @@ export async function spendAction(formData: FormData) {
     if (card.limit > 0 && card.spent / card.limit >= 0.5) {
       pushNotice(db, {
         userId: row.id,
-        title: "Tavan yarıda",
-        body: `${card.label} kartının tavanının yarısı kullanıldı.`,
+        title: "Bakiye yarıda",
+        body: `${card.label} kartının kullanılabilir bakiyesinin yarısı kullanıldı.`,
         ref: `tavan50:${card.id}:${card.period}`,
       });
     }
@@ -906,7 +906,7 @@ export async function renewAction(formData: FormData) {
       userId: row.id,
       cardId: card.id,
       kind: "yenileme",
-      title: `Tavan yenilendi · ${card.label}`,
+      title: `Kullanılabilir bakiye yenilendi · ${card.label}`,
       note: "Harcama sayacı sıfırlandı. Önceki harcamalar cüzdandan geri gelmez.",
       amount: 0,
       status: "tamamlandi",
@@ -914,7 +914,7 @@ export async function renewAction(formData: FormData) {
     });
     pushNotice(db, {
       userId: row.id,
-      title: "Tavan yenilendi",
+      title: "Kullanılabilir bakiye yenilendi",
       body: `${card.label} harcama sayacı sıfırlandı. Cüzdan tutarı aynı kaldı.`,
     });
     return "yenilendi" as const;
@@ -977,14 +977,14 @@ export async function transferAction(formData: FormData) {
     );
     pushNotice(db, {
       userId: row.id,
-      title: "Tavan aktarıldı",
+      title: "Bakiye aktarıldı",
       body: `${source.label} kartından ${dest.label} kartına ${formatTL(credit)} yazıldı. Komisyon ${feeText}.`,
     });
     if (source.limit > 0 && source.spent / source.limit >= 0.5) {
       pushNotice(db, {
         userId: row.id,
-        title: "Tavan yarıda",
-        body: `${source.label} kartının tavanının yarısı kullanıldı.`,
+        title: "Bakiye yarıda",
+        body: `${source.label} kartının kullanılabilir bakiyesinin yarısı kullanıldı.`,
         ref: `tavan50:${source.id}:${source.period}`,
       });
     }

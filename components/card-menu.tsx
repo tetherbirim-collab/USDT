@@ -77,7 +77,7 @@ export function CardMenu({ card, fee }: { card: Card; fee: number }) {
               <input type="hidden" name="id" value={card.id} />
               <label className="flex items-start gap-2 text-xs text-white/75">
                 <input type="checkbox" name="onay" required className="mt-0.5" />
-                Kapanmış bölüme gider. Kart bedeli döner. Tavan dönmez. Yeniden açmak {price} tutar.
+                Kapanmış bölüme gider. Kart bedeli döner. Kullanılabilir bakiye dönmez. Yeniden açmak {price} tutar.
               </label>
               <button className="btn btn-danger" type="submit">
                 Kapat

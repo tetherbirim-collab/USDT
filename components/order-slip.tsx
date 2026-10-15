@@ -25,7 +25,7 @@ export function OrderSlip({ card }: { card: Card }) {
       <p className="text-xs font-bold tracking-[0.18em] text-gold">SİPARİŞ</p>
       <p className="font-display mt-1 text-2xl font-bold">{card.label}</p>
       <p className="mt-1 text-sm text-white/70">
-        {CARD_TYPES[card.type].name} · tavan {formatTL(card.limit)}
+        {CARD_TYPES[card.type].name} · kullanılabilir bakiye {formatTL(card.limit)}
       </p>
       <p className="mt-2 font-mono text-xs text-white/55">Sipariş no {card.id}</p>
       <p className="mt-2 text-sm text-white/75">

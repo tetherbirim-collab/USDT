@@ -22,7 +22,7 @@ export default function NewCardPage() {
         </Link>
         <h1 className="font-display mt-3 text-4xl font-bold tracking-tight">Kart oluştur</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Önce ödemenin düşeceği hesabı, sonra BIN’i seç. Kart bedeli 300₺. Karta ayırdığın tutardan %7,3 komisyon kesilir, kalan tavan olarak yazılır.
+          Önce ödemenin düşeceği hesabı, sonra BIN’i seç. Kart bedeli 300₺. Karta ayırdığın tutardan %7,3 komisyon kesilir, kalan kullanılabilir bakiye olarak yazılır.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />

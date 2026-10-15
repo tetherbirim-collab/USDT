@@ -44,10 +44,10 @@ export function TransferForm({
   return (
     <form action={transferAction} className="transfer-panel">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold">Tavan aktar</p>
+        <p className="text-sm font-semibold">Bakiye aktar</p>
         <span className="text-[11px] font-bold tracking-[0.16em] text-gold">%{settings.transferFeePercent}</span>
       </div>
-      <p className="text-xs text-white/50">Kalan tavan karşı karta gider. Ana bakiye değişmez, karşı karta %{settings.transferFeePercent} komisyon yazılır.</p>
+      <p className="text-xs text-white/50">Kullanılabilir bakiye karşı karta gider. Ana bakiye değişmez, karşı karta %{settings.transferFeePercent} komisyon yazılır.</p>
       <div className="transfer-lane" aria-hidden>
         <span>Bu kart</span>
         <span className="transfer-track">

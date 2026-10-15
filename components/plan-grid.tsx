@@ -12,7 +12,7 @@ export function PlanGrid() {
   return (
     <>
       <p className="mt-3 text-white/70">
-        {ids.map((id) => `${settings.plans[id].name} ${settings.plans[id].priceUsdMinor / 100} USD`).join(", ")}. Ekranda sabit kurun TL karşılığı durur. Kart bedeli yönetimden değişir. Tavan dolunca plan yükselir.
+        {ids.map((id) => `${settings.plans[id].name} ${settings.plans[id].priceUsdMinor / 100} USD`).join(", ")}. Ekranda sabit kurun TL karşılığı durur. Kart bedeli yönetimden değişir. Kart hakkı dolunca plan yükselir.
       </p>
       <div className="plan-grid mt-8">
         {ids.map((id) => {

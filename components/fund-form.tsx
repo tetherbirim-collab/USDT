@@ -24,7 +24,7 @@ export function FundForm({ cardId, balance }: { cardId: string; balance: number 
         <span className="text-[11px] font-bold tracking-[0.16em] text-gold">%{String(settings.loadFeePercent).replace(".", ",")}</span>
       </div>
       <p className="text-xs text-white/50">
-        Ana bakiyeden ayrılan tutarın %{String(settings.loadFeePercent).replace(".", ",")} kadarı kesilir. Kalanı kartın tavanına yazılır.
+        Ana bakiyeden ayrılan tutarın %{String(settings.loadFeePercent).replace(".", ",")} kadarı kesilir. Kalanı kartın kullanılabilir bakiyesine yazılır.
       </p>
       <label className="grid gap-1 text-xs text-white/70">
         Tutar (USD)
@@ -49,7 +49,7 @@ export function FundForm({ cardId, balance }: { cardId: string; balance: number 
             {formatTL(commission)}
           </span>
           <span>
-            <small>Karta</small>
+            <small>Bakiyeye</small>
             {formatTL(net)}
           </span>
         </div>

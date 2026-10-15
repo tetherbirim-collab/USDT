@@ -53,7 +53,7 @@ export function IssueForm({
       return false;
     }
     if (cents === null || cents < MIN_LIMIT_USD_MINOR || cents > MAX_LIMIT_USD_MINOR) {
-      setLocalError("Tavan 10 ile 10.000 USD arasında olmalı.");
+      setLocalError("Kullanılabilir bakiye 10 ile 10.000 USD arasında olmalı.");
       return false;
     }
     if (accountId !== account.id) {
@@ -157,7 +157,7 @@ export function IssueForm({
             </label>
             {localError && <p className="banner-bad">{localError}</p>}
             {slotsLeft <= 0 && (
-              <p className="banner-bad">Bu plandaki kart tavanı doldu. Daha fazla kart için planı yükselt.</p>
+              <p className="banner-bad">Bu plandaki kart hakkı doldu. Daha fazla kart için planı yükselt.</p>
             )}
             {short && (
               <p className="banner-bad">Hesap {formatTL(due)} için yetersiz. Önce ana bakiyeyi yükle.</p>
@@ -177,7 +177,7 @@ export function IssueForm({
                 <span className="font-semibold text-[#ffb4a2]">{formatTL(commission)}</span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-white/70">Karta yazılan</span>
+                <span className="text-white/70">Kullanılabilir bakiye</span>
                 <span className="font-semibold text-mint">{formatTL(net)}</span>
               </div>
               <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-2">

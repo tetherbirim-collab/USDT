@@ -28,13 +28,13 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
       name={user.name}
       username={user.username}
       balanceLabel={formatTL(user.balance)}
-      planName={`${settings.plans[user.plan].name} · vitrin`}
+      planName={settings.plans[user.plan].name}
       unread={unreadNoticeCount(user.id)}
     >
       {lead && (
         <div className="remain-note remain-note-hot mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-display text-lg font-bold tracking-wide">Tavan daralıyor</p>
+            <p className="font-display text-lg font-bold tracking-wide">Bakiye azalıyor</p>
             <p className="text-sm">{hot.map((item) => item.card.label).join(" · ")}</p>
             <p className="mt-1 text-sm">{remainMood(lead.left).line}</p>
           </div>

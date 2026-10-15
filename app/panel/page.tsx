@@ -94,7 +94,7 @@ export default function PanelHome() {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-display text-2xl font-bold">Kartlar</h2>
+          <h2 className="font-display text-2xl font-bold">Kartlarım</h2>
           <Link href="/panel/kartlar" className="text-sm font-semibold text-gold">
             Tümü
           </Link>

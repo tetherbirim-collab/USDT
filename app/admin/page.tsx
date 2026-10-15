@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AdminBins } from "@/components/admin-bins";
-import { adminAccountAction, adminBalanceAction, adminCardAction, adminNoticeAction } from "@/lib/actions";
+import { adminAccountAction, adminBalanceAction, adminCardAction, adminNoticeAction, adminTicketReplyAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { CARD_TYPES, PLANS } from "@/lib/catalog";
 import { formatTL, formatWhen } from "@/lib/format";
@@ -63,6 +63,36 @@ export default function AdminPage() {
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
+      <section className="glass rounded-[28px] p-5">
+        <h2 className="font-display text-2xl font-bold">Destek talepleri</h2>
+        <p className="mt-1 text-sm text-white/60">Üye talebi gönderince burada durur. Yanıt üyenin ziline de düşer.</p>
+        <ul className="mt-4 grid gap-3">
+          {[...db.tickets].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((ticket) => {
+            const owner = db.users.find((item) => item.id === ticket.userId);
+            return (
+              <li key={ticket.id} className="rounded-2xl bg-black/25 px-3 py-3 text-sm">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="font-semibold">{ticket.subject}</p>
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${ticket.status === "yanitlandi" ? "bg-mint text-[#10241f]" : "bg-gold text-[#24180a]"}`}>
+                    {ticket.status === "yanitlandi" ? "Yanıtlandı" : "Açık"}
+                  </span>
+                </div>
+                <p className="mt-1 text-white/70">{ticket.body}</p>
+                <p className="mt-1 text-xs text-white/45">
+                  {formatWhen(ticket.createdAt)} · {owner?.username ?? "üye"}
+                </p>
+                {ticket.reply && <p className="mt-2 text-mint">Yanıt: {ticket.reply}</p>}
+                <form action={adminTicketReplyAction} className="mt-3 grid gap-2">
+                  <input type="hidden" name="id" value={ticket.id} />
+                  <textarea className="field min-h-20" name="yanit" required minLength={2} maxLength={400} placeholder="Üyeye kısa yanıt" defaultValue={ticket.reply ?? ""} />
+                  <button className="btn btn-gold w-fit">Yanıtla</button>
+                </form>
+              </li>
+            );
+          })}
+          {db.tickets.length === 0 && <li className="text-sm text-white/50">Henüz talep yok.</li>}
+        </ul>
+      </section>
       <section className="glass rounded-[28px] p-5">
         <h2 className="font-display text-2xl font-bold">Bildirimler</h2>
         <p className="mt-1 text-sm text-white/60">

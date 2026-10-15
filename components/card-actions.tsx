@@ -83,9 +83,17 @@ export function CardActions({
           Bakiye yükle
         </Link>
       )}
-      {card.status !== "kapali" && <FundForm cardId={card.id} balance={balance} />}
+      {card.status !== "kapali" && (
+        <div className="rounded-2xl border border-white/10 p-3">
+          <p className="text-xs font-bold tracking-[0.16em] text-gold">HESAPTAN KARTA</p>
+          <FundForm cardId={card.id} balance={balance} />
+        </div>
+      )}
       {card.status !== "kapali" && peers.length > 0 && kalan > 0 && (
-        <TransferForm cardId={card.id} kalan={kalan} peers={peers} />
+        <div className="rounded-2xl border border-white/10 p-3">
+          <p className="text-xs font-bold tracking-[0.16em] text-gold">KARTLAR ARASI</p>
+          <TransferForm cardId={card.id} kalan={kalan} peers={peers} />
+        </div>
       )}
       {card.spent > 0 && (
         <form action={renewAction} className="grid gap-1">

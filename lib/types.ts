@@ -118,6 +118,19 @@ export type Order = {
   readyAt: string | null;
 };
 
+export type TicketStatus = "acik" | "yanitlandi";
+
+export type Ticket = {
+  id: string;
+  userId: string;
+  subject: string;
+  body: string;
+  status: TicketStatus;
+  createdAt: string;
+  reply: string | null;
+  repliedAt: string | null;
+};
+
 export type InboxNote = {
   id: string;
   userId: string;
@@ -136,6 +149,7 @@ export type DB = {
   cards: Card[];
   transactions: Tx[];
   notices: InboxNote[];
+  tickets: Ticket[];
   bins: BinRow[];
   orders: Order[];
   nextSerial: number;

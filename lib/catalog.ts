@@ -144,7 +144,7 @@ export const KIND_LABEL: Record<TxKind, string> = {
 
 export const NOTICES: Record<string, string> = {
   hosgeldin: "Hoş geldin bakiyesi yazıldı. Tutar, doların sabit kur karşılığıdır.",
-  yuklendi: "Heleket ödemesi onaylandı. Tutar, doların sabit kur karşılığı olarak bakiyeye yazıldı.",
+  yuklendi: "Bakiyeniz yüklendi.",
   "e-heleket": "Heleket ödeme sayfası açılmadı.",
   "e-anahtar": "Heleket anahtarı sunucuda boş. heleket.config.php doldurulmalı.",
   "e-odeme": "Heleket ödemesi henüz tamamlanmadı.",
@@ -185,6 +185,10 @@ export const NOTICES: Record<string, string> = {
   "e-kendin": "Yönetici kendi hesabını askıya alamaz.",
   "e-yonetici": "Yönetici hesabı bu işlem için kapalı.",
   gonderildi: "Bildirim üye paneline yazıldı.",
+  talep: "Talebin alındı. Yönetim masasına düştü. Yanıt zilde görünür.",
+  yanit: "Yanıt üyeye yazıldı. Zilde de görünür.",
+  "e-talep": "Konu 2–80, şikayet 4–800 karakter olmalı.",
+  "e-yanit": "Yanıt 2–400 karakter olmalı.",
   kart: "Kart kaydı güncellendi.",
   islem: "İşlem tutarı güncellendi.",
   zaman: "Son yükleme zamanı güncellendi.",

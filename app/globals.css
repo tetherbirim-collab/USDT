@@ -985,6 +985,52 @@ select.field option {
   animation: note-pop 1.8s ease-in-out infinite;
 }
 
+.bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  color: #ffe7c2;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.bell-count {
+  position: absolute;
+  top: -0.3rem;
+  right: -0.3rem;
+  min-width: 1.15rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  background: #f0c98a;
+  color: #24180a;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.15rem;
+  text-align: center;
+}
+
+.load-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(8, 6, 12, 0.72);
+}
+
+.load-card {
+  width: min(100%, 26rem);
+  border-radius: 28px;
+  padding: 1.5rem;
+  border: 1px solid rgba(240, 201, 138, 0.45);
+  background: linear-gradient(160deg, #2a2114, #14121c 55%, #0c1c1a);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
 @keyframes note-pop {
   0%,
   100% { transform: scale(1); }

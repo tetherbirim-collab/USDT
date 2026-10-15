@@ -333,6 +333,7 @@ function createSeed(): DB {
     cards: [reklam, alisveris, abonelik, ultima],
     transactions,
     notices: [],
+    tickets: [],
     bins: testBins(),
     orders: [],
     nextSerial: 100_000_005,
@@ -500,6 +501,40 @@ function normalize(db: DB): DB {
     db.notices = [];
     dirty = true;
   }
+  if (!Array.isArray(db.tickets)) {
+    db.tickets = [];
+    dirty = true;
+  } else {
+    const tickets = db.tickets.filter(
+      (ticket) => ticket && typeof ticket.id === "string" && typeof ticket.userId === "string" && typeof ticket.body === "string",
+    );
+    if (tickets.length !== db.tickets.length) {
+      db.tickets = tickets;
+      dirty = true;
+    }
+    for (const ticket of db.tickets) {
+      if (typeof ticket.subject !== "string" || ticket.subject.length === 0) {
+        ticket.subject = "Talep";
+        dirty = true;
+      }
+      if (ticket.status !== "acik" && ticket.status !== "yanitlandi") {
+        ticket.status = "acik";
+        dirty = true;
+      }
+      if (ticket.reply === undefined) {
+        ticket.reply = null;
+        dirty = true;
+      }
+      if (ticket.repliedAt === undefined) {
+        ticket.repliedAt = null;
+        dirty = true;
+      }
+      if (typeof ticket.createdAt !== "string") {
+        ticket.createdAt = new Date().toISOString();
+        dirty = true;
+      }
+    }
+  }
   if (!Array.isArray(db.bins)) {
     db.bins = [];
     dirty = true;
@@ -659,7 +694,7 @@ export function creditHeleketPayment(input: { userId: string; orderId: string; c
     pushNotice(db, {
       userId: row.id,
       title: "Bakiye yüklendi",
-      body: `${formatUsd(input.cents)} karşılığı ${formatTL(credit)} bakiyene yazıldı.`,
+      body: `Bakiyeniz yüklendi. ${formatUsd(input.cents)} karşılığı ${formatTL(credit)} yazıldı.`,
       ref: `note:${ref}`,
     });
     return "ok" as const;
@@ -754,6 +789,12 @@ export function listCards(userId: string): Card[] {
       (a, b) =>
         rank[a.status] - rank[b.status] || b.createdAt.localeCompare(a.createdAt),
     );
+}
+
+export function listTickets(userId?: string) {
+  const rows = read().tickets;
+  const mine = userId ? rows.filter((ticket) => ticket.userId === userId) : rows;
+  return [...mine].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function listNotices(userId: string) {

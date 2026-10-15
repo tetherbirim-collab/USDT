@@ -555,6 +555,54 @@ export async function adminNoticeAction(formData: FormData) {
   return bounce("/admin", result);
 }
 
+export async function ticketAction(formData: FormData) {
+  const user = await actor();
+  const subject = String(formData.get("konu") || "").replace(/\s+/g, " ").trim();
+  const body = String(formData.get("sikayet") || "").replace(/\s+/g, " ").trim();
+  if (subject.length < 2 || subject.length > 80 || body.length < 4 || body.length > 800) {
+    return bounce("/panel/destek", "e-talep");
+  }
+  mutate((db) => {
+    db.tickets.push({
+      id: `tkt_${rid()}`,
+      userId: user.id,
+      subject,
+      body,
+      status: "acik",
+      createdAt: new Date().toISOString(),
+      reply: null,
+      repliedAt: null,
+    });
+    pushNotice(db, {
+      userId: user.id,
+      title: "Talebin alındı",
+      body: `${subject}. Şikayet yönetim masasına düştü.`,
+    });
+  });
+  return bounce("/panel/destek", "talep");
+}
+
+export async function adminTicketReplyAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  const reply = String(formData.get("yanit") || "").replace(/\s+/g, " ").trim();
+  if (reply.length < 2 || reply.length > 400) return bounce("/admin", "e-yanit");
+  const result = mutate((db) => {
+    const ticket = db.tickets.find((item) => item.id === id);
+    if (!ticket) return "e-yok" as const;
+    ticket.reply = reply;
+    ticket.repliedAt = new Date().toISOString();
+    ticket.status = "yanitlandi";
+    pushNotice(db, {
+      userId: ticket.userId,
+      title: "Destek yanıtı",
+      body: `${ticket.subject}: ${reply}`,
+    });
+    return "yanit" as const;
+  });
+  return bounce("/admin", result);
+}
+
 export async function adminSetBalanceAction(formData: FormData) {
   await requireAdmin();
   const userId = String(formData.get("uye") || "");

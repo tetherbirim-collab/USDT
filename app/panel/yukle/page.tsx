@@ -8,10 +8,25 @@ import { openHeleketPayment, readHeleketPayment } from "@/lib/heleket";
 import { Boot, useQuery, useUser } from "@/lib/live";
 import { creditHeleketPayment, listTransactions } from "@/lib/store";
 
-const PRESETS = [10, 20, 50, 100];
-
 function explain(error: string): string {
   return noticeText(error.startsWith("e-") ? error : `e-${error}`) || "Heleket ödeme sayfası açılmadı.";
+}
+
+function Loaded({ show }: { show: boolean }) {
+  const [open, setOpen] = useState(show);
+  if (!open) return null;
+  return (
+    <div className="load-veil" role="presentation">
+      <div className="load-card" role="status">
+        <p className="text-xs font-bold tracking-[0.22em] text-gold">BAKİYE</p>
+        <h2 className="font-display mt-2 text-3xl font-extrabold">Bakiyeniz yüklendi</h2>
+        <p className="mt-2 text-sm text-white/75">Tutar cüzdana yazıldı. Aynı haber zilde de durur.</p>
+        <button type="button" className="btn btn-gold mt-4" onClick={() => setOpen(false)}>
+          Tamam
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function TopupPage() {
@@ -97,43 +112,35 @@ export default function TopupPage() {
   const receipt = listTransactions(user.id).find((entry) => entry.kind === "yukleme" && entry.status === "tamamlandi");
   const cents = parseTryToKurus(custom);
   const ready = cents !== null && cents >= MIN_USD_MINOR && cents <= MAX_USD_MINOR;
+  const loaded = query.get("bildirim") === "yuklendi";
 
   return (
     <div className="grid gap-5">
+      <Loaded show={loaded} />
       <div>
         <p className="text-xs font-bold tracking-[0.22em] text-gold">CÜZDAN</p>
         <h1 className="font-display text-4xl font-extrabold">Bakiye yükle</h1>
         <p className="mt-2 max-w-xl text-white/70">
-          Tutar dolar olarak Heleket’e gider. Ödeme onaylanınca ana bakiyede {formatTL(user.balance)} durur. Bu yüklemeye komisyon yok. Kartına aktarırken %7,3 kesilir. 1 USD = {formatRate(USD_SELL_RATE)} TL · {USD_RATE_AS_OF}.
+          Ana bakiyede {formatTL(user.balance)} durur. Crypto yüklemesine komisyon yok. 1 USD = {formatRate(USD_SELL_RATE)} TL · {USD_RATE_AS_OF}.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
       <form
-        className="glass grid gap-4 rounded-[28px] p-5"
+        className="glass grid max-w-xl gap-4 rounded-[28px] p-5"
         onSubmit={(event) => {
           event.preventDefault();
           if (cents !== null) void pay(cents);
         }}
       >
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {PRESETS.map((dollars) => (
-            <button
-              key={dollars}
-              type="button"
-              className="btn btn-ghost h-auto flex-col gap-0.5 py-3"
-              disabled={pending}
-              onClick={() => void pay(dollars * 100)}
-            >
-              {formatUsd(dollars * 100)}
-              <span className="block text-xs font-semibold text-gold">{formatTL(usdMinorToKurus(dollars * 100))}</span>
-            </button>
-          ))}
+        <div>
+          <p className="text-xs font-bold tracking-[0.18em] text-gold">CRYPTO İLE YÜKLE</p>
+          <h2 className="font-display mt-1 text-2xl font-bold">Heleket</h2>
         </div>
         <label className="grid gap-1 text-sm">
-          Tutar (USD)
+          Ödeme yapmak istediğin tutar (USD)
           <input
             className="field"
-            name="ozel"
+            name="tutar"
             inputMode="decimal"
             placeholder="50"
             value={custom}
@@ -146,7 +153,7 @@ export default function TopupPage() {
           </p>
         )}
         <button className="btn btn-gold w-fit" type="submit" disabled={!ready || pending}>
-          {pending ? "Heleket açılıyor" : "Heleket ile öde"}
+          {pending ? "Ödeme sayfası açılıyor" : "Ödeme sayfasına git"}
         </button>
         <p className="text-sm text-white/55">1–5.000 USD. Onaydan sonra bu bakiye kart harcamasında kullanılır.</p>
         {waitText && <p className="text-sm text-gold">{waitText}</p>}

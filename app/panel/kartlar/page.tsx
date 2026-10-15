@@ -27,16 +27,30 @@ export default function CardsPage() {
     <div className="grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-bold tracking-[0.22em] text-gold">KARTLAR</p>
-          <h1 className="font-display text-4xl font-extrabold">Sahne kartları</h1>
+          <p className="text-xs font-bold tracking-[0.22em] text-gold">KARTLARIM</p>
+          <h1 className="font-display text-4xl font-extrabold">Kartlarım</h1>
           <p className="mt-2 max-w-xl text-white/65">
-            Numara, son kullanma, CVV ve adres bu hesabın kartında durur.
+            Kart bas, cüzdandan tavan yaz, harca. Numara ve CVV kartın içinde durur.
           </p>
         </div>
         <Link href="/panel/kartlar/yeni" className="btn btn-gold">
           Kart bas
         </Link>
       </div>
+      <ol className="grid gap-3 sm:grid-cols-4">
+        {[
+          ["1", "Kart bas", "Bedel 300₺. Ödeyecek hesabı ve BIN’i seç."],
+          ["2", "Tavan yaz", "Ayırdığın tutardan %7,3 kesilir, kalan karta yazılır."],
+          ["3", "Harca", "Tavan çubuğu dolunca cüzdandan yeniden yükle."],
+          ["4", "Destek", "Takılırsan menüden talep aç. Yanıt zilde gelir."],
+        ].map(([step, title, line]) => (
+          <li key={step} className="glass rounded-[22px] p-4">
+            <p className="text-xs font-bold tracking-[0.16em] text-gold">{step}</p>
+            <p className="mt-1 font-semibold">{title}</p>
+            <p className="mt-1 text-sm text-white/60">{line}</p>
+          </li>
+        ))}
+      </ol>
       {query.get("bildirim") === "transfer" && fromCard && toCard && sent && got ? (
         <TransferBurst
           from={fromCard.label}

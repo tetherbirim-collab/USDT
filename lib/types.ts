@@ -143,6 +143,8 @@ export type SiteSettings = {
   loadFeePercent: number;
   transferFeePercent: number;
   plans: Record<PlanId, PlanSetting>;
+  /** Telegram username without @. Empty hides the corner button. */
+  telegram: string;
 };
 
 export type InboxNote = {

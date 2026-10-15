@@ -471,6 +471,32 @@ select.field option {
   color: #ffd0dc;
 }
 
+.tg-fab {
+  position: fixed;
+  right: 1.15rem;
+  bottom: 1.15rem;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  background: #2aabee;
+  color: #fff;
+  box-shadow: 0 14px 32px rgba(42, 171, 238, 0.42);
+}
+
+.tg-fab svg {
+  width: 30px;
+  height: 30px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tg-fab:hover {
+    translate: 0 -2px;
+  }
+}
+
 .vcard-status {
   position: absolute;
   top: 14px;

@@ -43,6 +43,7 @@ export default function AdminHome() {
           <li>Kart bedeli {formatTL(settings.issueFeeKurus)}</li>
           <li>Karta yükleme komisyonu %{String(settings.loadFeePercent).replace(".", ",")}</li>
           <li>Kartlar arası aktarım %{settings.transferFeePercent}</li>
+          <li>Telegram {settings.telegram ? `@${settings.telegram}` : "yazılmadı"}</li>
           {(Object.keys(settings.plans) as (keyof typeof settings.plans)[]).map((id) => (
             <li key={id}>
               {settings.plans[id].name}: {settings.plans[id].priceUsdMinor / 100} USD · en fazla {settings.plans[id].cardLimit} kart

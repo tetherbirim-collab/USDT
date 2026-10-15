@@ -17,6 +17,7 @@ const LINKS = [
   ["/bildirimler", "Bildirimler"],
   ["/planlar", "Planlar"],
   ["/ucretler", "Ücretler"],
+  ["/telegram", "Telegram"],
   ["/hesap", "Hesap"],
 ] as const;
 

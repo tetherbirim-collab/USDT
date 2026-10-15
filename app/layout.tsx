@@ -8,6 +8,7 @@ import "@fontsource/inter/latin-ext-600.css";
 import "@fontsource/inter/latin-700.css";
 import "@fontsource/inter/latin-ext-700.css";
 import "./globals.css";
+import { TelegramButton } from "@/components/telegram-button";
 
 export const metadata: Metadata = {
   title: {
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         {children}
+        <TelegramButton />
       </body>
     </html>
   );

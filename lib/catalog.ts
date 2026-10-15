@@ -144,6 +144,7 @@ export function defaultSettings(): SiteSettings {
       atolye: plan("atolye"),
       galeri: plan("galeri"),
     },
+    telegram: "",
   };
 }
 
@@ -235,6 +236,8 @@ export const NOTICES: Record<string, string> = {
   "parola-admin": "Yönetici parolası güncellendi.",
   ucret: "Ücretler kaydedildi. Yeni kart, yükleme ve aktarım bu oranları kullanır.",
   planlar: "Planlar kaydedildi. Kart tavanı ve fiyat bu kayda göre durur.",
+  telegram: "Telegram kaydı güncellendi. Sağ alttaki düğme bu hesaba gider.",
+  "e-telegram": "Telegram adı 5–32 karakter olmalı ve bir harfle başlamalı.",
   "e-ayar": "Bu ayar izin verilen aralığın dışında.",
   "e-parola": "Yeni parola 6–72 karakter olmalı ve tekrar ile aynı olmalı.",
   "e-parola-eski": "Mevcut parola hatalı.",

@@ -528,6 +528,10 @@ function normalize(db: DB): DB {
       db.settings.transferFeePercent = fresh.transferFeePercent;
       dirty = true;
     }
+    if (typeof db.settings.telegram !== "string") {
+      db.settings.telegram = "";
+      dirty = true;
+    }
   }
   if (!Array.isArray(db.notices)) {
     db.notices = [];

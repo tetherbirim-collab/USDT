@@ -1047,6 +1047,36 @@ export async function adminPasswordAction(formData: FormData) {
   return bounce("/bunugizliyapki/hesap", result);
 }
 
+function telegramName(raw: string): string | null {
+  const value = raw
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^(www\.)?t\.me\//i, "")
+    .replace(/^@/, "")
+    .split(/[/?#]/)[0];
+  if (!/^[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(value)) return null;
+  return value;
+}
+
+export async function adminTelegramAction(formData: FormData) {
+  await requireAdmin();
+  const wipe = String(formData.get("sil") || "") === "1";
+  const raw = String(formData.get("telegram") || "");
+  const back = "/bunugizliyapki/telegram";
+  if (wipe || raw.trim() === "") {
+    mutate((db) => {
+      db.settings.telegram = "";
+    });
+    return bounce(back, "telegram");
+  }
+  const name = telegramName(raw);
+  if (!name) return bounce(back, "e-telegram");
+  mutate((db) => {
+    db.settings.telegram = name;
+  });
+  return bounce(back, "telegram");
+}
+
 export async function adminFeesAction(formData: FormData) {
   await requireAdmin();
   const issue = Number(String(formData.get("bedel") || "").replace(",", "."));

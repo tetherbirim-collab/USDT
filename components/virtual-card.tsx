@@ -45,18 +45,31 @@ const STATUS_LABEL = {
 
 function VisaMark({ ink }: { ink: string }) {
   return (
-    <p className="vcard-visa font-display" style={{ color: ink }}>
-      VISA
-    </p>
+    <svg viewBox="0 0 86 28" className="vcard-pay" aria-hidden>
+      <text
+        x="43"
+        y="21"
+        textAnchor="middle"
+        fill={ink}
+        fontFamily="Georgia, 'Times New Roman', serif"
+        fontStyle="italic"
+        fontWeight="700"
+        fontSize="24"
+        letterSpacing="0.5"
+      >
+        VISA
+      </text>
+    </svg>
   );
 }
 
 function MastercardMark() {
   return (
-    <svg viewBox="0 0 44 28" className="vcard-pay" aria-hidden>
-      <circle cx="16" cy="14" r="10" fill="#EB001B" />
-      <circle cx="28" cy="14" r="10" fill="#F79E1B" />
-      <path d="M22 6.4a10 10 0 0 1 0 15.2 10 10 0 0 1 0-15.2z" fill="#FF5F00" />
+    <svg viewBox="0 0 52 32" className="vcard-pay" aria-hidden>
+      <circle cx="18" cy="16" r="12" fill="#EB001B" />
+      <circle cx="34" cy="16" r="12" fill="#F79E1B" />
+      <path d="M26 6.7a12 12 0 0 1 0 18.6 12 12 0 0 1 0-18.6z" fill="#FF5F00" />
+      <path d="M14 10.2a9 9 0 0 1 2.2-1.4" fill="none" stroke="#fff" strokeOpacity=".45" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }
@@ -64,37 +77,45 @@ function MastercardMark() {
 function TypeMark({ type }: { type: CardTypeId }) {
   if (type === "facebook_ads") {
     return (
-      <svg viewBox="0 0 32 32" className="vcard-mark-sq" aria-hidden>
-        <circle cx="16" cy="16" r="16" fill="#fff" />
+      <svg viewBox="0 0 48 48" className="vcard-mark-sq" aria-hidden>
+        <rect width="48" height="48" rx="13" fill="#fff" />
         <path
           fill="#1877F2"
-          d="M18.4 25v-7h2.3l.4-2.6h-2.7v-1.6c0-.8.2-1.3 1.3-1.3H21V9.4c-.2 0-1-.1-2-.1-2 0-3.4 1.2-3.4 3.5v1.6H13v2.6h2.6V25h2.8z"
+          d="M26.4 36.5v-8.4h2.8l.5-3.2h-3.3v-2c0-1 .3-1.6 1.7-1.6h1.8v-2.9c-.3 0-1.4-.1-2.6-.1-2.6 0-4.4 1.6-4.4 4.5v2.1H19v3.2h3.9v8.4h3.5z"
         />
       </svg>
     );
   }
   if (type === "tiktok") {
+    const note =
+      "M21.2 11.2h3.4c.5 2.3 2 4 4.3 4.6v3.5c-1.6-.1-3-.6-4.3-1.5v8.4c0 3.5-2.7 6.2-6.4 6.2s-6.4-2.8-6.4-6.3 2.8-6.3 6.4-6.3c.4 0 .8 0 1.2.1v3.7c-.4-.2-.8-.3-1.2-.3-1.6 0-2.8 1.2-2.8 2.8s1.2 2.8 2.8 2.8 2.8-1.2 2.8-2.8V11.2z";
     return (
-      <svg viewBox="0 0 32 32" className="vcard-mark-sq" aria-hidden>
-        <path d="M14 6h3.2v12.4a3.5 3.5 0 1 1-2.5-3.3V6z" fill="#25F4EE" transform="translate(-1.3 1)" />
-        <path d="M14 6h3.2v12.4a3.5 3.5 0 1 1-2.5-3.3V6z" fill="#FE2C55" transform="translate(1.3 -1)" />
-        <path d="M14 6h3.2v12.4a3.5 3.5 0 1 1-2.5-3.3V6z" fill="#fff" />
+      <svg viewBox="0 0 48 48" className="vcard-mark-sq" aria-hidden>
+        <rect width="48" height="48" rx="13" fill="#111" />
+        <path d={note} fill="#25F4EE" transform="translate(-1.5 1.1)" />
+        <path d={note} fill="#FE2C55" transform="translate(1.5 -1.1)" />
+        <path d={note} fill="#fff" />
       </svg>
     );
   }
   if (type === "google_ads") {
     return (
-      <svg viewBox="0 0 36 12" className="vcard-mark-wide" aria-hidden>
-        <circle cx="6" cy="6" r="4" fill="#4285F4" />
-        <circle cx="14" cy="6" r="4" fill="#EA4335" />
-        <circle cx="22" cy="6" r="4" fill="#FBBC05" />
-        <circle cx="30" cy="6" r="4" fill="#34A853" />
+      <svg viewBox="0 0 48 48" className="vcard-mark-sq" aria-hidden>
+        <rect width="48" height="48" rx="13" fill="#fff" />
+        <circle cx="17" cy="17" r="5.4" fill="#4285F4" />
+        <circle cx="31" cy="17" r="5.4" fill="#EA4335" />
+        <circle cx="17" cy="31" r="5.4" fill="#FBBC05" />
+        <circle cx="31" cy="31" r="5.4" fill="#34A853" />
       </svg>
     );
   }
   return (
-    <svg viewBox="0 0 32 32" className="vcard-mark-sq" aria-hidden>
-      <path d="M16 4 27 12.5 23 26H9L5 12.5 16 4z" fill="#f0c98a" />
+    <svg viewBox="0 0 48 48" className="vcard-mark-sq" aria-hidden>
+      <rect width="48" height="48" rx="13" fill="#16120c" />
+      <path d="M24 8.5 38.5 18.2 34.2 38H13.8L9.5 18.2 24 8.5z" fill="#c8923e" />
+      <path d="M24 8.5 38.5 18.2 24 21.5 9.5 18.2z" fill="#ffe7b0" />
+      <path d="M24 21.5 38.5 18.2 34.2 38 24 33.2z" fill="#8d5e22" opacity=".55" />
+      <path d="M24 14.2 31.2 18.8 24 28.8 16.8 18.8z" fill="#fff4d4" opacity=".85" />
     </svg>
   );
 }
@@ -135,7 +156,6 @@ export function VirtualCard({
             {card.label}
           </p>
         </div>
-        {NETWORK[card.type] === "visa" ? <VisaMark ink={light ? "#1a1f71" : "#fff"} /> : <MastercardMark />}
       </header>
       <div className="vcard-mid">
         <div className="chip" />
@@ -148,17 +168,22 @@ export function VirtualCard({
           </p>
           <p className="vcard-holder font-display">{holder}</p>
         </div>
-        <div>
-          <p className="vcard-k" style={{ color: mute }}>
-            SKT
-          </p>
-          <p className="vcard-v">{card.masked ? "••/••" : card.expiry}</p>
+        <div className="vcard-dates">
+          <div>
+            <p className="vcard-k" style={{ color: mute }}>
+              SKT
+            </p>
+            <p className="vcard-v">{card.masked ? "••/••" : card.expiry}</p>
+          </div>
+          <div>
+            <p className="vcard-k" style={{ color: mute }}>
+              CVV
+            </p>
+            <p className="vcard-v">{card.masked ? "•••" : card.cvv}</p>
+          </div>
         </div>
-        <div>
-          <p className="vcard-k" style={{ color: mute }}>
-            CVV
-          </p>
-          <p className="vcard-v">{card.masked ? "•••" : card.cvv}</p>
+        <div className="vcard-net">
+          {NETWORK[card.type] === "visa" ? <VisaMark ink={light ? "#1a1f71" : "#fff"} /> : <MastercardMark />}
         </div>
       </footer>
       {card.status !== "aktif" && (

@@ -168,13 +168,16 @@ select.field option {
   grid-template-rows: auto 1fr auto;
   aspect-ratio: 1.586 / 1;
   overflow: hidden;
-  border-radius: 6.2cqw;
+  box-sizing: border-box;
+  width: min(100%, 340px);
+  margin-inline: auto;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.22);
   box-shadow:
     0 24px 50px rgba(0, 0, 0, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  padding: 5.4cqw 6.4cqw 5cqw;
-  gap: 1.6cqw;
+  padding: 18px 20px 16px;
+  gap: 8px;
   color: white;
 }
 
@@ -219,34 +222,30 @@ select.field option {
 
 .vcard-mark-sq {
   display: block;
-  width: 8.4cqw;
-  height: 8.4cqw;
+  width: 15.6cqw;
+  height: 15.6cqw;
   flex: none;
-}
-
-.vcard-mark-wide {
-  display: block;
-  width: 15.5cqw;
-  height: auto;
-  flex: none;
+  overflow: hidden;
+  border-radius: 22%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
 }
 
 .vcard-pay {
   display: block;
-  width: 11.5cqw;
+  width: 26cqw;
   height: auto;
-  margin-left: auto;
   flex: none;
 }
 
-.vcard-visa {
-  margin-left: auto;
-  flex: none;
-  font-size: 5.2cqw;
-  font-weight: 800;
-  font-style: italic;
-  line-height: 0.85;
-  letter-spacing: -0.04em;
+.vcard-net {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.vcard-dates {
+  display: flex;
+  gap: 2.4cqw;
 }
 
 .vcard-mid {
@@ -270,8 +269,8 @@ select.field option {
 
 .vcard-foot {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) 0.72fr 0.58fr;
-  gap: 2cqw;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 2.2cqw;
   align-items: end;
 }
 

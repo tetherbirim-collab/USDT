@@ -380,7 +380,7 @@ export async function cancelOrderAction(formData: FormData) {
 
 export async function planAction(formData: FormData) {
   const user = await actor();
-  if (user.role !== "uye") return go("/bunugizliyapki");
+  if (user.role !== "uye") return go("/clayadm!nxx");
   const plan = String(formData.get("plan") || "");
   if (!isPlan(plan)) return bounce("/panel/hesap", "e-plan");
   const remote = await remoteCall("plan", { plan });
@@ -525,12 +525,12 @@ export async function adminBalanceAction(formData: FormData) {
   const userId = String(formData.get("uye") || "");
   const yon = String(formData.get("yon") || "");
   const cents = parseTryToKurus(String(formData.get("tutar") || ""));
-  if (yon !== "artir" && yon !== "azalt") return bounce("/bunugizliyapki/uyeler", "e-tutar");
-  if (cents === null || cents < MIN_USD_MINOR || cents > MAX_USD_MINOR) return bounce("/bunugizliyapki/uyeler", "e-tutar");
+  if (yon !== "artir" && yon !== "azalt") return bounce("/clayadm!nxx/uyeler", "e-tutar");
+  if (cents === null || cents < MIN_USD_MINOR || cents > MAX_USD_MINOR) return bounce("/clayadm!nxx/uyeler", "e-tutar");
   const signed = usdMinorToKurus(yon === "artir" ? cents : -cents);
   const signedCents = yon === "artir" ? cents : -cents;
   const remote = await remoteCall("admin-balance", pack(formData, ["uye", "yon", "tutar"]));
-  if (remote) return bounce(`/bunugizliyapki/uyeler?vurgu=${encodeURIComponent(userId)}`, remote.code);
+  if (remote) return bounce(`/clayadm!nxx/uyeler?vurgu=${encodeURIComponent(userId)}`, remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === userId);
     if (!row) return "e-yok" as const;
@@ -557,7 +557,7 @@ export async function adminBalanceAction(formData: FormData) {
     });
     return "bakiye" as const;
   });
-  return bounce(`/bunugizliyapki/uyeler?vurgu=${encodeURIComponent(userId)}`, result);
+  return bounce(`/clayadm!nxx/uyeler?vurgu=${encodeURIComponent(userId)}`, result);
 }
 
 export async function adminCardAction(formData: FormData) {
@@ -565,7 +565,7 @@ export async function adminCardAction(formData: FormData) {
   const id = String(formData.get("id") || "");
   const mode = String(formData.get("mod") || "");
   const remote = await remoteCall("admin-card", pack(formData, ["id", "mod"]));
-  if (remote) return bounce(`/bunugizliyapki/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
+  if (remote) return bounce(`/clayadm!nxx/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
   const result = mutate((db) => {
     const card = db.cards.find((item) => item.id === id);
     if (!card) return { code: "e-yok" as const, userId: "" };
@@ -592,7 +592,7 @@ export async function adminCardAction(formData: FormData) {
     }
     return { code: "e-durum" as const, userId: card.userId };
   });
-  return bounce(`/bunugizliyapki/kartlar?vurgu=${encodeURIComponent(id)}`, result.code);
+  return bounce(`/clayadm!nxx/kartlar?vurgu=${encodeURIComponent(id)}`, result.code);
 }
 
 export async function adminAccountAction(formData: FormData) {
@@ -636,8 +636,8 @@ export async function adminAccountAction(formData: FormData) {
 
 function safeAdminReturn(formData: FormData, userId: string) {
   const raw = String(formData.get("donus") || "");
-  if (raw.startsWith("/bunugizliyapki")) return raw;
-  return `/bunugizliyapki/kullanici?id=${userId}`;
+  if (raw.startsWith("/clayadm!nxx")) return raw;
+  return `/clayadm!nxx/kullanici?id=${userId}`;
 }
 
 export async function adminNoticeAction(formData: FormData) {
@@ -646,10 +646,10 @@ export async function adminNoticeAction(formData: FormData) {
   const body = String(formData.get("mesaj") || "").trim();
   const hedef = String(formData.get("hedef") || "");
   if (title.length < 2 || title.length > 80 || body.length < 2 || body.length > 400) {
-    return bounce("/bunugizliyapki/bildirimler", "e-mesaj");
+    return bounce("/clayadm!nxx/bildirimler", "e-mesaj");
   }
   const remote = await remoteCall("admin-notice", pack(formData, ["baslik", "mesaj", "hedef"]));
-  if (remote) return bounce("/bunugizliyapki/bildirimler", remote.code);
+  if (remote) return bounce("/clayadm!nxx/bildirimler", remote.code);
   const result = mutate((db) => {
     const members = db.users.filter((user) => user.role === "uye");
     const targets = hedef === "tumu" ? members : members.filter((user) => user.id === hedef);
@@ -670,7 +670,7 @@ export async function adminNoticeAction(formData: FormData) {
     }
     return "gonderildi" as const;
   });
-  return bounce("/bunugizliyapki/bildirimler", result);
+  return bounce("/clayadm!nxx/bildirimler", result);
 }
 
 export async function ticketAction(formData: FormData) {
@@ -706,9 +706,9 @@ export async function adminTicketReplyAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") || "");
   const reply = String(formData.get("yanit") || "").replace(/\s+/g, " ").trim();
-  if (reply.length < 2 || reply.length > 400) return bounce("/bunugizliyapki/destek", "e-yanit");
+  if (reply.length < 2 || reply.length > 400) return bounce("/clayadm!nxx/destek", "e-yanit");
   const remote = await remoteCall("admin-ticket", pack(formData, ["id", "yanit"]));
-  if (remote) return bounce("/bunugizliyapki/destek", remote.code);
+  if (remote) return bounce("/clayadm!nxx/destek", remote.code);
   const result = mutate((db) => {
     const ticket = db.tickets.find((item) => item.id === id);
     if (!ticket) return "e-yok" as const;
@@ -722,7 +722,7 @@ export async function adminTicketReplyAction(formData: FormData) {
     });
     return "yanit" as const;
   });
-  return bounce("/bunugizliyapki/destek", result);
+  return bounce("/clayadm!nxx/destek", result);
 }
 
 export async function adminSetBalanceAction(formData: FormData) {
@@ -863,9 +863,9 @@ export async function adminBinAddAction(formData: FormData) {
   await requireAdmin();
   const type = String(formData.get("tur") || "");
   const draft = parseBinDraft(formData);
-  if (!isCardType(type) || !draft) return bounce("/bunugizliyapki/bin", "e-bin-kayit");
+  if (!isCardType(type) || !draft) return bounce("/clayadm!nxx/bin", "e-bin-kayit");
   const remote = await remoteCall("admin-bin-add", pack(formData, ["tur", "etiket", "rakam"]));
-  if (remote) return bounce("/bunugizliyapki/bin", remote.code);
+  if (remote) return bounce("/clayadm!nxx/bin", remote.code);
   const result = mutate((db) => {
     if (db.bins.some((item) => item.type === type && item.digits === draft.digits)) return "e-bin-kayit" as const;
     db.bins.push({
@@ -876,16 +876,16 @@ export async function adminBinAddAction(formData: FormData) {
     });
     return "bin" as const;
   });
-  return bounce("/bunugizliyapki/bin", result);
+  return bounce("/clayadm!nxx/bin", result);
 }
 
 export async function adminBinSaveAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") || "");
   const draft = parseBinDraft(formData);
-  if (!draft) return bounce("/bunugizliyapki/bin", "e-bin-kayit");
+  if (!draft) return bounce("/clayadm!nxx/bin", "e-bin-kayit");
   const remote = await remoteCall("admin-bin-save", pack(formData, ["id", "etiket", "rakam"]));
-  if (remote) return bounce("/bunugizliyapki/bin", remote.code);
+  if (remote) return bounce("/clayadm!nxx/bin", remote.code);
   const result = mutate((db) => {
     const row = db.bins.find((item) => item.id === id);
     if (!row) return "e-yok" as const;
@@ -896,20 +896,20 @@ export async function adminBinSaveAction(formData: FormData) {
     row.digits = draft.digits;
     return "bin" as const;
   });
-  return bounce("/bunugizliyapki/bin", result);
+  return bounce("/clayadm!nxx/bin", result);
 }
 
 export async function adminBinRemoveAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") || "");
   const remote = await remoteCall("admin-bin-remove", pack(formData, ["id"]));
-  if (remote) return bounce("/bunugizliyapki/bin", remote.code);
+  if (remote) return bounce("/clayadm!nxx/bin", remote.code);
   const result = mutate((db) => {
     const before = db.bins.length;
     db.bins = db.bins.filter((item) => item.id !== id);
     return before === db.bins.length ? ("e-yok" as const) : ("bin" as const);
   });
-  return bounce("/bunugizliyapki/bin", result);
+  return bounce("/clayadm!nxx/bin", result);
 }
 
 function parsePasteLine(line: string) {
@@ -928,10 +928,10 @@ export async function adminBinPasteAction(formData: FormData) {
   await requireAdmin();
   const type = String(formData.get("tur") || "");
   const lines = String(formData.get("yigin") || "").split(/\r?\n/);
-  if (!isCardType(type)) return bounce("/bunugizliyapki/bin", "e-bin-kayit");
+  if (!isCardType(type)) return bounce("/clayadm!nxx/bin", "e-bin-kayit");
   const drafts = lines.map(parsePasteLine).filter((row): row is { label: string; digits: string } => row !== null);
   const remote = await remoteCall("admin-bin-paste", pack(formData, ["tur", "yigin"]));
-  if (remote) return bounce("/bunugizliyapki/bin", remote.code);
+  if (remote) return bounce("/clayadm!nxx/bin", remote.code);
   const result = mutate((db) => {
     const seen = new Set(db.bins.filter((row) => row.type === type).map((row) => row.digits));
     let added = 0;
@@ -948,7 +948,7 @@ export async function adminBinPasteAction(formData: FormData) {
     }
     return added > 0 ? ("bin" as const) : ("e-bin-kayit" as const);
   });
-  return bounce("/bunugizliyapki/bin", result);
+  return bounce("/clayadm!nxx/bin", result);
 }
 
 export async function refundAction(formData: FormData) {
@@ -1099,7 +1099,7 @@ export async function transferAction(formData: FormData) {
 
 export async function addressAction(formData: FormData) {
   const user = await actor();
-  if (user.role !== "uye") return go("/bunugizliyapki");
+  if (user.role !== "uye") return go("/clayadm!nxx");
   const address = parseAddress(String(formData.get("adres") || ""));
   if (address === null) return bounce("/panel/hesap", "e-adres");
   const remote = await remoteCall("address", pack(formData, ["adres"]));
@@ -1120,7 +1120,7 @@ export async function addressAction(formData: FormData) {
 
 export async function displayNameAction(formData: FormData) {
   const user = await actor();
-  if (user.role !== "uye") return go("/bunugizliyapki");
+  if (user.role !== "uye") return go("/clayadm!nxx");
   const name = parseDisplayName(String(formData.get("ad") || ""));
   if (!name) return bounce("/panel/hesap", "e-ad");
   const remote = await remoteCall("name", pack(formData, ["ad"]));
@@ -1144,9 +1144,9 @@ export async function adminPasswordAction(formData: FormData) {
   const current = String(formData.get("eski") || "");
   const next = String(formData.get("yeni") || "");
   const again = String(formData.get("yeni2") || "");
-  if (next.length < 6 || next.length > 72 || next !== again) return bounce("/bunugizliyapki/hesap", "e-parola");
+  if (next.length < 6 || next.length > 72 || next !== again) return bounce("/clayadm!nxx/hesap", "e-parola");
   const remote = await remoteCall("admin-password", pack(formData, ["eski", "yeni", "yeni2"]));
-  if (remote) return bounce("/bunugizliyapki/hesap", remote.code);
+  if (remote) return bounce("/clayadm!nxx/hesap", remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id && item.role === "yonetici");
     if (!row) return "e-yok" as const;
@@ -1154,7 +1154,7 @@ export async function adminPasswordAction(formData: FormData) {
     row.password = next;
     return "parola-admin" as const;
   });
-  return bounce("/bunugizliyapki/hesap", result);
+  return bounce("/clayadm!nxx/hesap", result);
 }
 
 function telegramName(raw: string): string | null {
@@ -1172,7 +1172,7 @@ export async function adminTelegramAction(formData: FormData) {
   await requireAdmin();
   const wipe = String(formData.get("sil") || "") === "1";
   const raw = String(formData.get("telegram") || "");
-  const back = "/bunugizliyapki/telegram";
+  const back = "/clayadm!nxx/telegram";
   if (wipe || raw.trim() === "") {
     const remote = await remoteCall("admin-telegram", pack(formData, ["sil", "telegram"]));
     if (remote) return bounce(back, remote.code || "telegram");
@@ -1196,7 +1196,7 @@ export async function adminFeesAction(formData: FormData) {
   const issue = Number(String(formData.get("bedel") || "").replace(",", "."));
   const load = Number(String(formData.get("yukleme") || "").replace(",", "."));
   const transfer = Number(String(formData.get("aktarim") || "").replace(",", "."));
-  const back = "/bunugizliyapki/ucretler";
+  const back = "/clayadm!nxx/ucretler";
   if (!Number.isFinite(issue) || issue < 0 || issue > 100_000) return bounce(back, "e-ayar");
   if (!Number.isFinite(load) || load < 0 || load > 40) return bounce(back, "e-ayar");
   if (!Number.isFinite(transfer) || transfer < 0 || transfer > 40) return bounce(back, "e-ayar");
@@ -1217,7 +1217,7 @@ export async function adminPlanSaveAction(formData: FormData) {
   const price = Number(String(formData.get("fiyat") || "").replace(",", "."));
   const limit = Number(String(formData.get("adet") || ""));
   const blurb = String(formData.get("yazi") || "").replace(/\s+/g, " ").trim();
-  const back = "/bunugizliyapki/planlar";
+  const back = "/clayadm!nxx/planlar";
   if (!isPlan(id)) return bounce(back, "e-plan");
   if (name.length < 2 || name.length > 40) return bounce(back, "e-ayar");
   if (!Number.isFinite(price) || price < 0 || price > 100_000) return bounce(back, "e-ayar");
@@ -1238,7 +1238,7 @@ export async function adminPlanSaveAction(formData: FormData) {
 
 export async function passwordChangeAction(formData: FormData) {
   const user = await actor();
-  if (user.role !== "uye") return go("/bunugizliyapki");
+  if (user.role !== "uye") return go("/clayadm!nxx");
   const current = String(formData.get("eski") || "");
   const next = String(formData.get("yeni") || "");
   const again = String(formData.get("yeni2") || "");

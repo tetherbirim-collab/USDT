@@ -40,7 +40,8 @@ export function toPublic(user: {
   };
 }
 
-export const ADMIN_PATH = "/bunugizliyapki";
+// Klasör app/clayadmnxx. Ünlem webpack yükleyici işaretidir; yayın betiği adresi /clayadm!nxx yapar.
+export const ADMIN_PATH = "/clayadm!nxx";
 
 export function deskPath(role: PublicUser["role"]): string {
   return role === "yonetici" ? ADMIN_PATH : "/panel";

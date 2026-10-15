@@ -21,7 +21,7 @@ Tarayıcıda [http://localhost:3000](http://localhost:3000) adresini aç.
 
 `clay-sanal-kart.zip` dosyasını cPanel Dosya Yöneticisinde `public_html` içine yükle ve Extract de. Zip’in kökünde `index.php` vardır; site alan adında açılır. `node_modules` kurmak gerekmez. Extract’ten sonra `heleket.config.php` içine merchant UUID ve ödeme anahtarını yaz. Heleket geri bildirimi `https://alanadin/api/heleket.php` adresine düşer.
 
-Defter sunucuda `api/clay-ledger.json` dosyasındadır. Her tarayıcı aynı bakiyeyi görür. Dosya web’den kapalıdır. Heleket ödemesi onaylanınca bakiye bu deftere bir kez yazılır. PHP çalışmazsa o tarayıcı kendi kaydına döner. İlk açılışta hazır hesap vardır: `demo` / `demo123`. Yönetici girişi `clayadmin` / `clayadmin` ve adresi `/bunugizliyapki` olur. Bu adres üye menüsünde yoktur.
+Defter sunucuda `api/clay-ledger.json` dosyasındadır. Her tarayıcı aynı bakiyeyi görür. Dosya web’den kapalıdır. Heleket ödemesi onaylanınca bakiye bu deftere bir kez yazılır. PHP çalışmazsa o tarayıcı kendi kaydına döner. İlk açılışta hazır hesap vardır: `demo` / `demo123`. Yönetici girişi `clayadmin` / `clayadmin` ve adresi `/clayadm!nxx` olur. Bu adres üye menüsünde yoktur.
 
 ## Hazır giriş
 
@@ -36,7 +36,7 @@ Hazır hesapta bakiye, birkaç kart ve işlem dökümü hazır gelir. Yeni hesap
 
 Bakiye düzeltmesi, kart dondurma ve hesap askıya alma yerel deftere yazılır. Yönetici tutarı dolar olarak girer; ekranda TL karşılığı durur.
 
-- Adres: `/bunugizliyapki` (üye menüsünde yok; `/admin` bu masayı açmaz)
+- Adres: `/clayadm!nxx` (üye menüsünde yok; `/admin` ve eski adres bu masayı açmaz)
 - Kullanıcı adı: `clayadmin`
 - Parola: `clayadmin` (Hesap sekmesinden değişir)
 

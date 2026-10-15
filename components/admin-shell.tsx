@@ -23,7 +23,16 @@ const LINKS = [
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const user = useUser();
-  const path = usePathname().replace(/\/$/, "") || "/";
+  const raw = usePathname() || "/";
+  let decoded = raw;
+  if (raw.includes("%")) {
+    try {
+      decoded = decodeURIComponent(raw);
+    } catch {
+      decoded = raw;
+    }
+  }
+  const path = decoded.replace(/\/$/, "") || "/";
   useEffect(() => {
     if (user === null) window.location.replace("/giris/");
     if (user && user.role !== "yonetici") window.location.replace(`${deskPath(user.role)}/`);

@@ -1,4 +1,4 @@
-import type { CardTypeId, PlanId, TxKind } from "./types";
+import type { CardTypeId, PlanId, SiteSettings, TxKind } from "./types";
 
 export const TEST_BIN = "400000";
 /** How long a new card stays on the order slip before it becomes active. */
@@ -25,12 +25,20 @@ export const ISSUE_FEE_KURUS = 30_000;
 /** Cut when money moves from the main balance onto a card. */
 export const LOAD_FEE_PERCENT = 7.3;
 
+export function loadFeeAt(percent: number, amount: number): number {
+  return Math.round((amount * Math.round(percent * 100)) / 10_000);
+}
+
+export function transferFeeAt(percent: number, amount: number): number {
+  return Math.round((amount * percent) / 100);
+}
+
 export function transferFee(amount: number): number {
-  return Math.round((amount * TRANSFER_FEE_PERCENT) / 100);
+  return transferFeeAt(TRANSFER_FEE_PERCENT, amount);
 }
 
 export function loadFee(amount: number): number {
-  return Math.round((amount * 730) / 10_000);
+  return loadFeeAt(LOAD_FEE_PERCENT, amount);
 }
 
 export function usdMinorToKurus(minor: number): number {
@@ -120,6 +128,25 @@ export const PLANS: Record<
   },
 };
 
+export function defaultSettings(): SiteSettings {
+  const plan = (id: PlanId) => ({
+    name: PLANS[id].name,
+    priceUsdMinor: PLANS[id].priceUsdMinor,
+    cardLimit: PLANS[id].cardLimit,
+    blurb: PLANS[id].blurb,
+  });
+  return {
+    issueFeeKurus: ISSUE_FEE_KURUS,
+    loadFeePercent: LOAD_FEE_PERCENT,
+    transferFeePercent: TRANSFER_FEE_PERCENT,
+    plans: {
+      kivilcim: plan("kivilcim"),
+      atolye: plan("atolye"),
+      galeri: plan("galeri"),
+    },
+  };
+}
+
 export const MERCHANTS_BY_TYPE: Record<CardTypeId, readonly string[]> = {
   facebook_ads: ["Vitrin Akış", "Mavi Sayfa", "Sahne Reklam"],
   tiktok: ["Kısa Sahne", "Nota Akış", "Gece Klip"],
@@ -204,6 +231,10 @@ export const NOTICES: Record<string, string> = {
   "e-bin": "Kart oluşturmak için bu türe ait bir BIN seç. Liste boşsa basım kapalı.",
   "e-bin-kayit": "Etiket 2–40 karakter, BIN ise 4–8 rakam olmalı. Aynı türde aynı rakam iki kez durmaz.",
   parola: "Parola güncellendi. Yönetim masasında yeni parola görünür.",
+  "parola-admin": "Yönetici parolası güncellendi.",
+  ucret: "Ücretler kaydedildi. Yeni kart, yükleme ve aktarım bu oranları kullanır.",
+  planlar: "Planlar kaydedildi. Kart tavanı ve fiyat bu kayda göre durur.",
+  "e-ayar": "Bu ayar izin verilen aralığın dışında.",
   "e-parola": "Yeni parola 6–72 karakter olmalı ve tekrar ile aynı olmalı.",
   "e-parola-eski": "Mevcut parola hatalı.",
   "e-ad": "Görünen ad 2–40 karakter olmalı ve bir harfle başlamalı.",

@@ -40,8 +40,10 @@ export function toPublic(user: {
   };
 }
 
-export function deskPath(role: PublicUser["role"]): "/admin" | "/panel" {
-  return role === "yonetici" ? "/admin" : "/panel";
+export const ADMIN_PATH = "/bunugizliyapki";
+
+export function deskPath(role: PublicUser["role"]): string {
+  return role === "yonetici" ? ADMIN_PATH : "/panel";
 }
 
 export function getCurrentUser(): PublicUser | null {

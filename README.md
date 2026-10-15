@@ -21,7 +21,7 @@ Tarayıcıda [http://localhost:3000](http://localhost:3000) adresini aç.
 
 `clay-sanal-kart.zip` dosyasını cPanel Dosya Yöneticisinde `public_html` içine yükle ve Extract de. Zip’in kökünde `index.php` vardır; site alan adında açılır. `node_modules` kurmak gerekmez. Extract’ten sonra `heleket.config.php` içine merchant UUID ve ödeme anahtarını yaz. Heleket geri bildirimi `https://alanadin/api/heleket.php` adresine düşer.
 
-Defter tarayıcıda durur. İlk açılışta hazır hesap vardır: `demo` / `demo123`, yönetici `admin` / `admin123`.
+Defter tarayıcıda durur. İlk açılışta hazır hesap vardır: `demo` / `demo123`. Yönetici girişi `clayadmin` / `clayadmin` ve adresi `/bunugizliyapki` olur. Bu adres üye menüsünde yoktur.
 
 ## Hazır giriş
 
@@ -30,15 +30,15 @@ Defter tarayıcıda durur. İlk açılışta hazır hesap vardır: `demo` / `dem
 
 Hazır hesapta bakiye, birkaç kart ve işlem dökümü hazır gelir. Yeni hesaplar kullanıcı adı ve parola ile açılır. Kartın üzerindeki ad, kart oluşturulurken verilir. Kıvılcım planında 30 USD karşılığı hoş geldin bakiyesi yazılır. Üye hesabı yönetim masasına giremez.
 
-İki hazır giriş vardır: üye `demo` / `demo123` ve yönetici `admin` / `admin123`.
+İki hazır giriş vardır: üye `demo` / `demo123` ve yönetici `clayadmin` / `clayadmin`.
 
 ## Yönetici girişi
 
 Bakiye düzeltmesi, kart dondurma ve hesap askıya alma yerel deftere yazılır. Yönetici tutarı dolar olarak girer; ekranda TL karşılığı durur.
 
-- Adres: [http://localhost:3000/admin](http://localhost:3000/admin)
-- Kullanıcı adı: `admin`
-- Parola: `admin123`
+- Adres: `/bunugizliyapki` (üye menüsünde yok; `/admin` bu masayı açmaz)
+- Kullanıcı adı: `clayadmin`
+- Parola: `clayadmin` (Hesap sekmesinden değişir)
 
 Askıya alınan hesap giriş yapamaz. Yönetici kendi hesabını askıya alamaz. Yönetici hesabı üye paneline girmez.
 

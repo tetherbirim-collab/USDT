@@ -4,12 +4,13 @@ import { Notice } from "@/components/notice";
 import { addressAction, displayNameAction, passwordChangeAction, planAction } from "@/lib/actions";
 import { PLANS, usdMinorToKurus } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
-import { Boot, useQuery, useUser } from "@/lib/live";
+import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import type { PlanId } from "@/lib/types";
 
 export default function AccountPage() {
   const user = useUser();
   const query = useQuery();
+  const settings = useSiteSettings();
   if (!user || !query) return <Boot />;
 
   return (
@@ -62,9 +63,9 @@ export default function AccountPage() {
         {(Object.keys(PLANS) as PlanId[]).map((id) => (
           <label key={id} className={`plan-card plan-${PLANS[id].metal} !p-3`}>
             <input className="mr-2" type="radio" name="plan" value={id} defaultChecked={user.plan === id} />
-            <span className="font-semibold">{PLANS[id].name}</span>
+            <span className="font-semibold">{settings.plans[id].name}</span>
             <span className="mt-1 block text-sm text-white/80">
-              {PLANS[id].cardLimit} açık kart · {PLANS[id].priceUsdMinor / 100} USD · {formatTL(usdMinorToKurus(PLANS[id].priceUsdMinor))}
+              {settings.plans[id].cardLimit} açık kart · {settings.plans[id].priceUsdMinor / 100} USD · {formatTL(usdMinorToKurus(settings.plans[id].priceUsdMinor))}
             </span>
           </label>
         ))}

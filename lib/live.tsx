@@ -3,8 +3,9 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { Mark } from "@/components/mark";
 import { getCurrentUser } from "./auth";
+import { defaultSettings } from "./catalog";
 import { bootLedger, ledgerSnapshot, subscribeLedger } from "./store";
-import type { DB, PublicUser } from "./types";
+import type { DB, PublicUser, SiteSettings } from "./types";
 
 export function useLedger(): DB | null {
   const snap = useSyncExternalStore(subscribeLedger, ledgerSnapshot, () => null);
@@ -12,6 +13,11 @@ export function useLedger(): DB | null {
     bootLedger();
   }, []);
   return snap;
+}
+
+export function useSiteSettings(): SiteSettings {
+  const db = useLedger();
+  return db?.settings ?? defaultSettings();
 }
 
 export function useUser(): PublicUser | null | undefined {

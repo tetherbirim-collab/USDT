@@ -1,4 +1,4 @@
-import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, TEST_BIN, USD_RATE_AS_OF, USD_SELL_RATE, WELCOME_BONUS_KURUS, WELCOME_USD_MINOR, usdMinorToKurus } from "./catalog";
+import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, TEST_BIN, USD_RATE_AS_OF, USD_SELL_RATE, WELCOME_BONUS_KURUS, WELCOME_USD_MINOR, defaultSettings, usdMinorToKurus } from "./catalog";
 import { formatRate, formatTL, formatUsd, holderLine } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
 import type { BinRow, Card, CardTypeId, DB, Order, Tx, User } from "./types";
@@ -41,6 +41,10 @@ export function subscribeLedger(listener: () => void) {
 
 export function ledgerSnapshot(): DB | null {
   return booted ? cache : null;
+}
+
+export function readSettings() {
+  return read().settings;
 }
 
 export function bootLedger() {
@@ -336,6 +340,7 @@ function createSeed(): DB {
     tickets: [],
     bins: testBins(),
     orders: [],
+    settings: defaultSettings(),
     nextSerial: 100_000_005,
   };
   db.orders = ordersFromCards(db);
@@ -411,8 +416,8 @@ function adminRecord(): User {
   return {
     id: "usr_admin",
     name: "CLAY Yönetici",
-    username: "admin",
-    password: "admin123",
+    username: "clayadmin",
+    password: "clayadmin",
     balance: 0,
     usdMinor: 0,
     plan: "kivilcim",
@@ -432,7 +437,7 @@ type LegacyUser = User & {
 
 function usernameFromLegacy(user: LegacyUser): string {
   if (user.username && /^[a-z0-9_]{2,24}$/.test(user.username)) return user.username;
-  if (user.email === "admin@sanalkart.local") return "admin";
+  if (user.email === "admin@sanalkart.local") return "clayadmin";
   if (user.email === "demo@sanalkart.local") return "demo";
   const local = (user.email ?? "").split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
   return local.slice(0, 24) || "uye";
@@ -448,7 +453,7 @@ function normalize(db: DB): DB {
       dirty = true;
     }
     if (typeof user.password !== "string" || user.password.length === 0) {
-      if (username === "admin") user.password = "admin123";
+      if (username === "admin" || username === "clayadmin") user.password = "clayadmin";
       else if (username === "demo") user.password = "demo123";
       dirty = true;
     }
@@ -458,10 +463,16 @@ function normalize(db: DB): DB {
       dirty = true;
     }
     if (user.role !== "uye" && user.role !== "yonetici") {
-      user.role = user.username === "admin" ? "yonetici" : "uye";
+      user.role = user.username === "admin" || user.username === "clayadmin" ? "yonetici" : "uye";
       dirty = true;
     }
-    if (user.username === "admin" && user.role !== "yonetici") {
+    if ((user.username === "admin" || user.id === "usr_admin") && user.role === "yonetici") {
+      user.username = "clayadmin";
+      if (user.password === "admin123") user.password = "clayadmin";
+      user.role = "yonetici";
+      dirty = true;
+    }
+    if (user.username === "clayadmin" && user.role !== "yonetici") {
       user.role = "yonetici";
       dirty = true;
     }
@@ -493,9 +504,30 @@ function normalize(db: DB): DB {
       }
     }
   }
-  if (!db.users.some((user) => user.username === "admin")) {
+  if (!db.users.some((user) => user.role === "yonetici")) {
     db.users.push(adminRecord());
     dirty = true;
+  }
+  if (!db.settings || typeof db.settings.issueFeeKurus !== "number" || !db.settings.plans) {
+    db.settings = defaultSettings();
+    dirty = true;
+  } else {
+    const fresh = defaultSettings();
+    for (const id of ["kivilcim", "atolye", "galeri"] as const) {
+      const row = db.settings.plans[id];
+      if (!row || typeof row.name !== "string" || typeof row.cardLimit !== "number" || typeof row.priceUsdMinor !== "number") {
+        db.settings.plans[id] = fresh.plans[id];
+        dirty = true;
+      }
+    }
+    if (typeof db.settings.loadFeePercent !== "number") {
+      db.settings.loadFeePercent = fresh.loadFeePercent;
+      dirty = true;
+    }
+    if (typeof db.settings.transferFeePercent !== "number") {
+      db.settings.transferFeePercent = fresh.transferFeePercent;
+      dirty = true;
+    }
   }
   if (!Array.isArray(db.notices)) {
     db.notices = [];

@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { PanelFrame } from "@/components/panel-frame";
-import { PLANS } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
-import { Boot, useUser } from "@/lib/live";
+import { deskPath } from "@/lib/auth";
+import { Boot, useSiteSettings, useUser } from "@/lib/live";
 import { remainLeft, remainMood } from "@/lib/remain";
 import { listCards, unreadNoticeCount } from "@/lib/store";
 
@@ -13,8 +13,9 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
   const user = useUser();
   useEffect(() => {
     if (user === null) window.location.replace("/giris/");
-    if (user?.role === "yonetici") window.location.replace("/admin/");
+    if (user?.role === "yonetici") window.location.replace(`${deskPath(user.role)}/`);
   }, [user]);
+  const settings = useSiteSettings();
   if (!user || user.role !== "uye") return <Boot />;
   const ranked = listCards(user.id)
     .filter((card) => card.status === "aktif" || card.status === "donduruldu")
@@ -27,7 +28,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
       name={user.name}
       username={user.username}
       balanceLabel={formatTL(user.balance)}
-      planName={`${PLANS[user.plan].name} · vitrin`}
+      planName={`${settings.plans[user.plan].name} · vitrin`}
       unread={unreadNoticeCount(user.id)}
     >
       {lead && (

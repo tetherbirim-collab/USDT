@@ -4,16 +4,16 @@ import Link from "next/link";
 import { Notice } from "@/components/notice";
 import { SpendChart } from "@/components/spend-chart";
 import { VirtualCard } from "@/components/virtual-card";
-import { PLANS } from "@/lib/catalog";
 import { remainLeft, remainMood } from "@/lib/remain";
 import { formatSigned, formatTL, formatWhen } from "@/lib/format";
-import { Boot, useQuery, useUser } from "@/lib/live";
+import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import { last7Spend, monthSpend, monthTopup } from "@/lib/stats";
 import { listCards, listNotices, listTransactions } from "@/lib/store";
 
 export default function PanelHome() {
   const user = useUser();
   const query = useQuery();
+  const settings = useSiteSettings();
   if (!user) return <Boot />;
   const cards = listCards(user.id);
   const txs = listTransactions(user.id);
@@ -57,7 +57,7 @@ export default function PanelHome() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">CÜZDAN</p>
         <h1 className="font-display mt-3 text-4xl font-extrabold sm:text-6xl">{formatTL(user.balance)}</h1>
         <p className="mt-2 max-w-lg text-white/70">
-          Dolar bakiyesinin sabit kur karşılığı. {PLANS[user.plan].name} planında {open}/{PLANS[user.plan].cardLimit} açık kart var.
+          Dolar bakiyesinin sabit kur karşılığı. {settings.plans[user.plan].name} planında {open}/{settings.plans[user.plan].cardLimit} açık kart var.
         </p>
         {walletMood?.line && tightest && (
           <p className={`remain-note mt-4 max-w-lg ${walletMood.urgent ? "remain-note-hot" : ""}`}>

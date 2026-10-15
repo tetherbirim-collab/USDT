@@ -5,14 +5,13 @@ import { issueAction } from "@/lib/actions";
 import {
   CARD_TYPE_ORDER,
   CARD_TYPES,
-  ISSUE_FEE_KURUS,
-  LOAD_FEE_PERCENT,
   MAX_LIMIT_USD_MINOR,
   MIN_LIMIT_USD_MINOR,
-  loadFee,
+  loadFeeAt,
   usdMinorToKurus,
 } from "@/lib/catalog";
 import { formatTL, holderLine, parseTryToKurus } from "@/lib/format";
+import { useSiteSettings } from "@/lib/live";
 import { networkOf, previewPan } from "@/lib/pan";
 import type { BinRow, CardTypeId } from "@/lib/types";
 import { SubmitButton } from "./submit-button";
@@ -35,10 +34,11 @@ export function IssueForm({
   const [binId, setBinId] = useState("");
   const [accountId, setAccountId] = useState("");
   const [localError, setLocalError] = useState("");
+  const settings = useSiteSettings();
   const gross = usdMinorToKurus(parseTryToKurus(limit) ?? 0);
-  const commission = gross > 0 ? loadFee(gross) : 0;
+  const commission = gross > 0 ? loadFeeAt(settings.loadFeePercent, gross) : 0;
   const net = Math.max(0, gross - commission);
-  const due = ISSUE_FEE_KURUS + gross;
+  const due = settings.issueFeeKurus + gross;
   const short = balance < due;
   const blocked = short || slotsLeft <= 0 || accountId !== account.id;
   const choices = bins.filter((row) => row.type === type);
@@ -122,7 +122,7 @@ export function IssueForm({
                     />
                     <span className="font-semibold">{CARD_TYPES[id].name}</span>
                     <span className="mt-1 block text-sm text-white/60">{CARD_TYPES[id].pitch}</span>
-                    <span className="mt-1 block text-xs text-gold">Kart bedeli {formatTL(ISSUE_FEE_KURUS)}</span>
+                    <span className="mt-1 block text-xs text-gold">Kart bedeli {formatTL(settings.issueFeeKurus)}</span>
                   </label>
                 ))}
               </div>
@@ -152,7 +152,7 @@ export function IssueForm({
                 required
               />
               <span className="text-white/50">
-                10–10.000 USD. Karşılığı {formatTL(gross)}. Bunun %{LOAD_FEE_PERCENT.toString().replace(".", ",")} kadarı komisyon olarak kesilir.
+                10–10.000 USD. Karşılığı {formatTL(gross)}. Bunun %{String(settings.loadFeePercent).replace(".", ",")} kadarı komisyon olarak kesilir.
               </span>
             </label>
             {localError && <p className="banner-bad">{localError}</p>}
@@ -166,14 +166,14 @@ export function IssueForm({
               <p className="text-xs font-bold tracking-[0.18em] text-gold">HESAPTAN DÜŞECEK</p>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-white/70">Kart bedeli</span>
-                <span className="font-semibold">{formatTL(ISSUE_FEE_KURUS)}</span>
+                <span className="font-semibold">{formatTL(settings.issueFeeKurus)}</span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-white/70">Karta ayrılan</span>
                 <span className="font-semibold">{formatTL(gross)}</span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-white/70">Komisyon %{LOAD_FEE_PERCENT.toString().replace(".", ",")}</span>
+                <span className="text-white/70">Komisyon %{String(settings.loadFeePercent).replace(".", ",")}</span>
                 <span className="font-semibold text-[#ffb4a2]">{formatTL(commission)}</span>
               </div>
               <div className="flex items-center justify-between gap-3">

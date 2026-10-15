@@ -3,8 +3,9 @@
 import { useFormStatus } from "react-dom";
 import { useState } from "react";
 import { transferAction } from "@/lib/actions";
-import { MIN_TRANSFER_KURUS, TRANSFER_FEE_PERCENT, transferFee, usdMinorToKurus } from "@/lib/catalog";
+import { MIN_TRANSFER_KURUS, transferFeeAt, usdMinorToKurus } from "@/lib/catalog";
 import { formatTL, parseTryToKurus } from "@/lib/format";
+import { useSiteSettings } from "@/lib/live";
 
 function TransferSubmit({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
@@ -26,9 +27,10 @@ export function TransferForm({
 }) {
   const [raw, setRaw] = useState("");
   const [target, setTarget] = useState(peers[0]?.id ?? "");
+  const settings = useSiteSettings();
   const cents = parseTryToKurus(raw);
   const amount = cents !== null ? usdMinorToKurus(cents) : null;
-  const fee = amount !== null && amount > 0 ? transferFee(amount) : 0;
+  const fee = amount !== null && amount > 0 ? transferFeeAt(settings.transferFeePercent, amount) : 0;
   const credit = amount !== null ? amount - fee : 0;
   const ready =
     amount !== null &&
@@ -43,9 +45,9 @@ export function TransferForm({
     <form action={transferAction} className="transfer-panel">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-semibold">Tavan aktar</p>
-        <span className="text-[11px] font-bold tracking-[0.16em] text-gold">%{TRANSFER_FEE_PERCENT}</span>
+        <span className="text-[11px] font-bold tracking-[0.16em] text-gold">%{settings.transferFeePercent}</span>
       </div>
-      <p className="text-xs text-white/50">Kalan tavan karşı karta gider. Ana bakiye değişmez, karşı karta %{TRANSFER_FEE_PERCENT} komisyon yazılır.</p>
+      <p className="text-xs text-white/50">Kalan tavan karşı karta gider. Ana bakiye değişmez, karşı karta %{settings.transferFeePercent} komisyon yazılır.</p>
       <div className="transfer-lane" aria-hidden>
         <span>Bu kart</span>
         <span className="transfer-track">

@@ -131,6 +131,20 @@ export type Ticket = {
   repliedAt: string | null;
 };
 
+export type PlanSetting = {
+  name: string;
+  priceUsdMinor: number;
+  cardLimit: number;
+  blurb: string;
+};
+
+export type SiteSettings = {
+  issueFeeKurus: number;
+  loadFeePercent: number;
+  transferFeePercent: number;
+  plans: Record<PlanId, PlanSetting>;
+};
+
 export type InboxNote = {
   id: string;
   userId: string;
@@ -152,5 +166,6 @@ export type DB = {
   tickets: Ticket[];
   bins: BinRow[];
   orders: Order[];
+  settings: SiteSettings;
   nextSerial: number;
 };

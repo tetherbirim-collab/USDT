@@ -9,6 +9,7 @@ import {
   adminSetBalanceAction,
 } from "@/lib/actions";
 import { Notice } from "@/components/notice";
+import { ADMIN_PATH } from "@/lib/auth";
 import { CARD_TYPES, KIND_LABEL, kurusToUsdMinor } from "@/lib/catalog";
 import { formatSigned, formatTL, formatWhen, isoToIstanbulInput, kurusToInput } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
@@ -31,7 +32,7 @@ export default function AdminUserPage() {
     return (
       <div className="glass rounded-[28px] p-6">
         <p>Bu hesap yok.</p>
-        <Link href="/admin" className="btn btn-gold mt-4">
+        <Link href={`${ADMIN_PATH}/uyeler`} className="btn btn-gold mt-4">
           Listeye dön
         </Link>
       </div>
@@ -43,13 +44,13 @@ export default function AdminUserPage() {
     .filter((entry) => entry.userId === user.id)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const lastTopup = txs.find((entry) => entry.kind === "yukleme" && entry.status === "tamamlandi");
-  const back = `/admin/kullanici?id=${user.id}`;
+  const back = `${ADMIN_PATH}/kullanici?id=${user.id}`;
   const member = user.role === "uye";
 
   return (
     <div className="grid gap-5">
       <div>
-        <Link href="/admin" className="text-sm font-semibold text-gold">
+        <Link href={`${ADMIN_PATH}/uyeler`} className="text-sm font-semibold text-gold">
           ← Üye listesi
         </Link>
         <p className="mt-3 text-xs font-bold tracking-[0.22em] text-gold">ÜYE</p>

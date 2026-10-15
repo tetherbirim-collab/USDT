@@ -1,4 +1,4 @@
-import { clearSession, deskPath, getCurrentUser, setSession } from "./auth";
+import { ADMIN_PATH, clearSession, deskPath, getCurrentUser, setSession } from "./auth";
 import {
   CARD_PREP_MS,
   MAX_BALANCE_KURUS,
@@ -12,20 +12,17 @@ import {
   MIN_TRANSFER_KURUS,
   MIN_TRANSFER_USD_MINOR,
   MIN_USD_MINOR,
-  PLANS,
   USD_RATE_AS_OF,
   USD_SELL_RATE,
-  ISSUE_FEE_KURUS,
   isCardType,
   isMerchantForType,
   isPlan,
-  loadFee,
-  transferFee,
-  TRANSFER_FEE_PERCENT,
+  loadFeeAt,
+  transferFeeAt,
   usdMinorToKurus,
 } from "./catalog";
 import { formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
-import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, pushNotice } from "./store";
+import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, pushNotice, readSettings } from "./store";
 import type { DB, User, Card } from "./types";
 
 export type FormState = { error: string };
@@ -123,7 +120,8 @@ export async function issueAction(formData: FormData) {
     return bounce("/panel/kartlar/yeni", "e-limit");
   }
   const gross = usdMinorToKurus(limitCents);
-  const commission = loadFee(gross);
+  const tuned = readSettings();
+  const commission = loadFeeAt(tuned.loadFeePercent, gross);
   const net = gross - commission;
   const type = typeRaw;
   const binId = String(formData.get("bin") || "");
@@ -135,10 +133,10 @@ export async function issueAction(formData: FormData) {
     if (!row) return { code: "e-yok" as const };
     const chosen = db.bins.find((item) => item.id === binId && item.type === type);
     if (!chosen) return { code: "e-bin" as const };
-    const fee = ISSUE_FEE_KURUS;
+    const fee = db.settings.issueFeeKurus;
     const due = fee + gross;
     if (row.balance < due) return { code: "e-bakiye" as const };
-    const plan = PLANS[row.plan];
+    const plan = db.settings.plans[row.plan];
     if (openCardCount(db, row.id) >= plan.cardLimit) return { code: "e-plan" as const };
     const card = issueCard(db, {
       userId: row.id,
@@ -157,7 +155,7 @@ export async function issueAction(formData: FormData) {
       cardId: card.id,
       kind: "yukleme",
       title: `Karta yükleme · ${card.label}`,
-      note: `Hesaptan ${formatTL(gross)} ayrıldı. %7,3 komisyon ${formatTL(commission)}. Karta ${formatTL(net)} yazıldı. Ana bakiye yüklemesine bu kesinti uygulanmaz.`,
+      note: `Hesaptan ${formatTL(gross)} ayrıldı. %${String(db.settings.loadFeePercent).replace(".", ",")} komisyon ${formatTL(commission)}. Karta ${formatTL(net)} yazıldı. Ana bakiye yüklemesine bu kesinti uygulanmaz.`,
       amount: -gross,
       usdMinor: -limitCents,
       status: "tamamlandi",
@@ -180,7 +178,8 @@ export async function fundCardAction(formData: FormData) {
   const cents = parseTryToKurus(String(formData.get("tutar") || ""));
   if (cents === null || cents < MIN_USD_MINOR || cents > MAX_USD_MINOR) return bounce("/panel/kartlar", "e-tutar");
   const gross = usdMinorToKurus(cents);
-  const commission = loadFee(gross);
+  const tuned = readSettings();
+  const commission = loadFeeAt(tuned.loadFeePercent, gross);
   const net = gross - commission;
   if (net < 1) return bounce("/panel/kartlar", "e-tutar");
   const result = mutate((db) => {
@@ -199,7 +198,7 @@ export async function fundCardAction(formData: FormData) {
       cardId: card.id,
       kind: "yukleme",
       title: `Karta yükleme · ${card.label}`,
-      note: `Hesaptan ${formatTL(gross)} ayrıldı. %7,3 komisyon ${formatTL(commission)}. Karta ${formatTL(net)} yazıldı.`,
+      note: `Hesaptan ${formatTL(gross)} ayrıldı. %${String(db.settings.loadFeePercent).replace(".", ",")} komisyon ${formatTL(commission)}. Karta ${formatTL(net)} yazıldı.`,
       amount: -gross,
       usdMinor: -cents,
       status: "tamamlandi",
@@ -299,18 +298,18 @@ export async function cancelOrderAction(formData: FormData) {
 
 export async function planAction(formData: FormData) {
   const user = await actor();
-  if (user.role !== "uye") return go("/admin");
+  if (user.role !== "uye") return go("/bunugizliyapki");
   const plan = String(formData.get("plan") || "");
   if (!isPlan(plan)) return bounce("/panel/hesap", "e-plan");
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id && item.role === "uye");
     if (!row) return "e-yok" as const;
-    if (openCardCount(db, row.id) > PLANS[plan].cardLimit) return "e-plan-dolu" as const;
+    if (openCardCount(db, row.id) > db.settings.plans[plan].cardLimit) return "e-plan-dolu" as const;
     row.plan = plan;
     pushNotice(db, {
       userId: row.id,
       title: "Plan güncellendi",
-      body: `Vitrin planın ${PLANS[plan].name} oldu.`,
+      body: `Vitrin planın ${db.settings.plans[plan].name} oldu.`,
     });
     return "plan" as const;
   });
@@ -418,8 +417,8 @@ export async function adminBalanceAction(formData: FormData) {
   const userId = String(formData.get("uye") || "");
   const yon = String(formData.get("yon") || "");
   const cents = parseTryToKurus(String(formData.get("tutar") || ""));
-  if (yon !== "artir" && yon !== "azalt") return bounce("/admin", "e-tutar");
-  if (cents === null || cents < MIN_USD_MINOR || cents > MAX_USD_MINOR) return bounce("/admin", "e-tutar");
+  if (yon !== "artir" && yon !== "azalt") return bounce("/bunugizliyapki/uyeler", "e-tutar");
+  if (cents === null || cents < MIN_USD_MINOR || cents > MAX_USD_MINOR) return bounce("/bunugizliyapki/uyeler", "e-tutar");
   const signed = usdMinorToKurus(yon === "artir" ? cents : -cents);
   const signedCents = yon === "artir" ? cents : -cents;
   const result = mutate((db) => {
@@ -448,7 +447,7 @@ export async function adminBalanceAction(formData: FormData) {
     });
     return "bakiye" as const;
   });
-  return bounce(`/admin?vurgu=${encodeURIComponent(userId)}`, result);
+  return bounce(`/bunugizliyapki/uyeler?vurgu=${encodeURIComponent(userId)}`, result);
 }
 
 export async function adminCardAction(formData: FormData) {
@@ -481,7 +480,7 @@ export async function adminCardAction(formData: FormData) {
     }
     return { code: "e-durum" as const, userId: card.userId };
   });
-  return bounce(`/admin?vurgu=${encodeURIComponent(result.userId)}`, result.code);
+  return bounce(`/bunugizliyapki/kartlar?vurgu=${encodeURIComponent(id)}`, result.code);
 }
 
 export async function adminAccountAction(formData: FormData) {
@@ -520,8 +519,8 @@ export async function adminAccountAction(formData: FormData) {
 
 function safeAdminReturn(formData: FormData, userId: string) {
   const raw = String(formData.get("donus") || "");
-  if (raw === "/admin" || raw === `/admin/kullanici?id=${userId}`) return raw;
-  return "/admin";
+  if (raw.startsWith("/bunugizliyapki")) return raw;
+  return `/bunugizliyapki/kullanici?id=${userId}`;
 }
 
 export async function adminNoticeAction(formData: FormData) {
@@ -530,7 +529,7 @@ export async function adminNoticeAction(formData: FormData) {
   const body = String(formData.get("mesaj") || "").trim();
   const hedef = String(formData.get("hedef") || "");
   if (title.length < 2 || title.length > 80 || body.length < 2 || body.length > 400) {
-    return bounce("/admin", "e-mesaj");
+    return bounce("/bunugizliyapki/bildirimler", "e-mesaj");
   }
   const result = mutate((db) => {
     const members = db.users.filter((user) => user.role === "uye");
@@ -552,7 +551,7 @@ export async function adminNoticeAction(formData: FormData) {
     }
     return "gonderildi" as const;
   });
-  return bounce("/admin", result);
+  return bounce("/bunugizliyapki/bildirimler", result);
 }
 
 export async function ticketAction(formData: FormData) {
@@ -586,7 +585,7 @@ export async function adminTicketReplyAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") || "");
   const reply = String(formData.get("yanit") || "").replace(/\s+/g, " ").trim();
-  if (reply.length < 2 || reply.length > 400) return bounce("/admin", "e-yanit");
+  if (reply.length < 2 || reply.length > 400) return bounce("/bunugizliyapki/destek", "e-yanit");
   const result = mutate((db) => {
     const ticket = db.tickets.find((item) => item.id === id);
     if (!ticket) return "e-yok" as const;
@@ -600,7 +599,7 @@ export async function adminTicketReplyAction(formData: FormData) {
     });
     return "yanit" as const;
   });
-  return bounce("/admin", result);
+  return bounce("/bunugizliyapki/destek", result);
 }
 
 export async function adminSetBalanceAction(formData: FormData) {
@@ -735,7 +734,7 @@ export async function adminBinAddAction(formData: FormData) {
   await requireAdmin();
   const type = String(formData.get("tur") || "");
   const draft = parseBinDraft(formData);
-  if (!isCardType(type) || !draft) return bounce("/admin?vurgu=binler", "e-bin-kayit");
+  if (!isCardType(type) || !draft) return bounce("/bunugizliyapki/bin", "e-bin-kayit");
   const result = mutate((db) => {
     if (db.bins.some((item) => item.type === type && item.digits === draft.digits)) return "e-bin-kayit" as const;
     db.bins.push({
@@ -746,14 +745,14 @@ export async function adminBinAddAction(formData: FormData) {
     });
     return "bin" as const;
   });
-  return bounce("/admin?vurgu=binler", result);
+  return bounce("/bunugizliyapki/bin", result);
 }
 
 export async function adminBinSaveAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") || "");
   const draft = parseBinDraft(formData);
-  if (!draft) return bounce("/admin?vurgu=binler", "e-bin-kayit");
+  if (!draft) return bounce("/bunugizliyapki/bin", "e-bin-kayit");
   const result = mutate((db) => {
     const row = db.bins.find((item) => item.id === id);
     if (!row) return "e-yok" as const;
@@ -764,7 +763,7 @@ export async function adminBinSaveAction(formData: FormData) {
     row.digits = draft.digits;
     return "bin" as const;
   });
-  return bounce("/admin?vurgu=binler", result);
+  return bounce("/bunugizliyapki/bin", result);
 }
 
 export async function adminBinRemoveAction(formData: FormData) {
@@ -775,7 +774,7 @@ export async function adminBinRemoveAction(formData: FormData) {
     db.bins = db.bins.filter((item) => item.id !== id);
     return before === db.bins.length ? ("e-yok" as const) : ("bin" as const);
   });
-  return bounce("/admin?vurgu=binler", result);
+  return bounce("/bunugizliyapki/bin", result);
 }
 
 function parsePasteLine(line: string) {
@@ -794,7 +793,7 @@ export async function adminBinPasteAction(formData: FormData) {
   await requireAdmin();
   const type = String(formData.get("tur") || "");
   const lines = String(formData.get("yigin") || "").split(/\r?\n/);
-  if (!isCardType(type)) return bounce("/admin?vurgu=binler", "e-bin-kayit");
+  if (!isCardType(type)) return bounce("/bunugizliyapki/bin", "e-bin-kayit");
   const drafts = lines.map(parsePasteLine).filter((row): row is { label: string; digits: string } => row !== null);
   const result = mutate((db) => {
     const seen = new Set(db.bins.filter((row) => row.type === type).map((row) => row.digits));
@@ -812,7 +811,7 @@ export async function adminBinPasteAction(formData: FormData) {
     }
     return added > 0 ? ("bin" as const) : ("e-bin-kayit" as const);
   });
-  return bounce("/admin?vurgu=binler", result);
+  return bounce("/bunugizliyapki/bin", result);
 }
 
 export async function refundAction(formData: FormData) {
@@ -896,7 +895,7 @@ export async function transferAction(formData: FormData) {
   if (hedef === "" || hedef === id) return bounce("/panel/kartlar", "e-transfer-kart");
   if (cents === null || cents < MIN_TRANSFER_USD_MINOR) return bounce("/panel/kartlar", "e-transfer");
   const amount = usdMinorToKurus(cents);
-  const fee = transferFee(amount);
+  const fee = transferFeeAt(readSettings().transferFeePercent, amount);
   const credit = amount - fee;
   if (fee < 1 || credit < 1) return bounce("/panel/kartlar", "e-transfer");
   const result = mutate((db) => {
@@ -918,7 +917,7 @@ export async function transferAction(formData: FormData) {
         cardId: source.id,
         kind: "transfer",
         title: `Aktarım · ${dest.label}`,
-        note: `%${TRANSFER_FEE_PERCENT} komisyon ${feeText} kesildi. Karşı karta ${formatTL(credit)} yazıldı. Ana bakiye değişmedi.`,
+        note: `%${db.settings.transferFeePercent} komisyon ${feeText} kesildi. Karşı karta ${formatTL(credit)} yazıldı. Ana bakiye değişmedi.`,
         amount: -amount,
         usdMinor: null,
         status: "tamamlandi",
@@ -930,7 +929,7 @@ export async function transferAction(formData: FormData) {
         cardId: dest.id,
         kind: "transfer",
         title: `Gelen aktarım · ${source.label}`,
-        note: `%${TRANSFER_FEE_PERCENT} komisyon sonrası ${formatTL(credit)} yazıldı. Ana bakiye değişmedi.`,
+        note: `%${db.settings.transferFeePercent} komisyon sonrası ${formatTL(credit)} yazıldı. Ana bakiye değişmedi.`,
         amount: credit,
         usdMinor: null,
         status: "tamamlandi",
@@ -957,7 +956,7 @@ export async function transferAction(formData: FormData) {
 
 export async function addressAction(formData: FormData) {
   const user = await actor();
-  if (user.role !== "uye") return go("/admin");
+  if (user.role !== "uye") return go("/bunugizliyapki");
   const address = parseAddress(String(formData.get("adres") || ""));
   if (address === null) return bounce("/panel/hesap", "e-adres");
   const result = mutate((db) => {
@@ -976,7 +975,7 @@ export async function addressAction(formData: FormData) {
 
 export async function displayNameAction(formData: FormData) {
   const user = await actor();
-  if (user.role !== "uye") return go("/admin");
+  if (user.role !== "uye") return go("/bunugizliyapki");
   const name = parseDisplayName(String(formData.get("ad") || ""));
   if (!name) return bounce("/panel/hesap", "e-ad");
   const result = mutate((db) => {
@@ -993,9 +992,66 @@ export async function displayNameAction(formData: FormData) {
   return bounce("/panel/hesap", result);
 }
 
+export async function adminPasswordAction(formData: FormData) {
+  const user = await requireAdmin();
+  const current = String(formData.get("eski") || "");
+  const next = String(formData.get("yeni") || "");
+  const again = String(formData.get("yeni2") || "");
+  if (next.length < 6 || next.length > 72 || next !== again) return bounce("/bunugizliyapki/hesap", "e-parola");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id && item.role === "yonetici");
+    if (!row) return "e-yok" as const;
+    if (row.password !== current) return "e-parola-eski" as const;
+    row.password = next;
+    return "parola-admin" as const;
+  });
+  return bounce("/bunugizliyapki/hesap", result);
+}
+
+export async function adminFeesAction(formData: FormData) {
+  await requireAdmin();
+  const issue = Number(String(formData.get("bedel") || "").replace(",", "."));
+  const load = Number(String(formData.get("yukleme") || "").replace(",", "."));
+  const transfer = Number(String(formData.get("aktarim") || "").replace(",", "."));
+  const back = "/bunugizliyapki/ucretler";
+  if (!Number.isFinite(issue) || issue < 0 || issue > 100_000) return bounce(back, "e-ayar");
+  if (!Number.isFinite(load) || load < 0 || load > 40) return bounce(back, "e-ayar");
+  if (!Number.isFinite(transfer) || transfer < 0 || transfer > 40) return bounce(back, "e-ayar");
+  mutate((db) => {
+    db.settings.issueFeeKurus = Math.round(issue * 100);
+    db.settings.loadFeePercent = Math.round(load * 10) / 10;
+    db.settings.transferFeePercent = Math.round(transfer * 10) / 10;
+  });
+  return bounce(back, "ucret");
+}
+
+export async function adminPlanSaveAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("plan") || "");
+  const name = String(formData.get("ad") || "").replace(/\s+/g, " ").trim();
+  const price = Number(String(formData.get("fiyat") || "").replace(",", "."));
+  const limit = Number(String(formData.get("adet") || ""));
+  const blurb = String(formData.get("yazi") || "").replace(/\s+/g, " ").trim();
+  const back = "/bunugizliyapki/planlar";
+  if (!isPlan(id)) return bounce(back, "e-plan");
+  if (name.length < 2 || name.length > 40) return bounce(back, "e-ayar");
+  if (!Number.isFinite(price) || price < 0 || price > 100_000) return bounce(back, "e-ayar");
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) return bounce(back, "e-ayar");
+  if (blurb.length < 2 || blurb.length > 180) return bounce(back, "e-ayar");
+  mutate((db) => {
+    db.settings.plans[id] = {
+      name,
+      priceUsdMinor: Math.round(price * 100),
+      cardLimit: limit,
+      blurb,
+    };
+  });
+  return bounce(back, "planlar");
+}
+
 export async function passwordChangeAction(formData: FormData) {
   const user = await actor();
-  if (user.role !== "uye") return go("/admin");
+  if (user.role !== "uye") return go("/bunugizliyapki");
   const current = String(formData.get("eski") || "");
   const next = String(formData.get("yeni") || "");
   const again = String(formData.get("yeni2") || "");

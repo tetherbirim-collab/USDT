@@ -3,16 +3,16 @@
 import Link from "next/link";
 import { IssueForm } from "@/components/issue-form";
 import { Notice } from "@/components/notice";
-import { PLANS } from "@/lib/catalog";
-import { Boot, useQuery, useUser } from "@/lib/live";
+import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import { listCards, snapshot } from "@/lib/store";
 
 export default function NewCardPage() {
   const user = useUser();
   const query = useQuery();
+  const settings = useSiteSettings();
   if (!user || !query) return <Boot />;
   const open = listCards(user.id).filter((card) => card.status !== "kapali").length;
-  const slotsLeft = PLANS[user.plan].cardLimit - open;
+  const slotsLeft = settings.plans[user.plan].cardLimit - open;
 
   return (
     <div className="grid gap-5">

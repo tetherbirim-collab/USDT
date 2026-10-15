@@ -10,18 +10,22 @@ import {
   MAX_LIMIT_KURUS,
   MAX_SPEND_KURUS,
   MAX_TOPUP_KURUS,
+  MAX_USD_MINOR,
   MIN_LIMIT_KURUS,
   MIN_SPEND_KURUS,
   MIN_TOPUP_KURUS,
+  MIN_USD_MINOR,
   PLANS,
   USD_RATE_AS_OF,
   USD_SELL_RATE,
   isCardType,
   isMerchantForType,
+  isPlan,
   usdMinorToKurus,
 } from "./catalog";
 import { formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
 import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseDisplayName, parseUsername } from "./store";
+import type { DB, User, Card } from "./types";
 
 export type FormState = { error: string };
 
@@ -71,40 +75,78 @@ export async function logoutAction() {
   redirect("/");
 }
 
+function refundIssueFee(db: DB, row: User, card: Card): "ok" | "tavan" | "yok" {
+  const basim = db.transactions.find(
+    (entry) => entry.cardId === card.id && entry.kind === "basim" && entry.status === "tamamlandi" && entry.amount < 0,
+  );
+  if (!basim) return "yok";
+  if (db.transactions.some((entry) => entry.cardId === card.id && entry.title.startsWith("Basım iadesi"))) return "yok";
+  const fee = -basim.amount;
+  if (row.balance + fee > MAX_BALANCE_KURUS) return "tavan";
+  row.balance += fee;
+  db.transactions.push({
+    id: `tx_${randomUUID()}`,
+    userId: row.id,
+    cardId: card.id,
+    kind: "duzeltme",
+    title: `Basım iadesi · ${card.label}`,
+    note: "Basım ücreti simülasyon bakiyesine geri yazıldı. Tahsilat yoktur.",
+    amount: fee,
+    usdMinor: null,
+    status: "tamamlandi",
+    createdAt: new Date().toISOString(),
+  });
+  return "ok";
+}
+
 export async function topupAction(formData: FormData) {
   const user = await actor();
   const which = String(formData.get("tutar") || "");
   const custom = String(formData.get("ozel") || "");
-  const dollars = parseTryToKurus(String(formData.get("dolar") || ""));
-  let amount: number | null;
-  let title = "Simülasyon yüklemesi";
-  let note = "Gerçek tahsilat yoktur.";
   if (which === "usd") {
-    if (dollars === null || dollars <= 0) bounce("/panel/yukle", "e-tutar");
-    amount = usdMinorToKurus(dollars);
-    title = "Dolar simülasyon yüklemesi";
-    note = `${formatUsd(dollars)} × ${formatRate(USD_SELL_RATE)} satış kuru = ${formatTL(amount)}. Simülasyon kuru, ${USD_RATE_AS_OF}. Canlı kur çekilmez, tahsilat yoktur.`;
-  } else {
-    const raw = which === "ozel" || which === "" ? custom : which;
-    amount = parseTryToKurus(raw);
+    const dollars = parseTryToKurus(String(formData.get("dolar") || ""));
+    if (dollars === null || dollars < MIN_USD_MINOR || dollars > MAX_USD_MINOR) bounce("/panel/yukle", "e-tutar");
+    const result = mutate((db) => {
+      const row = db.users.find((item) => item.id === user.id);
+      if (!row) return "yok" as const;
+      if (row.usdMinor + dollars > MAX_USD_MINOR) return "tavan" as const;
+      row.usdMinor += dollars;
+      db.transactions.push({
+        id: `tx_${randomUUID()}`,
+        userId: row.id,
+        cardId: null,
+        kind: "yukleme",
+        title: "Dolar simülasyon yüklemesi",
+        note: `${formatUsd(dollars)} dolar bakiyesine yazıldı. Satış kuru ${formatRate(USD_SELL_RATE)} (${USD_RATE_AS_OF}). Harcama lira bakiyesinden düşer. Tahsilat yoktur.`,
+        amount: 0,
+        usdMinor: dollars,
+        status: "tamamlandi",
+        createdAt: new Date().toISOString(),
+      });
+      return "ok" as const;
+    });
+    const code = result === "ok" ? "dolar" : result === "tavan" ? "e-tavan" : "e-yok";
+    bounce("/panel/yukle", code);
   }
+  const raw = which === "ozel" || which === "" ? custom : which;
+  const amount = parseTryToKurus(raw);
   if (amount === null || amount < MIN_TOPUP_KURUS || amount > MAX_TOPUP_KURUS) {
     bounce("/panel/yukle", "e-tutar");
   }
-  const credit = amount;
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     if (!row) return "yok" as const;
-    if (row.balance + credit > MAX_BALANCE_KURUS) return "tavan" as const;
-    row.balance += credit;
+    if (row.balance + amount > MAX_BALANCE_KURUS) return "tavan" as const;
+    row.balance += amount;
     db.transactions.push({
       id: `tx_${randomUUID()}`,
       userId: row.id,
       cardId: null,
       kind: "yukleme",
-      title,
-      note,
-      amount: credit,
+      title: "Simülasyon yüklemesi",
+      note: "Gerçek tahsilat yoktur.",
+      amount,
+      usdMinor: null,
       status: "tamamlandi",
       createdAt: new Date().toISOString(),
     });
@@ -112,6 +154,36 @@ export async function topupAction(formData: FormData) {
   });
   const code = result === "ok" ? "yuklendi" : result === "tavan" ? "e-tavan" : "e-yok";
   bounce("/panel/yukle", code);
+}
+
+export async function convertUsdAction(formData: FormData) {
+  const user = await actor();
+  const which = String(formData.get("tutar") || "");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id);
+    if (!row) return "e-yok" as const;
+    const dollars = which === "hepsi" ? row.usdMinor : parseTryToKurus(String(formData.get("dolar") || ""));
+    if (dollars === null || dollars <= 0 || dollars > row.usdMinor) return "e-tutar" as const;
+    const credit = usdMinorToKurus(dollars);
+    if (credit < 1) return "e-tutar" as const;
+    if (row.balance + credit > MAX_BALANCE_KURUS) return "e-tavan" as const;
+    row.usdMinor -= dollars;
+    row.balance += credit;
+    db.transactions.push({
+      id: `tx_${randomUUID()}`,
+      userId: row.id,
+      cardId: null,
+      kind: "yukleme",
+      title: "Doların liraya çevrilmesi",
+      note: `${formatUsd(dollars)} × ${formatRate(USD_SELL_RATE)} satış kuru = ${formatTL(credit)}. Simülasyon kuru, ${USD_RATE_AS_OF}. Canlı kur çekilmez, tahsilat yoktur.`,
+      amount: credit,
+      usdMinor: -dollars,
+      status: "tamamlandi",
+      createdAt: new Date().toISOString(),
+    });
+    return "cevrildi" as const;
+  });
+  bounce("/panel/yukle", result);
 }
 
 export async function issueAction(formData: FormData) {
@@ -178,13 +250,53 @@ export async function closeAction(formData: FormData) {
   const id = String(formData.get("id") || "");
   if (String(formData.get("onay") || "") !== "on") bounce("/panel/kartlar", "e-onay");
   const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
-    if (!card) return "e-yok" as const;
-    if (card.status === "kapali") return "e-durum" as const;
+    if (!row || !card) return "e-yok" as const;
+    if (card.status === "kapali" || card.status === "hazirlaniyor") return "e-durum" as const;
+    const refund = refundIssueFee(db, row, card);
+    if (refund === "tavan") return "e-tavan" as const;
     card.status = "kapali";
     return "kapatildi" as const;
   });
   bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
+}
+
+export async function cancelOrderAction(formData: FormData) {
+  const user = await actor();
+  const id = String(formData.get("id") || "");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id);
+    const card = db.cards.find((item) => item.id === id && item.userId === user.id);
+    if (!row || !card) return "e-yok" as const;
+    if (card.status !== "hazirlaniyor") return "e-durum" as const;
+    const refund = refundIssueFee(db, row, card);
+    if (refund === "tavan") return "e-tavan" as const;
+    card.status = "kapali";
+    card.readyAt = null;
+    const order = db.orders.find((item) => item.cardId === card.id);
+    if (order) {
+      order.status = "iptal";
+      order.readyAt = null;
+    }
+    return "iptal" as const;
+  });
+  bounce("/panel/siparisler", result);
+}
+
+export async function planAction(formData: FormData) {
+  const user = await actor();
+  if (user.role !== "uye") redirect("/admin");
+  const plan = String(formData.get("plan") || "");
+  if (!isPlan(plan)) bounce("/panel/hesap", "e-plan");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id && item.role === "uye");
+    if (!row) return "e-yok" as const;
+    if (openCardCount(db, row.id) > PLANS[plan].cardLimit) return "e-plan-dolu" as const;
+    row.plan = plan;
+    return "plan" as const;
+  });
+  bounce("/panel/hesap", result);
 }
 
 export async function spendAction(formData: FormData) {

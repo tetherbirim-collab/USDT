@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { CardActions } from "@/components/card-actions";
+import { CardSecrets } from "@/components/card-secrets";
 import { Notice } from "@/components/notice";
 import { VirtualCard } from "@/components/virtual-card";
 import { getCurrentUser } from "@/lib/auth";
-import { listCards } from "@/lib/store";
+import { listCards, listTransactions } from "@/lib/store";
 import { redirect } from "next/navigation";
 
 function one(value: string | string[] | undefined) {
@@ -20,6 +21,7 @@ export default async function CardsPage({
   const sp = await searchParams;
   const highlight = one(sp.vurgu);
   const cards = listCards(user.id);
+  const txs = listTransactions(user.id);
 
   return (
     <div className="grid gap-5">
@@ -47,8 +49,8 @@ export default async function CardsPage({
               id={card.id}
               className={`glass rounded-[28px] p-4 ${highlight === card.id ? "ring-2 ring-gold" : ""}`}
             >
-              <VirtualCard card={card} />
-              <CardActions card={card} />
+              {card.status === "hazirlaniyor" ? <VirtualCard card={card} /> : <CardSecrets card={card} />}
+              <CardActions card={card} entries={txs.filter((entry) => entry.cardId === card.id).slice(0, 6)} />
             </article>
           ))}
         </div>

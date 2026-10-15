@@ -181,7 +181,7 @@ export function VirtualCard({
             <p className="vcard-k" style={{ color: mute }}>
               CVV
             </p>
-            <p className="vcard-v">{hide ? "•••" : card.cvv}</p>
+            <p className="vcard-v">{hide || card.hideCvv !== false ? "•••" : card.cvv}</p>
           </div>
         </div>
         <div className="vcard-net">

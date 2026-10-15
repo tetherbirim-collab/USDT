@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { closeAction, freezeAction, refundAction, renewAction, spendAction } from "@/lib/actions";
-import { merchantsFor } from "@/lib/catalog";
-import { formatTL } from "@/lib/format";
-import type { Card } from "@/lib/types";
+import { cancelOrderAction, closeAction, freezeAction, refundAction, renewAction, spendAction } from "@/lib/actions";
+import { KIND_LABEL, merchantsFor } from "@/lib/catalog";
+import { formatSigned, formatTL, formatUsd, formatWhen } from "@/lib/format";
+import type { Card, Tx } from "@/lib/types";
 import { OrderSlip } from "./order-slip";
 import { SubmitButton } from "./submit-button";
 
@@ -13,7 +13,7 @@ function heat(percent: number) {
   return { bar: "linear-gradient(90deg,#f0c98a,#8dffe4)", ink: "#ffffff" };
 }
 
-export function CardActions({ card }: { card: Card }) {
+export function CardActions({ card, entries = [] }: { card: Card; entries?: Tx[] }) {
   const kalan = card.limit - card.spent;
   const percent = card.limit > 0 ? Math.min(100, Math.round((card.spent / card.limit) * 100)) : 0;
   const tone = heat(percent);
@@ -25,6 +25,10 @@ export function CardActions({ card }: { card: Card }) {
         <p className="text-xs text-white/50">
           Bu bilgiler simülasyon test verisidir. Gerçek üye işyerinde kullanılamaz.
         </p>
+        <form action={cancelOrderAction}>
+          <input type="hidden" name="id" value={card.id} />
+          <SubmitButton className="btn btn-danger w-fit">Siparişi iptal et</SubmitButton>
+        </form>
       </div>
     );
   }
@@ -121,11 +125,36 @@ export function CardActions({ card }: { card: Card }) {
             <input type="hidden" name="id" value={card.id} />
             <label className="flex items-start gap-2 text-sm text-white/75">
               <input type="checkbox" name="onay" required className="mt-1" />
-              Bu simülasyon kartını kapatıyorum. Geri açılmaz.
+              Bu simülasyon kartını kapatıyorum. Geri açılmaz. Basım ücreti bakiyeye geri yazılır.
             </label>
             <SubmitButton className="btn btn-danger">Kapat</SubmitButton>
           </form>
         </details>
+      )}
+      {entries.length > 0 && (
+        <div className="rounded-2xl border border-white/10 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold">Bu kartın hareketi</p>
+            <Link href={`/panel/islemler?kart=${card.id}`} className="text-xs font-semibold text-gold">
+              Tüm döküm
+            </Link>
+          </div>
+          <ul className="mt-2 grid gap-2">
+            {entries.map((entry) => (
+              <li key={entry.id} className="flex items-start justify-between gap-3 text-sm">
+                <span>
+                  <span className="block">{entry.title}</span>
+                  <span className="text-xs text-white/45">
+                    {formatWhen(entry.createdAt)} · {KIND_LABEL[entry.kind]}
+                  </span>
+                </span>
+                <span className={entry.amount > 0 ? "font-semibold text-mint" : "font-semibold"}>
+                  {entry.amount === 0 && entry.usdMinor ? formatUsd(entry.usdMinor) : formatSigned(entry.amount)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );

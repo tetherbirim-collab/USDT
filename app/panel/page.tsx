@@ -3,7 +3,7 @@ import { Notice } from "@/components/notice";
 import { VirtualCard } from "@/components/virtual-card";
 import { getCurrentUser } from "@/lib/auth";
 import { PLANS } from "@/lib/catalog";
-import { formatSigned, formatTL, formatWhen } from "@/lib/format";
+import { formatSigned, formatTL, formatUsd, formatWhen } from "@/lib/format";
 import { last7Spend, monthSpend, monthTopup } from "@/lib/stats";
 import { listCards, listNotices, listTransactions } from "@/lib/store";
 import { redirect } from "next/navigation";
@@ -57,6 +57,7 @@ export default async function PanelHome({
         <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(240,201,138,.45),transparent_68%)]" />
         <p className="text-xs font-bold tracking-[0.22em] text-gold">SİMÜLASYON CÜZDANI</p>
         <h1 className="font-display mt-3 text-4xl font-extrabold sm:text-6xl">{formatTL(user.balance)}</h1>
+        <p className="mt-1 font-display text-2xl font-bold text-mint">{formatUsd(user.usdMinor)}</p>
         <p className="mt-2 max-w-lg text-white/70">
           Kullanılabilir bakiye. Bu tutar gerçek para değildir. {PLANS[user.plan].name} vitrininde{" "}
           {open}/{PLANS[user.plan].cardLimit} açık kart var.

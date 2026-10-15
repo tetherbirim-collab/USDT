@@ -1,10 +1,10 @@
 import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "fs";
 import path from "path";
-import { CARD_PREP_MS, CARD_TYPE_ORDER, TEST_BIN, WELCOME_BONUS_KURUS } from "./catalog";
+import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, TEST_BIN, WELCOME_BONUS_KURUS } from "./catalog";
 import { holderLine } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
-import type { BinRow, Card, CardTypeId, DB, Tx, User } from "./types";
+import type { BinRow, Card, CardTypeId, DB, Order, Tx, User } from "./types";
 
 const DATA_PATH = path.join(process.cwd(), "data", "sanalkart.json");
 
@@ -75,6 +75,7 @@ function createSeed(): DB {
     username: "demo",
     password: "demo123",
     balance: 0,
+    usdMinor: 0,
     plan: "atolye",
     role: "uye",
     status: "acik",
@@ -285,10 +286,30 @@ function createSeed(): DB {
     transactions,
     notices: [],
     bins: testBins(),
+    orders: [],
     nextSerial: 100_000_005,
   };
+  db.orders = ordersFromCards(db);
   applyLedger(db);
   return db;
+}
+
+function ordersFromCards(db: DB): Order[] {
+  return db.cards.map((card) => {
+    const feeTx = db.transactions.find((entry) => entry.cardId === card.id && entry.kind === "basim");
+    return {
+      id: `ord_${card.id}`,
+      userId: card.userId,
+      cardId: card.id,
+      type: card.type,
+      label: card.label,
+      limit: card.limit,
+      fee: feeTx ? Math.abs(feeTx.amount) : CARD_TYPES[card.type].fee,
+      status: card.status === "hazirlaniyor" ? "hazirlaniyor" : "hazir",
+      createdAt: card.createdAt,
+      readyAt: card.status === "hazirlaniyor" ? card.readyAt : null,
+    };
+  });
 }
 
 function testBins(): BinRow[] {
@@ -313,7 +334,10 @@ function ensureTestBins(db: DB) {
 }
 
 function applyLedger(db: DB) {
-  for (const user of db.users) user.balance = 0;
+  for (const user of db.users) {
+    user.balance = 0;
+    user.usdMinor = 0;
+  }
   for (const card of db.cards) card.spent = 0;
   const ordered = [...db.transactions].sort((a, b) =>
     a.createdAt.localeCompare(b.createdAt),
@@ -323,6 +347,7 @@ function applyLedger(db: DB) {
     const user = db.users.find((item) => item.id === entry.userId);
     if (!user) continue;
     user.balance += entry.amount;
+    if (typeof entry.usdMinor === "number") user.usdMinor += entry.usdMinor;
     if (!entry.cardId) continue;
     const card = db.cards.find((item) => item.id === entry.cardId);
     if (!card) continue;
@@ -339,6 +364,7 @@ function adminRecord(): User {
     username: "admin",
     password: "admin123",
     balance: 0,
+    usdMinor: 0,
     plan: "kivilcim",
     role: "yonetici",
     status: "acik",
@@ -390,6 +416,10 @@ function normalize(db: DB): DB {
     }
     if (user.status !== "acik" && user.status !== "askida") {
       user.status = "acik";
+      dirty = true;
+    }
+    if (typeof user.usdMinor !== "number" || user.usdMinor < 0) {
+      user.usdMinor = 0;
       dirty = true;
     }
   }
@@ -467,8 +497,25 @@ function normalize(db: DB): DB {
           });
         }
         dirty = true;
+        const order = Array.isArray(db.orders)
+          ? db.orders.find((item) => item.cardId === card.id && item.status === "hazirlaniyor")
+          : undefined;
+        if (order) {
+          order.status = "hazir";
+          order.readyAt = null;
+        }
       }
     }
+  }
+  for (const entry of db.transactions) {
+    if (entry.usdMinor === undefined) {
+      entry.usdMinor = null;
+      dirty = true;
+    }
+  }
+  if (!Array.isArray(db.orders)) {
+    db.orders = ordersFromCards(db);
+    dirty = true;
   }
   if (dirty) {
     assertDb(db);
@@ -479,7 +526,7 @@ function normalize(db: DB): DB {
 
 function assertDb(db: DB) {
   for (const user of db.users) {
-    if (user.balance < 0) throw new Error("Simülasyon bakiyesi eksi olamaz");
+    if (user.balance < 0 || user.usdMinor < 0) throw new Error("Simülasyon bakiyesi eksi olamaz");
   }
   for (const card of db.cards) {
     if (!/^\d{16}$/.test(card.pan) || !luhnOk(card.pan) || !card.pan.startsWith(card.bin)) {
@@ -555,6 +602,7 @@ export function createUser(input: { username: string; password: string; name: st
       username: input.username,
       password: input.password,
       balance: WELCOME_BONUS_KURUS,
+      usdMinor: 0,
       plan: "kivilcim",
       role: "uye",
       status: "acik",
@@ -569,6 +617,7 @@ export function createUser(input: { username: string; password: string; name: st
       title: "Hoş geldin simülasyon bakiyesi",
       note: "Gerçek tahsilat yoktur.",
       amount: WELCOME_BONUS_KURUS,
+      usdMinor: null,
       status: "tamamlandi",
       createdAt: new Date().toISOString(),
     });
@@ -594,6 +643,12 @@ export function listNotices(userId: string) {
 
 export function unreadNoticeCount(userId: string) {
   return read().notices.filter((note) => note.userId === userId && !note.readAt).length;
+}
+
+export function listOrders(userId: string): Order[] {
+  return read()
+    .orders.filter((order) => order.userId === userId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function listTransactions(userId: string): Tx[] {
@@ -643,6 +698,18 @@ export function issueCard(
   };
   user.balance -= input.fee;
   db.cards.push(card);
+  db.orders.push({
+    id: `ord_${randomUUID()}`,
+    userId: user.id,
+    cardId: card.id,
+    type: card.type,
+    label: card.label,
+    limit: card.limit,
+    fee: input.fee,
+    status: "hazirlaniyor",
+    createdAt: now,
+    readyAt: card.readyAt,
+  });
   db.transactions.push({
     id: `tx_${randomUUID()}`,
     userId: user.id,

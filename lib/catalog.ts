@@ -17,6 +17,8 @@ export const CARD_PREP_MS = 15_000;
  */
 export const USD_SELL_RATE = 49.3929;
 export const USD_RATE_AS_OF = "15 Eki 2026";
+export const MIN_USD_MINOR = 100;
+export const MAX_USD_MINOR = 500_000;
 
 export function usdMinorToKurus(minor: number): number {
   return Math.round(minor * USD_SELL_RATE);
@@ -53,6 +55,10 @@ export const CARD_TYPES: Record<
     fee: 7900,
   },
 };
+
+export function isPlan(value: string): value is PlanId {
+  return value === "kivilcim" || value === "atolye" || value === "galeri";
+}
 
 export function isCardType(value: string): value is CardTypeId {
   return CARD_TYPE_ORDER.includes(value as CardTypeId);
@@ -123,7 +129,11 @@ export const NOTICES: Record<string, string> = {
   ad: "Görünen ad güncellendi. Kartlardaki ad satırı buna çekildi.",
   donduruldu: "Kart donduruldu. Harcama provası kapalı.",
   cozuldu: "Kart yeniden aktif. Bu hâlâ bir simülasyon.",
-  kapatildi: "Kart kapatıldı. Kapanış geri alınmaz; ortada gerçek bir kart yoktur.",
+  kapatildi: "Kart kapatıldı. Basım ücreti bakiyeye geri yazıldı. Kapanış geri alınmaz.",
+  iptal: "Sipariş iptal edildi. Basım ücreti simülasyon bakiyesine geri yazıldı.",
+  dolar: "Dolar bakiyesine yazıldı. Harcama lira bakiyesinden düşer. Tahsilat yoktur.",
+  cevrildi: "Dolar bakiyesi sabit kurla liraya çevrildi. Tahsilat yoktur.",
+  plan: "Vitrin planı güncellendi. Tahsilat yoktur.",
   harcama: "Simüle harcama bakiyeye ve limite işlendi.",
   reddedildi: "Harcama reddedildi. Kayıt işlem listesinde.",
   "e-tutar": "Tutar izin verilen aralığın dışında.",
@@ -133,6 +143,7 @@ export const NOTICES: Record<string, string> = {
   "e-etiket": "Etiket 2–32 karakter olmalı.",
   "e-tur": "Kart türü seç.",
   "e-plan": "Bu vitrin planındaki açık kart adedine ulaşıldı.",
+  "e-plan-dolu": "Açık kart adedi bu plana sığmıyor. Önce bir kart kapat.",
   "e-durum": "Kart bu işlem için uygun durumda değil.",
   "e-onay": "Kapatmak için onay kutusu gerekli.",
   "e-yok": "Kayıt bu simülasyonda bulunamadı.",

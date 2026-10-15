@@ -19,6 +19,8 @@ export type User = {
   /** Plain text so the simulation admin desk can show the current password. */
   password: string;
   balance: number;
+  /** Dollar pocket in US cents. Spending still uses the lira balance. */
+  usdMinor: number;
   plan: PlanId;
   role: UserRole;
   status: AccountStatus;
@@ -30,6 +32,7 @@ export type PublicUser = {
   name: string;
   username: string;
   balance: number;
+  usdMinor: number;
   plan: PlanId;
   role: UserRole;
   status: AccountStatus;
@@ -73,6 +76,8 @@ export type CardFace = {
   cvv: string;
   status: CardStatus;
   masked?: boolean;
+  /** Undefined hides the CVV until the member asks to see it. */
+  hideCvv?: boolean;
 };
 
 export type Tx = {
@@ -85,6 +90,23 @@ export type Tx = {
   amount: number;
   status: TxStatus;
   createdAt: string;
+  /** Dollar movement in US cents. Positive enters the pocket, negative leaves it. */
+  usdMinor?: number | null;
+};
+
+export type OrderStatus = "hazirlaniyor" | "hazir" | "iptal";
+
+export type Order = {
+  id: string;
+  userId: string;
+  cardId: string;
+  type: CardTypeId;
+  label: string;
+  limit: number;
+  fee: number;
+  status: OrderStatus;
+  createdAt: string;
+  readyAt: string | null;
 };
 
 export type InboxNote = {
@@ -106,5 +128,6 @@ export type DB = {
   transactions: Tx[];
   notices: InboxNote[];
   bins: BinRow[];
+  orders: Order[];
   nextSerial: number;
 };

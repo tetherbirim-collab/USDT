@@ -1,6 +1,8 @@
 import { Notice } from "@/components/notice";
-import { displayNameAction, passwordChangeAction } from "@/lib/actions";
+import { displayNameAction, passwordChangeAction, planAction } from "@/lib/actions";
 import { getCurrentUser } from "@/lib/auth";
+import { PLANS } from "@/lib/catalog";
+import type { PlanId } from "@/lib/types";
 import { redirect } from "next/navigation";
 
 function one(value: string | string[] | undefined) {
@@ -47,6 +49,20 @@ export default async function AccountPage({
         </label>
         <p className="text-xs text-white/50">Kartın ad satırında bunun ilk 24 karakteri büyük harfle durur.</p>
         <button className="btn btn-gold w-fit">Adı kaydet</button>
+      </form>
+      <form action={planAction} className="glass grid max-w-xl gap-3 rounded-[28px] p-5">
+        <p className="font-semibold">Vitrin planı</p>
+        <p className="text-sm text-white/60">Fiyatlar örnektir, tahsil edilmez. Açık kart adedi yeni plana sığmalıdır.</p>
+        {(Object.keys(PLANS) as PlanId[]).map((id) => (
+          <label key={id} className="rounded-2xl border border-white/10 p-3">
+            <input className="mr-2" type="radio" name="plan" value={id} defaultChecked={user.plan === id} />
+            <span className="font-semibold">{PLANS[id].name}</span>
+            <span className="mt-1 block text-sm text-white/65">
+              {PLANS[id].cardLimit} açık kart · {PLANS[id].price} · {PLANS[id].period}
+            </span>
+          </label>
+        ))}
+        <button className="btn btn-gold w-fit">Planı kaydet</button>
       </form>
       <form action={passwordChangeAction} className="glass grid max-w-md gap-3 rounded-[28px] p-5">
         <label className="grid gap-1 text-sm">

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Notice } from "@/components/notice";
 import { getCurrentUser } from "@/lib/auth";
 import { KIND_LABEL } from "@/lib/catalog";
@@ -64,6 +65,9 @@ export default async function TransactionsPage({
         <p className="text-xs font-bold tracking-[0.22em] text-mint">DÖKÜM</p>
         <h1 className="font-display text-4xl font-extrabold">İşlemler</h1>
         <p className="mt-2 text-white/65">Hepsi simülasyon kaydıdır. Banka ekstresi değildir.</p>
+        <Link href="/panel/islemler/dokum" className="btn btn-ghost mt-3">
+          CSV indir
+        </Link>
       </div>
       <Notice code={one(sp.bildirim)} />
       <div className="flex flex-wrap gap-2">

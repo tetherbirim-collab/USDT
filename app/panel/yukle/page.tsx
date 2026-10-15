@@ -1,9 +1,9 @@
-import { topupAction } from "@/lib/actions";
+import { convertUsdAction, topupAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { UsdField } from "@/components/usd-field";
 import { getCurrentUser } from "@/lib/auth";
 import { MAX_TOPUP_KURUS, MIN_TOPUP_KURUS } from "@/lib/catalog";
-import { formatSigned, formatTL, formatWhen } from "@/lib/format";
+import { formatSigned, formatTL, formatUsd, formatWhen } from "@/lib/format";
 import { listTransactions } from "@/lib/store";
 import { redirect } from "next/navigation";
 
@@ -29,8 +29,9 @@ export default async function TopupPage({
         <p className="text-xs font-bold tracking-[0.22em] text-gold">CÜZDAN</p>
         <h1 className="font-display text-4xl font-extrabold">Bakiye yükle</h1>
         <p className="mt-2 max-w-xl text-white/70">
-          Şu anki simülasyon bakiyesi {formatTL(user.balance)}. Tutar lira ya da dolar yazılır.
-          Dolar, sabit satış kuruyla liraya çevrilir ve fişte ikisi de durur. Banka, kart veya kripto çekilmez.
+          Lira bakiyesi {formatTL(user.balance)}. Dolar bakiyesi {formatUsd(user.usdMinor)}. Dolar
+          ayrı durur; harcama lira bakiyesinden düşer. Çevirince fişte ikisi de yazar. Banka, kart veya
+          kripto çekilmez.
         </p>
       </div>
       <Notice code={one(sp.bildirim)} />
@@ -51,15 +52,34 @@ export default async function TopupPage({
         </button>
         <UsdField />
         <p className="text-sm text-white/55">
-          Aralık {formatTL(MIN_TOPUP_KURUS)} – {formatTL(MAX_TOPUP_KURUS)}. Hazır tutar düğmesi
-          kendi miktarını yazar. Dolar tutarı bu aralığa liraya çevrilince girmelidir.
+          Lira aralığı {formatTL(MIN_TOPUP_KURUS)} – {formatTL(MAX_TOPUP_KURUS)}. Dolar bakiyesi 1–5.000
+          USD. Hazır tutar düğmesi kendi miktarını yazar.
         </p>
+      </form>
+      <form action={convertUsdAction} className="glass grid max-w-xl gap-3 rounded-[28px] p-5">
+        <p className="text-sm font-semibold">Doları liraya çevir</p>
+        <p className="text-sm text-white/70">Bakiyedeki dolar: {formatUsd(user.usdMinor)}</p>
+        <button className="btn btn-gold w-fit" name="tutar" value="hepsi" disabled={user.usdMinor <= 0}>
+          Tümünü liraya çevir
+        </button>
+        <label className="grid gap-1 text-sm">
+          Bir kısmı (USD)
+          <input className="field" name="dolar" inputMode="decimal" placeholder="10" />
+        </label>
+        <button className="btn btn-ghost w-fit" name="tutar" value="ozel">
+          Bu kadarını çevir
+        </button>
       </form>
       {receipt && (
         <article className="glass max-w-xl rounded-[28px] p-5">
           <p className="text-xs font-bold tracking-[0.18em] text-gold">SON FİŞ</p>
           <h2 className="font-display mt-1 text-2xl font-bold">{receipt.title}</h2>
-          <p className="mt-2 text-2xl font-bold text-mint">{formatSigned(receipt.amount)}</p>
+          <p className="mt-2 text-2xl font-bold text-mint">
+            {receipt.amount === 0 && receipt.usdMinor ? formatUsd(receipt.usdMinor) : formatSigned(receipt.amount)}
+          </p>
+          {receipt.amount !== 0 && receipt.usdMinor ? (
+            <p className="text-sm text-mint">{formatUsd(receipt.usdMinor)}</p>
+          ) : null}
           <p className="mt-2 text-sm text-white/75">{receipt.note}</p>
           <p className="mt-2 text-xs text-white/45">{formatWhen(receipt.createdAt)}</p>
         </article>

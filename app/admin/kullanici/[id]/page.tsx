@@ -9,7 +9,7 @@ import {
 } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { CARD_TYPES, KIND_LABEL } from "@/lib/catalog";
-import { formatSigned, formatTL, formatWhen, isoToIstanbulInput, kurusToInput } from "@/lib/format";
+import { formatSigned, formatTL, formatUsd, formatWhen, isoToIstanbulInput, kurusToInput } from "@/lib/format";
 import { snapshot } from "@/lib/store";
 
 function one(value: string | string[] | undefined) {
@@ -63,6 +63,7 @@ export default async function AdminUserPage({
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-white/45">Bakiye</p>
             <p className="font-display text-4xl font-extrabold">{formatTL(user.balance)}</p>
+            <p className="mt-1 text-lg font-bold text-mint">{formatUsd(user.usdMinor)}</p>
           </div>
           <span className={`rounded-full px-3 py-1 text-sm font-bold ${user.status === "askida" ? "bg-[#ff8aa2] text-[#2a1018]" : "bg-mint text-[#10241f]"}`}>
             {user.status === "askida" ? "Askıda" : "Açık"}

@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { USD_RATE_AS_OF, USD_SELL_RATE, usdMinorToKurus } from "@/lib/catalog";
+import { MAX_USD_MINOR, MIN_USD_MINOR, USD_RATE_AS_OF, USD_SELL_RATE, usdMinorToKurus } from "@/lib/catalog";
 import { formatRate, formatTL, formatUsd, parseTryToKurus } from "@/lib/format";
 
 export function UsdField() {
   const [text, setText] = useState("");
   const minor = parseTryToKurus(text);
-  const kurus = minor !== null && minor > 0 ? usdMinorToKurus(minor) : null;
+  const ready = minor !== null && minor >= MIN_USD_MINOR && minor <= MAX_USD_MINOR;
+  const kurus = ready ? usdMinorToKurus(minor) : null;
 
   return (
     <div className="grid gap-3 rounded-2xl border border-white/10 p-4">
@@ -28,11 +29,11 @@ export function UsdField() {
       </p>
       {kurus !== null && (
         <p className="text-sm font-semibold text-gold">
-          {formatUsd(minor ?? 0)} × {formatRate(USD_SELL_RATE)} = {formatTL(kurus)}
+          {formatUsd(minor ?? 0)} bakiyeye yazılır. Liraya çevrilirse {formatTL(kurus)}.
         </p>
       )}
       <button className="btn btn-gold w-fit" name="tutar" value="usd" disabled={kurus === null}>
-        Doları liraya çevir ve yükle
+        Dolar bakiyesine yaz
       </button>
     </div>
   );

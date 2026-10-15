@@ -61,6 +61,7 @@ export function toPublic(user: {
   name: string;
   username: string;
   balance: number;
+  usdMinor: number;
   plan: PublicUser["plan"];
   role: PublicUser["role"];
   status: PublicUser["status"];
@@ -70,6 +71,7 @@ export function toPublic(user: {
     name: user.name,
     username: user.username,
     balance: user.balance,
+    usdMinor: user.usdMinor,
     plan: user.plan,
     role: user.role,
     status: user.status,

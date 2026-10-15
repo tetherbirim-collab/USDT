@@ -19,10 +19,18 @@ export const MAX_SPEND_USD_MINOR = 200_000;
 export const MIN_LIMIT_USD_MINOR = 1_000;
 export const MAX_LIMIT_USD_MINOR = 1_000_000;
 export const MIN_TRANSFER_USD_MINOR = 100;
-export const TRANSFER_FEE_PERCENT = 2;
+export const TRANSFER_FEE_PERCENT = 4;
+/** Card price, exactly 300₺. Not converted from dollars. */
+export const ISSUE_FEE_KURUS = 30_000;
+/** Cut when money moves from the main balance onto a card. */
+export const LOAD_FEE_PERCENT = 7.3;
 
 export function transferFee(amount: number): number {
   return Math.round((amount * TRANSFER_FEE_PERCENT) / 100);
+}
+
+export function loadFee(amount: number): number {
+  return Math.round((amount * 730) / 10_000);
 }
 
 export function usdMinorToKurus(minor: number): number {
@@ -42,13 +50,6 @@ export const MAX_SPEND_KURUS = usdMinorToKurus(MAX_SPEND_USD_MINOR);
 export const MIN_LIMIT_KURUS = usdMinorToKurus(MIN_LIMIT_USD_MINOR);
 export const MAX_LIMIT_KURUS = usdMinorToKurus(MAX_LIMIT_USD_MINOR);
 export const MIN_TRANSFER_KURUS = usdMinorToKurus(MIN_TRANSFER_USD_MINOR);
-const FEE_USD_MINOR: Record<CardTypeId, number> = {
-  facebook_ads: 100,
-  tiktok: 100,
-  google_ads: 100,
-  ultima: 200,
-};
-
 export const CARD_TYPE_ORDER: CardTypeId[] = ["facebook_ads", "tiktok", "google_ads", "ultima"];
 
 export const CARD_TYPES: Record<
@@ -59,25 +60,25 @@ export const CARD_TYPES: Record<
     name: "Facebook Ads",
     pitch: "Akış bütçesi",
     scene: "Akış bütçesi için ayrı tavan.",
-    fee: usdMinorToKurus(FEE_USD_MINOR.facebook_ads),
+    fee: ISSUE_FEE_KURUS,
   },
   tiktok: {
     name: "TikTok",
     pitch: "Kısa video bütçesi",
     scene: "Kısa video bütçesini kendi tavanında tut.",
-    fee: usdMinorToKurus(FEE_USD_MINOR.tiktok),
+    fee: ISSUE_FEE_KURUS,
   },
   google_ads: {
     name: "Google Ads",
     pitch: "Arama bütçesi",
     scene: "Arama kampanyasının tavanı ayrı durur.",
-    fee: usdMinorToKurus(FEE_USD_MINOR.google_ads),
+    fee: ISSUE_FEE_KURUS,
   },
   ultima: {
     name: "Ultima",
     pitch: "Geniş tavan",
     scene: "Geniş tavanlı metal kart.",
-    fee: usdMinorToKurus(FEE_USD_MINOR.ultima),
+    fee: ISSUE_FEE_KURUS,
   },
 };
 
@@ -148,10 +149,11 @@ export const NOTICES: Record<string, string> = {
   "e-anahtar": "Heleket anahtarı sunucuda boş. heleket.config.php doldurulmalı.",
   "e-odeme": "Heleket ödemesi henüz tamamlanmadı.",
   basildi: "Kart oluşturuldu.",
-  siparis: "Sipariş alındı. Kart kısa süre hazırlanır.",
+  siparis: "Kart bedeli 300₺ ve karta ayrılan tutar hesabından düştü. Karta yazılırken %7,3 komisyon kesildi.",
   hazir: "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz.",
   yenilendi: "Tavan yenilendi. Harcama sayacı sıfırlandı. Cüzdan tutarı değişmedi.",
-  transfer: "Kalan tavan aktarıldı. %2 komisyon kesildi. Cüzdan tutarı değişmedi.",
+  transfer: "Kalan tavan aktarıldı. Karşı karta %4 komisyon kesildi. Ana bakiye değişmedi.",
+  yuklendi_kart: "Hesaptan karta yükleme yazıldı. %7,3 komisyon kesildi. Ana bakiyeye bu kesinti uygulanmaz.",
   iade: "İade cüzdana ve tavana işlendi.",
   ad: "Görünen ad güncellendi.",
   adres: "Kart adresi güncellendi. Yalnızca bu hesabın kart detaylarında görünür.",
@@ -191,6 +193,7 @@ export const NOTICES: Record<string, string> = {
   "e-zaman": "Zaman İstanbul saatiyle seçilmeli.",
   "e-yukleme-yok": "Bu hesapta düzenlenecek bir yükleme yok.",
   bin: "BIN satırı bu türün listesine yazıldı.",
+  "e-hesap": "Ödemenin düşeceği hesabı seç.",
   "e-bin": "Kart oluşturmak için bu türe ait bir BIN seç. Liste boşsa basım kapalı.",
   "e-bin-kayit": "Etiket 2–40 karakter, BIN ise 4–8 rakam olmalı. Aynı türde aynı rakam iki kez durmaz.",
   parola: "Parola güncellendi. Yönetim masasında yeni parola görünür.",

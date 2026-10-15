@@ -22,13 +22,17 @@ export default function NewCardPage() {
         </Link>
         <h1 className="font-display mt-3 text-4xl font-bold tracking-tight">Kart oluştur</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Karta isim ver, türü ve tavanı seç, sonra BIN’i işaretle. Verdiğin ad kartın üzerinde durur.
-          Satın almadan önce önek kalır, kalan haneler X görünür. Kart oluşunca 16 hane yazılır.
+          Önce ödemenin düşeceği hesabı, sonra BIN’i seç. Kart bedeli 300₺. Karta ayırdığın tutardan %7,3 komisyon kesilir, kalan tavan olarak yazılır.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
       <div className="glass rounded-[28px] p-4 sm:p-6">
-        <IssueForm balance={user.balance} slotsLeft={slotsLeft} bins={snapshot().bins} />
+        <IssueForm
+          balance={user.balance}
+          slotsLeft={slotsLeft}
+          bins={snapshot().bins}
+          account={{ id: user.id, name: user.name, username: user.username }}
+        />
       </div>
     </div>
   );

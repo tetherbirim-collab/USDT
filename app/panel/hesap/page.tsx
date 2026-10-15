@@ -17,7 +17,7 @@ export default function AccountPage() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">HESAP</p>
         <h1 className="font-display text-4xl font-extrabold">Hesap</h1>
         <p className="mt-2 max-w-xl text-white/70">
-          Yükleme, basım ve harcama yalnızca bu hesabın bakiyesinden düşer. Başka bir kullanıcının kartı veya bakiyesi değişmez.
+          Kart bedeli, karta yükleme ve harcama bu hesabın bakiyesinden düşer. Kartlar arası aktarım ana bakiyeye dokunmaz.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />

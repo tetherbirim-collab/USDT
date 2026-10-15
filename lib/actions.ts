@@ -1,7 +1,6 @@
 import { clearSession, deskPath, getCurrentUser, setSession } from "./auth";
 import {
   CARD_PREP_MS,
-  CARD_TYPES,
   MAX_BALANCE_KURUS,
   MAX_BALANCE_USD_MINOR,
   MAX_LIMIT_KURUS,
@@ -16,10 +15,13 @@ import {
   PLANS,
   USD_RATE_AS_OF,
   USD_SELL_RATE,
+  ISSUE_FEE_KURUS,
   isCardType,
   isMerchantForType,
   isPlan,
+  loadFee,
   transferFee,
+  TRANSFER_FEE_PERCENT,
   usdMinorToKurus,
 } from "./catalog";
 import { formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
@@ -120,36 +122,97 @@ export async function issueAction(formData: FormData) {
   if (limitCents === null || limitCents < MIN_LIMIT_USD_MINOR || limitCents > MAX_LIMIT_USD_MINOR) {
     return bounce("/panel/kartlar/yeni", "e-limit");
   }
-  const limit = usdMinorToKurus(limitCents);
+  const gross = usdMinorToKurus(limitCents);
+  const commission = loadFee(gross);
+  const net = gross - commission;
   const type = typeRaw;
   const binId = String(formData.get("bin") || "");
+  const hesap = String(formData.get("hesap") || "");
+  if (hesap !== user.id) return bounce("/panel/kartlar/yeni", "e-hesap");
+  if (net < 1 || net > MAX_LIMIT_KURUS) return bounce("/panel/kartlar/yeni", "e-limit");
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     if (!row) return { code: "e-yok" as const };
     const chosen = db.bins.find((item) => item.id === binId && item.type === type);
     if (!chosen) return { code: "e-bin" as const };
-    const fee = CARD_TYPES[type].fee;
-    if (row.balance < fee) return { code: "e-bakiye" as const };
+    const fee = ISSUE_FEE_KURUS;
+    const due = fee + gross;
+    if (row.balance < due) return { code: "e-bakiye" as const };
     const plan = PLANS[row.plan];
     if (openCardCount(db, row.id) >= plan.cardLimit) return { code: "e-plan" as const };
     const card = issueCard(db, {
       userId: row.id,
       type,
       label,
-      limit,
+      limit: net,
       fee,
       bin: chosen.digits,
       binLabel: chosen.label,
     });
+    row.balance -= gross;
+    const now = new Date().toISOString();
+    db.transactions.push({
+      id: `tx_${rid()}`,
+      userId: row.id,
+      cardId: card.id,
+      kind: "yukleme",
+      title: `Karta yükleme · ${card.label}`,
+      note: `Hesaptan ${formatTL(gross)} ayrıldı. %7,3 komisyon ${formatTL(commission)}. Karta ${formatTL(net)} yazıldı. Ana bakiye yüklemesine bu kesinti uygulanmaz.`,
+      amount: -gross,
+      usdMinor: -limitCents,
+      status: "tamamlandi",
+      createdAt: now,
+    });
     pushNotice(db, {
       userId: row.id,
-      title: "Kart siparişi alındı",
-      body: `${card.label} hazırlanıyor. Bitince bildirim burada durur.`,
+      title: "Kart bedeli düştü",
+      body: `${card.label} için hesabından ${formatTL(due)} düştü. Kart bedeli ${formatTL(fee)}. Karta ${formatTL(net)} yazıldı, komisyon ${formatTL(commission)}. Kalan bakiye ${formatTL(row.balance)}.`,
     });
     return { code: "basildi" as const, id: card.id };
   });
   if (result.code !== "basildi") return bounce("/panel/kartlar/yeni", result.code);
   return bounce(`/panel/kartlar?vurgu=${result.id}`, "siparis");
+}
+
+export async function fundCardAction(formData: FormData) {
+  const user = await actor();
+  const id = String(formData.get("id") || "");
+  const cents = parseTryToKurus(String(formData.get("tutar") || ""));
+  if (cents === null || cents < MIN_USD_MINOR || cents > MAX_USD_MINOR) return bounce("/panel/kartlar", "e-tutar");
+  const gross = usdMinorToKurus(cents);
+  const commission = loadFee(gross);
+  const net = gross - commission;
+  if (net < 1) return bounce("/panel/kartlar", "e-tutar");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id);
+    const card = db.cards.find((item) => item.id === id && item.userId === user.id);
+    if (!row || !card) return "e-yok" as const;
+    if (card.status === "kapali" || card.status === "hazirlaniyor") return "e-durum" as const;
+    if (row.balance < gross) return "e-bakiye" as const;
+    if (card.limit + net > MAX_LIMIT_KURUS) return "e-limit" as const;
+    row.balance -= gross;
+    card.limit += net;
+    const now = new Date().toISOString();
+    db.transactions.push({
+      id: `tx_${rid()}`,
+      userId: row.id,
+      cardId: card.id,
+      kind: "yukleme",
+      title: `Karta yükleme · ${card.label}`,
+      note: `Hesaptan ${formatTL(gross)} ayrıldı. %7,3 komisyon ${formatTL(commission)}. Karta ${formatTL(net)} yazıldı.`,
+      amount: -gross,
+      usdMinor: -cents,
+      status: "tamamlandi",
+      createdAt: now,
+    });
+    pushNotice(db, {
+      userId: row.id,
+      title: "Karta yükleme düştü",
+      body: `${card.label} kartına ${formatTL(net)} yazıldı. Hesaptan ${formatTL(gross)} düştü, komisyon ${formatTL(commission)}. Kalan bakiye ${formatTL(row.balance)}.`,
+    });
+    return "yuklendi_kart" as const;
+  });
+  return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
 }
 
 export async function freezeAction(formData: FormData) {
@@ -807,7 +870,7 @@ export async function transferAction(formData: FormData) {
         cardId: source.id,
         kind: "transfer",
         title: `Aktarım · ${dest.label}`,
-        note: `%2 komisyon ${feeText} kesildi. Karşı karta ${formatTL(credit)} yazıldı. Cüzdan değişmedi.`,
+        note: `%${TRANSFER_FEE_PERCENT} komisyon ${feeText} kesildi. Karşı karta ${formatTL(credit)} yazıldı. Ana bakiye değişmedi.`,
         amount: -amount,
         usdMinor: null,
         status: "tamamlandi",
@@ -819,7 +882,7 @@ export async function transferAction(formData: FormData) {
         cardId: dest.id,
         kind: "transfer",
         title: `Gelen aktarım · ${source.label}`,
-        note: `%2 komisyon sonrası ${formatTL(credit)} yazıldı. Cüzdan değişmedi.`,
+        note: `%${TRANSFER_FEE_PERCENT} komisyon sonrası ${formatTL(credit)} yazıldı. Ana bakiye değişmedi.`,
         amount: credit,
         usdMinor: null,
         status: "tamamlandi",

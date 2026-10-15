@@ -45,7 +45,7 @@ export function TransferForm({
         <p className="text-sm font-semibold">Tavan aktar</p>
         <span className="text-[11px] font-bold tracking-[0.16em] text-gold">%{TRANSFER_FEE_PERCENT}</span>
       </div>
-      <p className="text-xs text-white/50">Kalan tavan karşı karta gider. Cüzdan tutarı değişmez.</p>
+      <p className="text-xs text-white/50">Kalan tavan karşı karta gider. Ana bakiye değişmez, karşı karta %{TRANSFER_FEE_PERCENT} komisyon yazılır.</p>
       <div className="transfer-lane" aria-hidden>
         <span>Bu kart</span>
         <span className="transfer-track">

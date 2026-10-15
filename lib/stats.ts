@@ -19,6 +19,7 @@ export function monthTopup(transactions: Tx[], now = new Date()): number {
     .filter(
       (entry) =>
         entry.kind === "yukleme" &&
+        entry.amount > 0 &&
         entry.status === "tamamlandi" &&
         istanbulKey(entry.createdAt).startsWith(month),
     )

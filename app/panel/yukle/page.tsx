@@ -104,7 +104,7 @@ export default function TopupPage() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">CÜZDAN</p>
         <h1 className="font-display text-4xl font-extrabold">Bakiye yükle</h1>
         <p className="mt-2 max-w-xl text-white/70">
-          Tutar dolar olarak Heleket’e gider. Ödeme onaylanınca bakiyede {formatTL(user.balance)} durur. Bu, sabit kurun TL karşılığıdır. 1 USD = {formatRate(USD_SELL_RATE)} TL · {USD_RATE_AS_OF}.
+          Tutar dolar olarak Heleket’e gider. Ödeme onaylanınca ana bakiyede {formatTL(user.balance)} durur. Bu yüklemeye komisyon yok. Kartına aktarırken %7,3 kesilir. 1 USD = {formatRate(USD_SELL_RATE)} TL · {USD_RATE_AS_OF}.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />

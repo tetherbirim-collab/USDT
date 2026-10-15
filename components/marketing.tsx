@@ -180,7 +180,7 @@ export function Marketing({
             <p className="text-xs font-bold tracking-[0.22em] text-mint">TÜRLER</p>
             <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">Ayrı sahneler</h2>
             <p className="mt-3 text-white/70">
-              Her türün kendi tavanı ve basım karşılığı vardır. Tutar dolar cinsindendir, ekranda TL karşılığı durur.
+              Her kart 300₺. Karta ayırdığın tutardan %7,3 kesilir. Tutar dolar cinsindendir, ekranda TL karşılığı durur.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">

@@ -5,8 +5,11 @@ import { issueAction } from "@/lib/actions";
 import {
   CARD_TYPE_ORDER,
   CARD_TYPES,
+  ISSUE_FEE_KURUS,
+  LOAD_FEE_PERCENT,
   MAX_LIMIT_USD_MINOR,
   MIN_LIMIT_USD_MINOR,
+  loadFee,
   usdMinorToKurus,
 } from "@/lib/catalog";
 import { formatTL, holderLine, parseTryToKurus } from "@/lib/format";
@@ -19,18 +22,25 @@ export function IssueForm({
   balance,
   slotsLeft,
   bins,
+  account,
 }: {
   balance: number;
   slotsLeft: number;
   bins: Pick<BinRow, "id" | "type" | "label" | "digits">[];
+  account: { id: string; name: string; username: string };
 }) {
   const [type, setType] = useState<CardTypeId>("facebook_ads");
   const [label, setLabel] = useState("");
   const [limit, setLimit] = useState("100");
   const [binId, setBinId] = useState("");
+  const [accountId, setAccountId] = useState("");
   const [localError, setLocalError] = useState("");
-  const fee = CARD_TYPES[type].fee;
-  const blocked = balance < fee || slotsLeft <= 0;
+  const gross = usdMinorToKurus(parseTryToKurus(limit) ?? 0);
+  const commission = gross > 0 ? loadFee(gross) : 0;
+  const net = Math.max(0, gross - commission);
+  const due = ISSUE_FEE_KURUS + gross;
+  const short = balance < due;
+  const blocked = short || slotsLeft <= 0 || accountId !== account.id;
   const choices = bins.filter((row) => row.type === type);
   const chosen = choices.find((row) => row.id === binId);
   const networkName = chosen ? (networkOf(chosen.digits) === "mastercard" ? "Mastercard" : networkOf(chosen.digits) === "visa" ? "Visa" : "Kart") : "";
@@ -46,8 +56,16 @@ export function IssueForm({
       setLocalError("Tavan 10 ile 10.000 USD arasında olmalı.");
       return false;
     }
+    if (accountId !== account.id) {
+      setLocalError("Ödemenin düşeceği hesabı seç.");
+      return false;
+    }
     if (!chosen) {
       setLocalError("Bir BIN seç.");
+      return false;
+    }
+    if (short) {
+      setLocalError("Hesap bu kart bedelini ve karta ayrılan tutarı karşılamıyor.");
       return false;
     }
     setLocalError("");
@@ -63,6 +81,26 @@ export function IssueForm({
       }}
     >
       <div className="grid gap-4">
+            <fieldset className="grid gap-2">
+              <legend className="mb-1 text-sm font-semibold">Ödeme hesabı</legend>
+              <label className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 ${accountId === account.id ? "border-gold bg-white/10" : "border-white/10 bg-white/5"}`}>
+                <input
+                  className="mt-1"
+                  type="radio"
+                  name="hesap"
+                  value={account.id}
+                  checked={accountId === account.id}
+                  onChange={() => setAccountId(account.id)}
+                  required
+                />
+                <span>
+                  <span className="block font-semibold">{account.name}</span>
+                  <span className="block text-sm text-white/60">{account.username}</span>
+                  <span className="mt-1 block text-sm text-gold">Ana bakiye {formatTL(balance)}</span>
+                </span>
+              </label>
+              <p className="text-xs text-white/50">Kart bedeli ve karta ayrılan tutar bu hesaptan düşer. Ana bakiyeye Heleket ile yüklemede komisyon yoktur.</p>
+            </fieldset>
             <fieldset className="grid gap-3">
               <legend className="mb-1 text-sm font-semibold">Tür</legend>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -84,7 +122,7 @@ export function IssueForm({
                     />
                     <span className="font-semibold">{CARD_TYPES[id].name}</span>
                     <span className="mt-1 block text-sm text-white/60">{CARD_TYPES[id].pitch}</span>
-                    <span className="mt-1 block text-xs text-gold">Basım {formatTL(CARD_TYPES[id].fee)}</span>
+                    <span className="mt-1 block text-xs text-gold">Kart bedeli {formatTL(ISSUE_FEE_KURUS)}</span>
                   </label>
                 ))}
               </div>
@@ -104,7 +142,7 @@ export function IssueForm({
               <span className="text-white/50">Bu ad kartın üzerinde görünür.</span>
             </label>
             <label className="grid gap-1 text-sm">
-              Aylık tavan (USD)
+              Karta ayrılacak tutar (USD)
               <input
                 className="field"
                 name="limit"
@@ -114,16 +152,44 @@ export function IssueForm({
                 required
               />
               <span className="text-white/50">
-                10–10.000 USD. Karşılığı {formatTL(usdMinorToKurus(parseTryToKurus(limit) ?? 0))}. Basım {formatTL(fee)}.
+                10–10.000 USD. Karşılığı {formatTL(gross)}. Bunun %{LOAD_FEE_PERCENT.toString().replace(".", ",")} kadarı komisyon olarak kesilir.
               </span>
             </label>
             {localError && <p className="banner-bad">{localError}</p>}
             {slotsLeft <= 0 && (
               <p className="banner-bad">Bu plandaki açık kart adedine ulaşıldı. Bir kartı kapatınca yer açılır.</p>
             )}
-            {balance < fee && (
-              <p className="banner-bad">Basım karşılığı için bakiye yetersiz. Önce cüzdanı yükle.</p>
+            {short && (
+              <p className="banner-bad">Hesap {formatTL(due)} için yetersiz. Önce ana bakiyeyi yükle.</p>
             )}
+            <div className="grid gap-2 rounded-[24px] border border-gold/30 bg-black/25 p-4 text-sm">
+              <p className="text-xs font-bold tracking-[0.18em] text-gold">HESAPTAN DÜŞECEK</p>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-white/70">Kart bedeli</span>
+                <span className="font-semibold">{formatTL(ISSUE_FEE_KURUS)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-white/70">Karta ayrılan</span>
+                <span className="font-semibold">{formatTL(gross)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-white/70">Komisyon %{LOAD_FEE_PERCENT.toString().replace(".", ",")}</span>
+                <span className="font-semibold text-[#ffb4a2]">{formatTL(commission)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-white/70">Karta yazılan</span>
+                <span className="font-semibold text-mint">{formatTL(net)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-2">
+                <span>Toplam düşüş</span>
+                <span className="font-display text-xl font-bold text-gold">{formatTL(due)}</span>
+              </div>
+              <p className="text-xs text-white/55">
+                {accountId === account.id
+                  ? `İşlem sonrası ana bakiye ${formatTL(Math.max(0, balance - due))}.`
+                  : "Düşüşü görmek için ödeme hesabını seç."}
+              </p>
+            </div>
             <section id="bin-sec" className="grid gap-3 rounded-[24px] border border-gold/30 bg-black/20 p-4">
               <div>
                 <p className="text-xs font-bold tracking-[0.18em] text-gold">BIN SEÇ</p>
@@ -162,7 +228,7 @@ export function IssueForm({
               )}
             </section>
             <SubmitButton className="btn btn-gold w-fit" disabled={blocked || !chosen}>
-              Kartı oluştur
+              Kartı oluştur · {formatTL(due)} düşer
             </SubmitButton>
       </div>
       <div>

@@ -8,6 +8,7 @@ import { formatTL, formatWhen, movementLabel } from "@/lib/format";
 import { remainInk, remainLeft, remainMood } from "@/lib/remain";
 import { listNotices } from "@/lib/store";
 import type { Card, Tx } from "@/lib/types";
+import { FundForm } from "./fund-form";
 import { OrderSlip } from "./order-slip";
 import { SubmitButton } from "./submit-button";
 import { TransferForm } from "./transfer-form";
@@ -16,11 +17,13 @@ export function CardActions({
   card,
   entries = [],
   peers = [],
+  balance = 0,
   drain = false,
 }: {
   card: Card;
   entries?: Tx[];
   peers?: { id: string; label: string }[];
+  balance?: number;
   drain?: boolean;
 }) {
   const kalan = card.limit - card.spent;
@@ -80,6 +83,7 @@ export function CardActions({
           Bakiye yükle
         </Link>
       )}
+      {card.status !== "kapali" && <FundForm cardId={card.id} balance={balance} />}
       {card.status !== "kapali" && peers.length > 0 && kalan > 0 && (
         <TransferForm cardId={card.id} kalan={kalan} peers={peers} />
       )}
@@ -150,7 +154,7 @@ export function CardActions({
             <input type="hidden" name="id" value={card.id} />
             <label className="flex items-start gap-2 text-sm text-white/75">
               <input type="checkbox" name="onay" required className="mt-1" />
-              Bu kartı kapatıyorum. Geri açılmaz. Basım ücreti bakiyeye geri yazılır.
+              Bu kartı kapatıyorum. Geri açılmaz. Kart bedeli bakiyeye döner. Karta yazılmış tavan dönmez.
             </label>
             <SubmitButton className="btn btn-danger">Kapat</SubmitButton>
           </form>

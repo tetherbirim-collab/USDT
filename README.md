@@ -48,6 +48,6 @@ Her kart türünün listesinde etiket «Standart» ve rakam `400000` hazırdır.
 
 ## Kartlar
 
-Türler: Facebook Ads, TikTok, Google Ads ve Ultima. Her türün basım karşılığı vardır: Facebook, TikTok ve Google Ads 1 USD, Ultima 2 USD. Ekranda bu tutarın TL karşılığı durur.
+Türler: Facebook Ads, TikTok, Google Ads ve Ultima. Kart bedeli 300₺. Karta ayrılan tutardan %7,3 komisyon kesilir. Kartlar arası aktarımda karşı karta %4 yazılır. Ana bakiyeye Heleket yüklemesinde bu komisyonlar yoktur.
 
 Numaralar `400000` öneki ile üretilir. Kartın ad yerinde, oluşturulurken verilen ad yazar. Harcama, basım ve yükleme yalnızca işlemi yapan kullanıcının bakiyesinden düşer.

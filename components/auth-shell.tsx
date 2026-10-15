@@ -14,8 +14,8 @@ export function AuthShell({
   visual?: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-[#fff5f6] px-3 py-4 sm:px-6 sm:py-6">
-      <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-6xl overflow-hidden rounded-[28px] border border-white bg-white shadow-[0_20px_60px_rgba(160,20,40,.08)] lg:grid-cols-2">
+    <main className="min-h-screen bg-[#eef3f9] px-3 py-4 sm:px-6 sm:py-6">
+      <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-6xl overflow-hidden rounded-[28px] bg-white shadow-[0_20px_60px_rgba(20,40,80,.08)] lg:grid-cols-2">
         {visual ?? <AuthVisual />}
         <section className="flex flex-col px-6 py-8 sm:px-12 sm:py-10">
           <Link href="/" className="inline-flex items-center gap-3">

@@ -1541,11 +1541,32 @@ header .trust-line:not(.trust-bar) {
 
 .hero-mark img {
   position: absolute;
+  z-index: 1;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
+}
+
+.hero-mark::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: 168%;
+  height: 168%;
+  translate: -50% -50%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(224, 21, 43, 0) 0deg 9deg,
+    rgba(255, 64, 82, 0.72) 11deg,
+    rgba(224, 21, 43, 0) 13.5deg 24deg
+  );
+  mask-image: radial-gradient(circle, transparent 0 27%, #000 40%, transparent 68%);
+  -webkit-mask-image: radial-gradient(circle, transparent 0 27%, #000 40%, transparent 68%);
+  pointer-events: none;
 }
 
 .hero-motion {
@@ -1939,6 +1960,10 @@ header .trust-line:not(.trust-bar) {
     animation: hero-word 9s ease-in-out infinite;
   }
 
+  .hero-mark::before {
+    animation: clay-beams 28s linear infinite;
+  }
+
   .entrance-card {
     animation: entrance-cycle 9s ease-in-out infinite;
   }
@@ -2033,6 +2058,11 @@ header .trust-line:not(.trust-bar) {
   72% { opacity: 0; scale: 0.86; }
   88%,
   100% { opacity: 1; scale: 1; }
+}
+
+@keyframes clay-beams {
+  from { rotate: 0deg; }
+  to { rotate: 360deg; }
 }
 
 @keyframes entrance-cycle {

@@ -8,7 +8,6 @@ import "@fontsource/inter/latin-ext-600.css";
 import "@fontsource/inter/latin-700.css";
 import "@fontsource/inter/latin-ext-700.css";
 import "./globals.css";
-import "./glass-theme.css";
 import { TelegramButton } from "@/components/telegram-button";
 
 export const metadata: Metadata = {

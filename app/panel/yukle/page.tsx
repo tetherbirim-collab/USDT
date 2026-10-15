@@ -1,8 +1,10 @@
 import { topupAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
+import { UsdField } from "@/components/usd-field";
 import { getCurrentUser } from "@/lib/auth";
 import { MAX_TOPUP_KURUS, MIN_TOPUP_KURUS } from "@/lib/catalog";
-import { formatTL } from "@/lib/format";
+import { formatSigned, formatTL, formatWhen } from "@/lib/format";
+import { listTransactions } from "@/lib/store";
 import { redirect } from "next/navigation";
 
 function one(value: string | string[] | undefined) {
@@ -19,6 +21,7 @@ export default async function TopupPage({
   const user = await getCurrentUser();
   if (!user) redirect("/giris");
   const sp = await searchParams;
+  const receipt = listTransactions(user.id).find((entry) => entry.kind === "yukleme" && entry.status === "tamamlandi");
 
   return (
     <div className="grid gap-5">
@@ -26,8 +29,8 @@ export default async function TopupPage({
         <p className="text-xs font-bold tracking-[0.22em] text-gold">CÜZDAN</p>
         <h1 className="font-display text-4xl font-extrabold">Bakiye yükle</h1>
         <p className="mt-2 max-w-xl text-white/70">
-          Şu anki simülasyon bakiyesi {formatTL(user.balance)}. Tutar anında deftere yazılır.
-          Banka, kart veya kripto çekilmez.
+          Şu anki simülasyon bakiyesi {formatTL(user.balance)}. Tutar lira ya da dolar yazılır.
+          Dolar, sabit satış kuruyla liraya çevrilir ve fişte ikisi de durur. Banka, kart veya kripto çekilmez.
         </p>
       </div>
       <Notice code={one(sp.bildirim)} />
@@ -43,14 +46,24 @@ export default async function TopupPage({
           Özel tutar (₺)
           <input className="field" name="ozel" inputMode="decimal" placeholder="2500" />
         </label>
-        <button className="btn btn-gold" name="tutar" value="ozel">
+        <button className="btn btn-gold w-fit" name="tutar" value="ozel">
           Özel tutarı yükle
         </button>
+        <UsdField />
         <p className="text-sm text-white/55">
           Aralık {formatTL(MIN_TOPUP_KURUS)} – {formatTL(MAX_TOPUP_KURUS)}. Hazır tutar düğmesi
-          kendi miktarını yazar; özel tutar alttaki düğmeyle yüklenir.
+          kendi miktarını yazar. Dolar tutarı bu aralığa liraya çevrilince girmelidir.
         </p>
       </form>
+      {receipt && (
+        <article className="glass max-w-xl rounded-[28px] p-5">
+          <p className="text-xs font-bold tracking-[0.18em] text-gold">SON FİŞ</p>
+          <h2 className="font-display mt-1 text-2xl font-bold">{receipt.title}</h2>
+          <p className="mt-2 text-2xl font-bold text-mint">{formatSigned(receipt.amount)}</p>
+          <p className="mt-2 text-sm text-white/75">{receipt.note}</p>
+          <p className="mt-2 text-xs text-white/45">{formatWhen(receipt.createdAt)}</p>
+        </article>
+      )}
     </div>
   );
 }

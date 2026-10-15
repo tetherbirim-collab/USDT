@@ -17,6 +17,7 @@ function one(value: string | string[] | undefined) {
 }
 
 const STATUS_LABEL = {
+  hazirlaniyor: "Hazırlanıyor",
   aktif: "Aktif",
   donduruldu: "Donduruldu",
   kapali: "Kapalı",
@@ -127,6 +128,7 @@ export default async function AdminUserPage({
                 <label className="grid gap-1 text-sm">
                   Durum
                   <select className="field" name="durum" defaultValue={card.status}>
+                    <option value="hazirlaniyor">Hazırlanıyor</option>
                     <option value="aktif">Aktif</option>
                     <option value="donduruldu">Donduruldu</option>
                     <option value="kapali">Kapalı</option>

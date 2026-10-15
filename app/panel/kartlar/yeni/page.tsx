@@ -30,9 +30,9 @@ export default async function NewCardPage({
         </Link>
         <h1 className="font-display mt-3 text-4xl font-extrabold">Kart bas</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Türü seçip Kartı bas dediğinde yalnızca o türün BIN listesi açılır. Listeden bir satır
-          seçilmeden kart oluşmaz. Liste boşsa değerler sonra eklenecek. Numara sorgulama, kimlik
-          belgesi ve ödeme yoktur. Tür adları senaryo etiketidir.
+          Türü seçip Kartı bas dediğinde yalnızca o türün BIN listesi açılır. Her türde hazır bir test
+          öneki durur: Test öneki, 400000. Yönetici başka satır ekleyebilir. Seçim yapılmadan kart
+          oluşmaz. Numara sorgulama, kimlik belgesi ve ödeme yoktur. Tür adları senaryo etiketidir.
         </p>
       </div>
       <Notice code={one(sp.bildirim)} />

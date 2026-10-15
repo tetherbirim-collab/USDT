@@ -17,6 +17,7 @@ const FILTERS: [string, string][] = [
   ["iade", "İade"],
   ["basim", "Basım"],
   ["duzeltme", "Düzeltme"],
+  ["yenileme", "Tavan yenileme"],
   ["reddedilen", "Reddedilen"],
 ];
 
@@ -42,7 +43,7 @@ export default async function TransactionsPage({
 
   let rows = listTransactions(user.id);
   if (tur === "reddedilen") rows = rows.filter((entry) => entry.status === "reddedildi");
-  else if (tur === "yukleme" || tur === "harcama" || tur === "iade" || tur === "basim" || tur === "duzeltme") {
+  else if (tur === "yukleme" || tur === "harcama" || tur === "iade" || tur === "basim" || tur === "duzeltme" || tur === "yenileme") {
     rows = rows.filter((entry) => entry.kind === (tur as TxKind));
   }
   if (kart) rows = rows.filter((entry) => entry.cardId === kart);

@@ -93,3 +93,18 @@ export function istanbulKey(iso: string): string {
 export function holderLine(name: string): string {
   return name.toLocaleUpperCase("tr-TR").slice(0, 24);
 }
+
+export function formatUsd(minor: number): string {
+  const text = new Intl.NumberFormat("tr-TR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(minor / 100);
+  return `${text} USD`;
+}
+
+export function formatRate(rate: number): string {
+  return new Intl.NumberFormat("tr-TR", {
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  }).format(rate);
+}

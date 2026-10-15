@@ -38,6 +38,7 @@ const GLOW: Record<CardTypeId, string> = {
 };
 
 const STATUS_LABEL = {
+  hazirlaniyor: "HAZIRLANIYOR",
   aktif: "AKTİF",
   donduruldu: "DONDURULDU",
   kapali: "KAPALI",
@@ -129,7 +130,8 @@ export function VirtualCard({
 }) {
   const tone = TONE[card.type];
   const light = tone === "light";
-  const pan = card.masked ? "•••• •••• •••• ••••" : formatPan(card.pan);
+  const hide = Boolean(card.masked) || card.status === "hazirlaniyor";
+  const pan = hide ? "•••• •••• •••• ••••" : formatPan(card.pan);
   const ink = light ? "#202124" : "#fff";
   const mute = light ? "rgba(32,33,36,.62)" : "rgba(255,255,255,.72)";
   const name = CARD_TYPES[card.type].name;
@@ -173,13 +175,13 @@ export function VirtualCard({
             <p className="vcard-k" style={{ color: mute }}>
               SKT
             </p>
-            <p className="vcard-v">{card.masked ? "••/••" : card.expiry}</p>
+            <p className="vcard-v">{hide ? "••/••" : card.expiry}</p>
           </div>
           <div>
             <p className="vcard-k" style={{ color: mute }}>
               CVV
             </p>
-            <p className="vcard-v">{card.masked ? "•••" : card.cvv}</p>
+            <p className="vcard-v">{hide ? "•••" : card.cvv}</p>
           </div>
         </div>
         <div className="vcard-net">

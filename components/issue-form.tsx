@@ -138,8 +138,8 @@ export function IssueForm({
             </div>
             {choices.length === 0 ? (
               <p className="rounded-2xl bg-black/30 px-3 py-3 text-sm text-white/75">
-                Bu tür için BIN listesi henüz boş. BIN değerleri sonra eklenecek. Seçim yapılmadan kart
-                oluşturulamıyor.
+                Bu türün listesinde satır yok. Yönetim masası bir satır ekleyince burada görünür. Seçim
+                yapılmadan kart oluşmaz.
               </p>
             ) : (
               <fieldset className="grid gap-2">

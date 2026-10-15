@@ -18,7 +18,10 @@ export function AdminBins({ bins }: { bins: BinRow[] }) {
             <article key={type} className="rounded-2xl border border-white/10 p-4">
               <h3 className="font-display text-xl font-bold">{CARD_TYPES[type].name}</h3>
               {rows.length === 0 ? (
-                <p className="mt-2 text-sm text-white/55">Bu türde henüz BIN yok. Değerler sonra eklenecek.</p>
+                <p className="mt-2 text-sm text-white/55">
+                  Bu türde satır kalmamış. Yeni satır eklenince liste yeniden açılır. Tür boş kalırsa Test
+                  öneki 400000 kendiliğinden geri gelir.
+                </p>
               ) : (
                 <ul className="mt-3 grid gap-2">
                   {rows.map((row) => (

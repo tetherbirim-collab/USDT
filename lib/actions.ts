@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { clearSession, deskPath, getCurrentUser, setSession } from "./auth";
 import {
+  CARD_PREP_MS,
   CARD_TYPES,
   MAX_BALANCE_KURUS,
   MAX_LIMIT_KURUS,
@@ -13,11 +14,14 @@ import {
   MIN_SPEND_KURUS,
   MIN_TOPUP_KURUS,
   PLANS,
+  USD_RATE_AS_OF,
+  USD_SELL_RATE,
   isCardType,
   isMerchantForType,
+  usdMinorToKurus,
 } from "./catalog";
-import { istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
-import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseUsername } from "./store";
+import { formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
+import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseDisplayName, parseUsername } from "./store";
 
 export type FormState = { error: string };
 
@@ -48,13 +52,15 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
 
 export async function registerAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const username = parseUsername(String(formData.get("kullanici") || ""));
+  const name = parseDisplayName(String(formData.get("ad") || ""));
   const password = String(formData.get("parola") || "");
   const again = String(formData.get("parola2") || "");
+  if (!name) return { error: "Görünen ad 2–40 karakter olmalı ve bir harfle başlamalı." };
   if (!username) return { error: "Kullanıcı adı 2–24 karakter olmalı; yalnızca harf, rakam ve alt çizgi." };
   if (password.length < 6 || password.length > 72) return { error: "Parola 6–72 karakter olmalı." };
   if (password !== again) return { error: "Parolalar eşleşmiyor." };
   if (findUserByUsername(username)) return { error: "Bu kullanıcı adı zaten var." };
-  const user = createUser({ username, password });
+  const user = createUser({ username, password, name });
   if (!user) return { error: "Bu kullanıcı adı zaten var." };
   await setSession(user.id);
   redirect("/panel?bildirim=hosgeldin");
@@ -69,24 +75,36 @@ export async function topupAction(formData: FormData) {
   const user = await actor();
   const which = String(formData.get("tutar") || "");
   const custom = String(formData.get("ozel") || "");
-  const raw = which === "ozel" || which === "" ? custom : which;
-  const amount = parseTryToKurus(raw);
+  const dollars = parseTryToKurus(String(formData.get("dolar") || ""));
+  let amount: number | null;
+  let title = "Simülasyon yüklemesi";
+  let note = "Gerçek tahsilat yoktur.";
+  if (which === "usd") {
+    if (dollars === null || dollars <= 0) bounce("/panel/yukle", "e-tutar");
+    amount = usdMinorToKurus(dollars);
+    title = "Dolar simülasyon yüklemesi";
+    note = `${formatUsd(dollars)} × ${formatRate(USD_SELL_RATE)} satış kuru = ${formatTL(amount)}. Simülasyon kuru, ${USD_RATE_AS_OF}. Canlı kur çekilmez, tahsilat yoktur.`;
+  } else {
+    const raw = which === "ozel" || which === "" ? custom : which;
+    amount = parseTryToKurus(raw);
+  }
   if (amount === null || amount < MIN_TOPUP_KURUS || amount > MAX_TOPUP_KURUS) {
     bounce("/panel/yukle", "e-tutar");
   }
+  const credit = amount;
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     if (!row) return "yok" as const;
-    if (row.balance + amount > MAX_BALANCE_KURUS) return "tavan" as const;
-    row.balance += amount;
+    if (row.balance + credit > MAX_BALANCE_KURUS) return "tavan" as const;
+    row.balance += credit;
     db.transactions.push({
       id: `tx_${randomUUID()}`,
       userId: row.id,
       cardId: null,
       kind: "yukleme",
-      title: "Simülasyon yüklemesi",
-      note: "Gerçek tahsilat yoktur.",
-      amount,
+      title,
+      note,
+      amount: credit,
       status: "tamamlandi",
       createdAt: new Date().toISOString(),
     });
@@ -129,7 +147,7 @@ export async function issueAction(formData: FormData) {
     return { code: "basildi" as const, id: card.id };
   });
   if (result.code !== "basildi") bounce("/panel/kartlar/yeni", result.code);
-  bounce(`/panel/kartlar?vurgu=${result.id}`, "basildi");
+  bounce(`/panel/kartlar?vurgu=${result.id}`, "siparis");
 }
 
 export async function freezeAction(formData: FormData) {
@@ -226,7 +244,7 @@ export async function spendAction(formData: FormData) {
       createdAt: now,
     });
     if (card.limit > 0 && card.spent / card.limit >= 0.5) {
-      const ref = `tavan50:${card.id}`;
+      const ref = `tavan50:${card.id}:${card.period}`;
       if (!db.notices.some((note) => note.ref === ref)) {
         db.notices.push({
           id: `nt_${randomUUID()}`,
@@ -405,7 +423,9 @@ export async function adminEditCardAction(formData: FormData) {
   const userId = String(formData.get("uye") || "");
   const back = safeAdminReturn(formData, userId);
   if (label.length < 2 || label.length > 32) bounce(back, "e-etiket");
-  if (status !== "aktif" && status !== "donduruldu" && status !== "kapali") bounce(back, "e-durum");
+  if (status !== "hazirlaniyor" && status !== "aktif" && status !== "donduruldu" && status !== "kapali") {
+    bounce(back, "e-durum");
+  }
   const result = mutate((db) => {
     const card = db.cards.find((item) => item.id === id && item.userId === userId);
     if (!card) return "e-yok" as const;
@@ -415,6 +435,7 @@ export async function adminEditCardAction(formData: FormData) {
     card.label = label;
     card.limit = limit;
     card.status = status;
+    card.readyAt = status === "hazirlaniyor" ? new Date(Date.now() + CARD_PREP_MS).toISOString() : null;
     return "kart" as const;
   });
   bounce(back, result);
@@ -537,6 +558,82 @@ export async function adminBinPasteAction(formData: FormData) {
     return added > 0 ? ("bin" as const) : ("e-bin-kayit" as const);
   });
   bounce("/admin?vurgu=binler", result);
+}
+
+export async function refundAction(formData: FormData) {
+  const user = await actor();
+  const id = String(formData.get("id") || "");
+  const amount = parseTryToKurus(String(formData.get("tutar") || ""));
+  if (amount === null || amount <= 0 || amount > MAX_SPEND_KURUS) bounce("/panel/kartlar", "e-tutar");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id);
+    const card = db.cards.find((item) => item.id === id && item.userId === user.id);
+    if (!row || !card) return "e-yok" as const;
+    if (card.status !== "aktif" || card.spent <= 0) return "e-durum" as const;
+    const floor = Math.min(MIN_SPEND_KURUS, card.spent);
+    if (amount < floor || amount > card.spent) return "e-tutar" as const;
+    if (row.balance + amount > MAX_BALANCE_KURUS) return "e-tavan" as const;
+    row.balance += amount;
+    card.spent -= amount;
+    db.transactions.push({
+      id: `tx_${randomUUID()}`,
+      userId: row.id,
+      cardId: card.id,
+      kind: "iade",
+      title: "Simülasyon iadesi",
+      note: `${row.username} hesabına simülasyon iadesi yazıldı. Gerçek tahsilat yoktur.`,
+      amount,
+      status: "tamamlandi",
+      createdAt: new Date().toISOString(),
+    });
+    return "iade" as const;
+  });
+  bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
+}
+
+export async function renewAction(formData: FormData) {
+  const user = await actor();
+  const id = String(formData.get("id") || "");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id);
+    const card = db.cards.find((item) => item.id === id && item.userId === user.id);
+    if (!row || !card) return "e-yok" as const;
+    if (card.status === "kapali" || card.status === "hazirlaniyor") return "e-durum" as const;
+    if (card.spent <= 0) return "e-yenile" as const;
+    card.spent = 0;
+    card.period += 1;
+    db.transactions.push({
+      id: `tx_${randomUUID()}`,
+      userId: row.id,
+      cardId: card.id,
+      kind: "yenileme",
+      title: `Tavan yenilendi · ${card.label}`,
+      note: "Harcama sayacı sıfırlandı. Önceki harcamalar cüzdandan geri gelmez.",
+      amount: 0,
+      status: "tamamlandi",
+      createdAt: new Date().toISOString(),
+    });
+    return "yenilendi" as const;
+  });
+  bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
+}
+
+export async function displayNameAction(formData: FormData) {
+  const user = await actor();
+  if (user.role !== "uye") redirect("/admin");
+  const name = parseDisplayName(String(formData.get("ad") || ""));
+  if (!name) bounce("/panel/hesap", "e-ad");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id && item.role === "uye");
+    if (!row) return "e-yok" as const;
+    row.name = name;
+    const line = holderLine(name);
+    for (const card of db.cards) {
+      if (card.userId === row.id) card.holder = line;
+    }
+    return "ad" as const;
+  });
+  bounce("/panel/hesap", result);
 }
 
 export async function passwordChangeAction(formData: FormData) {

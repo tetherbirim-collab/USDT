@@ -1,5 +1,5 @@
 import { Notice } from "@/components/notice";
-import { passwordChangeAction } from "@/lib/actions";
+import { displayNameAction, passwordChangeAction } from "@/lib/actions";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -35,7 +35,19 @@ export default async function AccountPage({
           <dt className="text-white/50">Kullanıcı adı</dt>
           <dd className="font-semibold">{user.username}</dd>
         </div>
+        <div>
+          <dt className="text-white/50">Görünen ad</dt>
+          <dd className="font-semibold">{user.name}</dd>
+        </div>
       </dl>
+      <form action={displayNameAction} className="glass grid max-w-md gap-3 rounded-[28px] p-5">
+        <label className="grid gap-1 text-sm">
+          Görünen ad
+          <input className="field" name="ad" required minLength={2} maxLength={40} defaultValue={user.name} />
+        </label>
+        <p className="text-xs text-white/50">Kartın ad satırında bunun ilk 24 karakteri büyük harfle durur.</p>
+        <button className="btn btn-gold w-fit">Adı kaydet</button>
+      </form>
       <form action={passwordChangeAction} className="glass grid max-w-md gap-3 rounded-[28px] p-5">
         <label className="grid gap-1 text-sm">
           Mevcut parola

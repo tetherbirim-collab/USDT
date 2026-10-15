@@ -2,9 +2,9 @@ export type PlanId = "kivilcim" | "atolye" | "galeri";
 
 export type CardTypeId = "facebook_ads" | "tiktok" | "google_ads" | "ultima";
 
-export type CardStatus = "aktif" | "donduruldu" | "kapali";
+export type CardStatus = "hazirlaniyor" | "aktif" | "donduruldu" | "kapali";
 
-export type TxKind = "yukleme" | "harcama" | "iade" | "basim" | "duzeltme";
+export type TxKind = "yukleme" | "harcama" | "iade" | "basim" | "duzeltme" | "yenileme";
 
 export type TxStatus = "tamamlandi" | "reddedildi";
 
@@ -50,6 +50,10 @@ export type Card = {
   cvv: string;
   holder: string;
   status: CardStatus;
+  /** When status is hazirlaniyor, the card becomes active at this instant. */
+  readyAt: string | null;
+  /** Ceiling period. A halfway warning is sent once per period. */
+  period: number;
   createdAt: string;
 };
 

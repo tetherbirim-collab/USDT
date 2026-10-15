@@ -38,6 +38,7 @@ function batches(notices: InboxNote[], users: User[]) {
 }
 
 const STATUS_LABEL = {
+  hazirlaniyor: "Hazırlanıyor",
   aktif: "Aktif",
   donduruldu: "Donduruldu",
   kapali: "Kapalı",

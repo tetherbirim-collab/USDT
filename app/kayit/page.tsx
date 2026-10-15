@@ -14,7 +14,7 @@ export default async function RegisterPage() {
   return (
     <AuthShell
       title="Kayıt ol"
-      lede="Kullanıcı adı ve parola yeter. Kimlik belgesi yok."
+      lede="Görünen ad kartın üzerine yazılır. Kimlik belgesi yok."
     >
       <RegisterForm />
       <Link href="/giris" className="auth-outline mt-3">

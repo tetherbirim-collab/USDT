@@ -37,9 +37,12 @@ export default async function PanelLayout({ children }: { children: React.ReactN
     >
       {hot.length > 0 && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[#ff6a80]/50 bg-[#ff3b4e]/15 px-4 py-3">
-          <p className="font-display text-lg font-extrabold tracking-wide text-[#ffd5dc]">
-            KARTIN BAKİYESİ BİTİYOR
-          </p>
+          <div>
+            <p className="font-display text-lg font-extrabold tracking-wide text-[#ffd5dc]">
+              KARTIN BAKİYESİ BİTİYOR
+            </p>
+            <p className="text-sm text-[#ffd5dc]/90">{hot.map((card) => card.label).join(" · ")}</p>
+          </div>
           <Link href="/panel/yukle" className="btn btn-gold">
             Bakiye yükle
           </Link>

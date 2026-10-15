@@ -51,6 +51,7 @@ export function RegisterForm() {
   const [state, action, pending] = useActionState(registerAction, { error: "" });
   return (
     <form action={action} className="grid gap-3">
+      <input className="auth-field" name="ad" autoComplete="name" placeholder="Görünen ad" required minLength={2} maxLength={40} />
       <input className="auth-field" name="kullanici" autoComplete="username" placeholder="Kullanıcı adı" required minLength={2} maxLength={24} />
       <input
         className="auth-field"

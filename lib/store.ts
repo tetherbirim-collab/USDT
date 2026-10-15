@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "fs";
 import path from "path";
-import { CARD_TYPE_ORDER, TEST_BIN, WELCOME_BONUS_KURUS } from "./catalog";
+import { CARD_PREP_MS, CARD_TYPE_ORDER, TEST_BIN, WELCOME_BONUS_KURUS } from "./catalog";
 import { holderLine } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
 import type { BinRow, Card, CardTypeId, DB, Tx, User } from "./types";
@@ -28,6 +28,8 @@ function createSeed(): DB {
     cvv: makeCvv(100_000_001),
     holder: holderLine("Demo Kullanıcı"),
     status: "aktif",
+    readyAt: null,
+    period: 1,
     createdAt: "2026-09-28T09:04:00.000Z",
   };
   const alisveris: Card = {
@@ -44,6 +46,8 @@ function createSeed(): DB {
     cvv: makeCvv(100_000_002),
     holder: holderLine("Demo Kullanıcı"),
     status: "aktif",
+    readyAt: null,
+    period: 1,
     createdAt: "2026-10-05T08:39:00.000Z",
   };
   const abonelik: Card = {
@@ -60,6 +64,8 @@ function createSeed(): DB {
     cvv: makeCvv(100_000_003),
     holder: holderLine("Demo Kullanıcı"),
     status: "donduruldu",
+    readyAt: null,
+    period: 1,
     createdAt: "2026-10-08T08:59:00.000Z",
   };
 
@@ -268,6 +274,8 @@ function createSeed(): DB {
     cvv: makeCvv(100_000_004),
     holder: holderLine("Demo Kullanıcı"),
     status: "aktif",
+    readyAt: null,
+    period: 1,
     createdAt: "2026-10-09T09:10:00.000Z",
   };
 
@@ -318,6 +326,7 @@ function applyLedger(db: DB) {
     if (!entry.cardId) continue;
     const card = db.cards.find((item) => item.id === entry.cardId);
     if (!card) continue;
+    if (entry.kind === "yenileme") card.spent = 0;
     if (entry.kind === "harcama") card.spent += -entry.amount;
     if (entry.kind === "iade") card.spent -= entry.amount;
   }
@@ -431,6 +440,35 @@ function normalize(db: DB): DB {
       card.holder = personal;
       dirty = true;
     }
+    if (card.readyAt === undefined) {
+      card.readyAt = null;
+      dirty = true;
+    }
+    if (typeof card.period !== "number" || card.period < 1) {
+      card.period = 1;
+      dirty = true;
+    }
+    if (card.status === "hazirlaniyor") {
+      const ready = card.readyAt ? Date.parse(card.readyAt) : 0;
+      if (!Number.isFinite(ready) || ready <= Date.now()) {
+        card.status = "aktif";
+        card.readyAt = null;
+        const ref = `hazir:${card.id}`;
+        if (!db.notices.some((note) => note.ref === ref)) {
+          db.notices.push({
+            id: `nt_${randomUUID()}`,
+            userId: card.userId,
+            batch: randomUUID(),
+            title: "Kart hazır",
+            body: `${card.label} hazır. Numara test verisidir, gerçek üye işyerinde kullanılamaz.`,
+            createdAt: new Date().toISOString(),
+            readAt: null,
+            ref,
+          });
+        }
+        dirty = true;
+      }
+    }
   }
   if (dirty) {
     assertDb(db);
@@ -492,6 +530,13 @@ export function parseUsername(raw: string): string | null {
   return username;
 }
 
+export function parseDisplayName(raw: string): string | null {
+  const name = raw.replace(/\s+/g, " ").trim();
+  if (name.length < 2 || name.length > 40) return null;
+  if (!/^[\p{L}][\p{L}\p{M} .'-]*$/u.test(name)) return null;
+  return name;
+}
+
 export function findUserByUsername(username: string): User | undefined {
   const needle = username.trim().toLowerCase();
   return read().users.find((user) => user.username === needle);
@@ -501,12 +546,12 @@ export function findUserById(id: string): User | undefined {
   return read().users.find((user) => user.id === id);
 }
 
-export function createUser(input: { username: string; password: string }): User | null {
+export function createUser(input: { username: string; password: string; name: string }): User | null {
   return mutate((db) => {
     if (db.users.some((item) => item.username === input.username)) return null;
     const user: User = {
       id: `usr_${randomUUID()}`,
-      name: input.username,
+      name: input.name,
       username: input.username,
       password: input.password,
       balance: WELCOME_BONUS_KURUS,
@@ -532,7 +577,7 @@ export function createUser(input: { username: string; password: string }): User 
 }
 
 export function listCards(userId: string): Card[] {
-  const rank = { aktif: 0, donduruldu: 1, kapali: 2 };
+  const rank = { hazirlaniyor: 0, aktif: 1, donduruldu: 2, kapali: 3 };
   return read()
     .cards.filter((card) => card.userId === userId)
     .sort(
@@ -591,7 +636,9 @@ export function issueCard(
     expiry: makeExpiry(),
     cvv: makeCvv(serial),
     holder: holderLine(user.name),
-    status: "aktif",
+    status: "hazirlaniyor",
+    readyAt: new Date(Date.now() + CARD_PREP_MS).toISOString(),
+    period: 1,
     createdAt: now,
   };
   user.balance -= input.fee;
@@ -602,7 +649,7 @@ export function issueCard(
     cardId: card.id,
     kind: "basim",
     title: `Basım · ${card.label}`,
-    note: "Simülasyon basım ücreti. Kart gerçek üye işyerinde kullanılamaz.",
+    note: `Sipariş ${card.id}. Basım ücreti simülasyondur. Kart hazırlanıyor; numara test verisidir ve gerçek üye işyerinde kullanılamaz.`,
     amount: -input.fee,
     status: "tamamlandi",
     createdAt: now,

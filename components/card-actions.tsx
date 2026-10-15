@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { closeAction, freezeAction, spendAction } from "@/lib/actions";
+import { closeAction, freezeAction, refundAction, renewAction, spendAction } from "@/lib/actions";
 import { merchantsFor } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
 import type { Card } from "@/lib/types";
+import { OrderSlip } from "./order-slip";
 import { SubmitButton } from "./submit-button";
 
 function heat(percent: number) {
@@ -17,6 +18,16 @@ export function CardActions({ card }: { card: Card }) {
   const percent = card.limit > 0 ? Math.min(100, Math.round((card.spent / card.limit) * 100)) : 0;
   const tone = heat(percent);
   const finished = kalan <= 0;
+  if (card.status === "hazirlaniyor") {
+    return (
+      <div className="mt-4 grid gap-3">
+        <OrderSlip card={card} />
+        <p className="text-xs text-white/50">
+          Bu bilgiler simülasyon test verisidir. Gerçek üye işyerinde kullanılamaz.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="mt-4 grid gap-3">
       <div className="flex items-center justify-between text-sm text-white/70">
@@ -39,6 +50,13 @@ export function CardActions({ card }: { card: Card }) {
         <button type="button" className="btn btn-ghost w-fit opacity-40" disabled>
           Bakiye yükle
         </button>
+      )}
+      {card.spent > 0 && (
+        <form action={renewAction} className="grid gap-1">
+          <input type="hidden" name="id" value={card.id} />
+          <SubmitButton className="btn btn-gold w-fit">Tavanı yenile</SubmitButton>
+          <p className="text-xs text-white/50">Harcama sayacı sıfırlanır. Cüzdandan düşen tutar geri gelmez.</p>
+        </form>
       )}
       <p className="text-xs text-white/50">
         Bu bilgiler simülasyon test verisidir. Gerçek üye işyerinde kullanılamaz.
@@ -77,6 +95,22 @@ export function CardActions({ card }: { card: Card }) {
               <input className="field" name="tutar" inputMode="decimal" placeholder="120" required />
             </label>
             <SubmitButton className="btn btn-ghost">Harcama yaz</SubmitButton>
+          </form>
+        </details>
+      )}
+      {card.status === "aktif" && card.spent > 0 && (
+        <details className="rounded-2xl border border-white/10 p-3">
+          <summary className="cursor-pointer text-sm font-semibold">Simüle iade</summary>
+          <form action={refundAction} className="mt-3 grid gap-2">
+            <input type="hidden" name="id" value={card.id} />
+            <label className="grid gap-1 text-xs text-white/70">
+              Tutar (₺)
+              <input className="field" name="tutar" inputMode="decimal" placeholder="40" required />
+            </label>
+            <p className="text-xs text-white/50">
+              En fazla {formatTL(card.spent)} geri yazılır. Tutar cüzdana döner, tavan açılır.
+            </p>
+            <SubmitButton className="btn btn-ghost">İade yaz</SubmitButton>
           </form>
         </details>
       )}

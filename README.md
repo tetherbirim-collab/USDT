@@ -22,7 +22,7 @@ Veriler sunucuda `data/sanalkart.json` dosyasına yazılır. Dosyayı silmek dem
 - Kullanıcı adı: `demo`
 - Parola: `demo123`
 
-Demo hesapta bakiye, birkaç kart ve işlem dökümü hazır gelir. Yeni hesaplar kullanıcı adı, parola ve parola tekrar ile açılır. Kıvılcım planında 1.500 ₺ hoş geldin bakiyesi yazılır. Bu tutar da simülasyondur. Demo kullanıcı yönetim masasına giremez.
+Demo hesapta bakiye, birkaç kart ve işlem dökümü hazır gelir. Yeni hesaplar görünen ad, kullanıcı adı, parola ve parola tekrar ile açılır. Görünen ad kartın üzerine yazılır; Hesap sayfasından değiştirilebilir. Kıvılcım planında 1.500 ₺ hoş geldin bakiyesi yazılır. Bu tutar da simülasyondur. Demo kullanıcı yönetim masasına giremez.
 
 İki hazır giriş vardır: üye `demo` / `demo123` ve yönetici `admin` / `admin123`.
 
@@ -38,7 +38,7 @@ Askıya alınan hesap giriş yapamaz. Yönetici kendi hesabını askıya alamaz.
 
 Üye listesindeki kullanıcı adı, o hesabın kartlarını, harcama ve limit tutarlarını, işlem dökümünü ve son yükleme zamanını açar. Listede ve detayda hesap numarası ile güncel parola düz metin görünür. Üye parolasını Hesap sayfasından değiştirince yönetim masasında yeni değer görünür. Yönetici bakiye, kart etiketi, limit, kart durumu, işlem tutarı ve son yükleme zamanını düzenleyebilir. Bildirimler bölümünden bir üyeye veya tüm üyelere başlık ve mesaj yazılır. Üye panelinde okunmamış sayısı görünür; okundu saymak ayrıca bir düğmedir. Yönetici kimin aldığını ve kaçının okuduğunu görür.
 
-Her kart türünün listesinde etiket «Test öneki» ve rakam `400000` hazırdır. Yönetici satır ekler, düzeltir, siler veya etiket ile rakamı satır satır yapıştırır. Aynı türde aynı rakam iki kez durmaz. Üye kart basarken yalnızca seçtiği türün listesini görür ve bir satır seçmeden kart oluşmaz. Gelişigüzel numara sorgulama yoktur. Harcama provası yalnızca o kart türünün işletme listesinden yazılır.
+Her kart türünün listesinde etiket «Test öneki» ve rakam `400000` hazırdır. Tür boş kalırsa bu satır kendiliğinden geri gelir. Yönetici satır ekler, düzeltir, siler veya etiket ile rakamı satır satır yapıştırır. Aynı türde aynı rakam iki kez durmaz. Üye kart basarken yalnızca seçtiği türün listesini görür ve bir satır seçmeden kart oluşmaz. Gelişigüzel numara sorgulama yoktur. Harcama provası yalnızca o kart türünün işletme listesinden yazılır. Üye kendi kartına simülasyon iadesi yazabilir ve dolan tavanı yenileyebilir. Yenileme cüzdanı geri yüklemez. Cüzdana dolar tutarı da yazılır; sabit satış kuruyla liraya çevrilir ve fişte ikisi de görünür. Yeni kart kısa süre «hazırlanıyor» siparişinde kalır, sonra açılır.
 
 ## Kartlar hakkında
 

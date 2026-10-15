@@ -9,6 +9,18 @@ export const MIN_SPEND_KURUS = 1_000;
 export const MAX_SPEND_KURUS = 2_000_000;
 export const MIN_LIMIT_KURUS = 10_000;
 export const MAX_LIMIT_KURUS = 10_000_000;
+/** How long a new card stays on the order slip before it becomes active. */
+export const CARD_PREP_MS = 15_000;
+/**
+ * Fixed simulation selling rate, 15 Eki 2026. Not a live feed and not a payment.
+ * One US dollar converts to this many lira.
+ */
+export const USD_SELL_RATE = 49.3929;
+export const USD_RATE_AS_OF = "15 Eki 2026";
+
+export function usdMinorToKurus(minor: number): number {
+  return Math.round(minor * USD_SELL_RATE);
+}
 
 export const CARD_TYPE_ORDER: CardTypeId[] = ["facebook_ads", "tiktok", "google_ads", "ultima"];
 
@@ -94,6 +106,7 @@ export const KIND_LABEL: Record<TxKind, string> = {
   iade: "İade",
   basim: "Basım",
   duzeltme: "Düzeltme",
+  yenileme: "Tavan yenileme",
 };
 
 export const NOTICES: Record<string, string> = {
@@ -102,6 +115,12 @@ export const NOTICES: Record<string, string> = {
   yuklendi: "Simülasyon bakiyesi eklendi. Gerçek tahsilat yapılmadı.",
   basildi:
     "Simülasyon kartı basıldı. Numara test verisidir, gerçek üye işyerinde kullanılamaz.",
+  siparis:
+    "Sipariş alındı. Kart kısa süre hazırlanır. Basım ücreti simülasyondur, numara test verisidir.",
+  hazir: "Kart hazır. Numara test verisidir ve gerçek üye işyerinde kullanılamaz.",
+  yenilendi: "Tavan yenilendi. Harcama sayacı sıfırlandı. Cüzdan tutarı değişmedi.",
+  iade: "Simülasyon iadesi cüzdana ve tavana işlendi. Gerçek tahsilat yoktur.",
+  ad: "Görünen ad güncellendi. Kartlardaki ad satırı buna çekildi.",
   donduruldu: "Kart donduruldu. Harcama provası kapalı.",
   cozuldu: "Kart yeniden aktif. Bu hâlâ bir simülasyon.",
   kapatildi: "Kart kapatıldı. Kapanış geri alınmaz; ortada gerçek bir kart yoktur.",
@@ -138,6 +157,8 @@ export const NOTICES: Record<string, string> = {
   parola: "Parola güncellendi. Yönetim masasında yeni parola görünür.",
   "e-parola": "Yeni parola 6–72 karakter olmalı ve tekrar ile aynı olmalı.",
   "e-parola-eski": "Mevcut parola hatalı.",
+  "e-ad": "Görünen ad 2–40 karakter olmalı ve bir harfle başlamalı.",
+  "e-yenile": "Yenilenecek harcama yok. Tavan zaten boş.",
   okundu: "Bildirim okundu sayıldı.",
 };
 

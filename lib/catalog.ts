@@ -131,7 +131,7 @@ export const NOTICES: Record<string, string> = {
     "Simülasyon kartı basıldı. Numara test verisidir, gerçek üye işyerinde kullanılamaz.",
   siparis:
     "Sipariş alındı. Kart kısa süre hazırlanır. Basım ücreti simülasyondur, numara test verisidir.",
-  hazir: "Kart hazır. Numara test verisidir ve gerçek üye işyerinde kullanılamaz.",
+  hazir: "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz. Numara test verisidir ve gerçek üye işyerinde kullanılamaz.",
   yenilendi: "Tavan yenilendi. Harcama sayacı sıfırlandı. Cüzdan tutarı değişmedi.",
   transfer: "Kalan tavan aktarıldı. %2 komisyon kesildi. Cüzdan tutarı değişmedi.",
   iade: "Simülasyon iadesi cüzdana ve tavana işlendi. Gerçek tahsilat yoktur.",

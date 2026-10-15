@@ -47,6 +47,11 @@ export default function OrdersPage() {
                   <p className="mt-1 font-mono text-xs text-white/45">Sipariş no {order.id}</p>
                   <p className="mt-1 text-sm text-white/70">Basım ücreti {formatTL(order.fee)}</p>
                   <p className="text-xs text-white/45">{formatWhen(order.createdAt)}</p>
+                  {order.status === "hazir" && (
+                    <p className="mt-2 text-sm font-semibold text-mint">
+                      Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz.
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link href={`/panel/kartlar#${order.cardId}`} className="btn btn-ghost">

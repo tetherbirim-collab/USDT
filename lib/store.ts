@@ -533,7 +533,7 @@ function normalize(db: DB): DB {
             userId: card.userId,
             batch: rid(),
             title: "Kart hazır",
-            body: `${card.label} hazır. Numara test verisidir, gerçek üye işyerinde kullanılamaz.`,
+            body: "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz. Numara test verisidir, gerçek üye işyerinde kullanılamaz.",
             createdAt: new Date().toISOString(),
             readAt: null,
             ref,
@@ -563,9 +563,10 @@ function normalize(db: DB): DB {
   if (dirty) {
     assertDb(db);
     write(db);
+  } else if (!cache) {
+    cache = db;
   }
-  cache = db;
-  return db;
+  return cache ?? db;
 }
 
 function assertDb(db: DB) {
@@ -583,8 +584,8 @@ function assertDb(db: DB) {
 }
 
 function write(db: DB) {
-  cache = db;
-  if (typeof window !== "undefined") localStorage.setItem(LEDGER_KEY, JSON.stringify(db));
+  cache = structuredClone(db);
+  if (typeof window !== "undefined") localStorage.setItem(LEDGER_KEY, JSON.stringify(cache));
   if (booted) emit();
 }
 

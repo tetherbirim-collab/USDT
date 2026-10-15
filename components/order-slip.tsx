@@ -32,7 +32,7 @@ export function OrderSlip({ card }: { card: Card }) {
         Basım ücreti {formatTL(CARD_TYPES[card.type].fee)} deftere yazıldı. Bu bir simülasyon fişidir.
       </p>
       <p className="mt-3 font-semibold text-gold">
-        {seconds > 0 ? `Hazırlanıyor · ${seconds} sn` : "Teslim ediliyor…"}
+        {seconds > 0 ? `Hazırlanıyor · ${seconds} sn` : "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz."}
       </p>
     </div>
   );

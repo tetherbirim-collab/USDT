@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cancelOrderAction, closeAction, freezeAction, refundAction, renewAction, spendAction } from "@/lib/actions";
 import { KIND_LABEL, merchantsFor } from "@/lib/catalog";
 import { formatSigned, formatTL, formatUsd, formatWhen } from "@/lib/format";
+import { listNotices } from "@/lib/store";
 import type { Card, Tx } from "@/lib/types";
 import { OrderSlip } from "./order-slip";
 import { SubmitButton } from "./submit-button";
@@ -27,6 +28,7 @@ export function CardActions({
   const percent = card.limit > 0 ? Math.min(100, Math.round((card.spent / card.limit) * 100)) : 0;
   const tone = heat(percent);
   const finished = kalan <= 0;
+  const readyNote = listNotices(card.userId).find((note) => note.ref === `hazir:${card.id}`);
   if (card.status === "hazirlaniyor") {
     return (
       <div className="mt-4 grid gap-3">
@@ -43,6 +45,11 @@ export function CardActions({
   }
   return (
     <div className="mt-4 grid gap-3">
+      {readyNote && (
+        <p className="rounded-2xl border border-mint/40 bg-mint/10 px-4 py-3 text-sm font-semibold text-mint">
+          Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz.
+        </p>
+      )}
       <div className="flex items-center justify-between text-sm text-white/70">
         <span>Kalan tavan</span>
         <span className="font-semibold" style={{ color: tone.ink }}>

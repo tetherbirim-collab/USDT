@@ -8,7 +8,9 @@ export function TrustLine({ className = "" }: { className?: string }) {
   return (
     <p className={`trust-line ${className}`.trim()}>
       <span>{siteText(settings, "sloganKyc")}</span>
+      <span aria-hidden="true"> · </span>
       <span className="trust-hot">{siteText(settings, "sloganLog")}</span>
+      <span aria-hidden="true"> · </span>
       <span>{siteText(settings, "sloganSafe")}</span>
     </p>
   );

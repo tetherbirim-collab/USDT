@@ -162,6 +162,8 @@ export type PstLink = {
   transferSource: number;
   error: string;
   tokenTail: string;
+  /** Last time the VPS watcher read PST. Empty until cron is running. */
+  watchedAt: string;
 };
 
 export type SiteSettings = {

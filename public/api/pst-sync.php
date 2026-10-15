@@ -46,6 +46,9 @@ function clay_pst_blank(): array
         "transferSource" => 0,
         "error" => "",
         "tokenTail" => "",
+        "watchedAt" => "",
+        "wallets" => [],
+        "queue" => [],
     ];
 }
 
@@ -167,8 +170,11 @@ function pst_kind(array $tx): string
     if (str_contains($blob, "refund") || str_contains($blob, "reversal")) {
         return "iade";
     }
-    if (str_contains($blob, "topup") || str_contains($blob, "top-up") || str_contains($blob, "refill") || str_contains($blob, "replen")) {
+    if (str_contains($blob, "topup") || str_contains($blob, "top-up") || str_contains($blob, "top_up") || str_contains($blob, "refill") || str_contains($blob, "replen") || str_contains($blob, "deposit")) {
         return "yukleme";
+    }
+    if (str_contains($blob, "withdraw") || str_contains($blob, "payout")) {
+        return "transfer";
     }
     if (str_contains($blob, "transfer")) {
         return "transfer";
@@ -511,6 +517,9 @@ function clay_pst_apply(array &$db, array $cards, array $transactions, array $ta
             if ($available === null) {
                 $row["limit"] = (int) ($keep["limit"] ?? 0);
             }
+            if (($keep["status"] ?? "") !== "kapali" && $row["status"] === "kapali") {
+                clay_notice($db, $owner, "PST kartı kapatıldı", $label . " PST tarafında kapandı.", "pst-kapandi:" . $id);
+            }
             $db["cards"][$cardIndex[$id]] = $row;
         } else {
             $db["cards"][] = $row;
@@ -565,6 +574,9 @@ function clay_pst_apply(array &$db, array $cards, array $transactions, array $ta
         $cents = (int) round($usd * 100);
         $amount = (int) round($cents * 49.3929);
         $kind = pst_kind($tx);
+        if ($usd > 0 && $kind === "harcama") {
+            $kind = "iade";
+        }
         $ok = pst_tx_ok($tx);
         $when = pst_iso((string) ($tx["processed_at"] ?? $tx["created_at"] ?? clay_now()));
         $entry = [
@@ -647,6 +659,9 @@ function clay_pst_apply(array &$db, array $cards, array $transactions, array $ta
         "transferSource" => $transferSource ?? (float) ($prev["transferSource"] ?? 0),
         "error" => "",
         "tokenTail" => $token === "" ? "" : substr($token, -4),
+        "watchedAt" => (string) ($prev["watchedAt"] ?? ""),
+        "wallets" => is_array($prev["wallets"] ?? null) ? $prev["wallets"] : [],
+        "queue" => is_array($prev["queue"] ?? null) ? $prev["queue"] : [],
     ];
     return true;
 }
@@ -672,6 +687,8 @@ function pst_pull(string $token, bool $cabinet, int $txPages, bool $rates = true
     $urls = [
         "https://api.pst.net" . $cardPath . "?" . http_build_query($cardQuery),
         "https://api.pst.net" . $txPath . "?" . http_build_query($firstTx),
+        $cabinet ? "https://api.pst.net/account" : "https://api.pst.net/integration/account",
+        $cabinet ? "https://api.pst.net/withdrawal?per_page=50&page=1" : "https://api.pst.net/integration/withdrawal?per_page=50&page=1",
     ];
     if ($rates) {
         $urls[] = "https://api.pst.net" . $tariffPath . "?" . http_build_query(["per_page" => 100, "page" => 1]);
@@ -680,8 +697,10 @@ function pst_pull(string $token, bool $cabinet, int $txPages, bool $rates = true
     $bodies = pst_http_many($urls, $token);
     $cardsJson = $bodies[0];
     $txJson = $bodies[1];
-    $tariffJson = $rates ? $bodies[2] : ["data" => []];
-    $fees = $rates ? $bodies[3] : ["data" => []];
+    $accountJson = $bodies[2];
+    $withdrawJson = $bodies[3];
+    $tariffJson = $rates ? $bodies[4] : ["data" => []];
+    $fees = $rates ? $bodies[5] : ["data" => []];
     if ($cabinet && isset($cardsJson["_error"]) && (int) $cardsJson["_error"] === 401) {
         return ["denied" => true];
     }
@@ -715,10 +734,246 @@ function pst_pull(string $token, bool $cabinet, int $txPages, bool $rates = true
         "transactions" => $transactions,
         "tariffs" => $tariffs,
         "fees" => $fees,
+        "accounts" => isset($accountJson["_error"]) ? $accountJson : pst_rows($accountJson),
+        "withdrawals" => isset($withdrawJson["_error"]) ? $withdrawJson : pst_rows($withdrawJson),
     ];
 }
 
-function clay_pst_sync(array &$db, bool $force): bool
+function pst_request(string $method, string $url, string $token, ?string $body = null): array
+{
+    if (!function_exists("curl_init")) {
+        return ["code" => 0, "json" => ["_error" => 0]];
+    }
+    $handle = curl_init($url);
+    if ($handle === false) {
+        return ["code" => 0, "json" => ["_error" => 0]];
+    }
+    $headers = ["Authorization: Bearer " . $token, "Accept: application/json"];
+    if ($body !== null) {
+        $headers[] = "Content-Type: application/json";
+    }
+    curl_setopt_array($handle, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 12,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_CUSTOMREQUEST => $method,
+        CURLOPT_HTTPHEADER => $headers,
+    ]);
+    if ($body !== null) {
+        curl_setopt($handle, CURLOPT_POSTFIELDS, $body);
+    }
+    $raw = curl_exec($handle);
+    $code = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+    curl_close($handle);
+    $json = is_string($raw) ? json_decode($raw, true) : null;
+    return ["code" => $code, "json" => is_array($json) ? $json : []];
+}
+
+function pst_close_card(string $pstId, string $token): array
+{
+    $id = preg_replace("/\\D/", "", $pstId);
+    if ($id === "") {
+        return ["ok" => false, "code" => 0];
+    }
+    $hit = pst_request("DELETE", "https://api.pst.net/card/" . $id, $token, null);
+    $ok = $hit["code"] === 200 || $hit["code"] === 204 || $hit["code"] === 404;
+    return ["ok" => $ok, "code" => $hit["code"]];
+}
+
+function clay_pst_queue_close(array &$db, array $card): void
+{
+    clay_pst_ensure($db["settings"]);
+    if (!is_array($db["settings"]["pst"]["queue"] ?? null)) {
+        $db["settings"]["pst"]["queue"] = [];
+    }
+    $cardId = (string) ($card["id"] ?? "");
+    if (!str_starts_with($cardId, "crd_pst_")) {
+        return;
+    }
+    foreach ($db["settings"]["pst"]["queue"] as $job) {
+        if (($job["cardId"] ?? "") === $cardId && ($job["op"] ?? "") === "kapat" && ($job["status"] ?? "") === "bekliyor") {
+            return;
+        }
+    }
+    $db["settings"]["pst"]["queue"][] = [
+        "id" => "q_" . preg_replace("/\\D/", "", $cardId),
+        "op" => "kapat",
+        "cardId" => $cardId,
+        "pstId" => preg_replace("/\\D/", "", $cardId),
+        "status" => "bekliyor",
+        "tries" => 0,
+        "error" => "",
+        "at" => clay_now(),
+    ];
+}
+
+function clay_pst_hold_closed(array &$db): void
+{
+    $waiting = [];
+    foreach ($db["settings"]["pst"]["queue"] ?? [] as $job) {
+        if (($job["op"] ?? "") === "kapat" && ($job["status"] ?? "") === "bekliyor") {
+            $waiting[(string) ($job["cardId"] ?? "")] = true;
+        }
+    }
+    if (!$waiting) {
+        return;
+    }
+    foreach ($db["cards"] as $i => $card) {
+        $id = (string) ($card["id"] ?? "");
+        if (isset($waiting[$id])) {
+            $db["cards"][$i]["status"] = "kapali";
+        }
+    }
+}
+
+function clay_pst_run_queue(array &$db): bool
+{
+    clay_pst_ensure($db["settings"]);
+    $token = pst_config()["token"];
+    $queue = $db["settings"]["pst"]["queue"] ?? [];
+    if (!is_array($queue) || !$queue || $token === "") {
+        clay_pst_hold_closed($db);
+        return false;
+    }
+    $changed = false;
+    foreach ($queue as $i => $job) {
+        if (($job["status"] ?? "") !== "bekliyor" || ($job["op"] ?? "") !== "kapat") {
+            continue;
+        }
+        $hit = pst_close_card((string) ($job["pstId"] ?? ""), $token);
+        $queue[$i]["tries"] = (int) ($job["tries"] ?? 0) + 1;
+        if ($hit["ok"]) {
+            $queue[$i]["status"] = "bitti";
+            $queue[$i]["error"] = "";
+            $changed = true;
+            continue;
+        }
+        $queue[$i]["error"] = "PST kapatma yanıtı " . (int) $hit["code"];
+        if ($queue[$i]["tries"] >= 8) {
+            $queue[$i]["status"] = "hata";
+            $db["settings"]["pst"]["error"] = "Kart kapatma PST tarafında tamamlanmadı.";
+        }
+        $changed = true;
+    }
+    $db["settings"]["pst"]["queue"] = $queue;
+    clay_pst_hold_closed($db);
+    return $changed;
+}
+
+function clay_pst_tx_ref_exists(array $db, string $ref): bool
+{
+    foreach ($db["transactions"] as $entry) {
+        if (($entry["ref"] ?? "") === $ref) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function clay_pst_push_money(array &$db, string $ref, string $kind, string $title, string $note, int $usdMinor, ?string $cardId = null): void
+{
+    if ($ref === "" || clay_pst_tx_ref_exists($db, $ref) || $usdMinor === 0) {
+        return;
+    }
+    $amount = clay_kurus($usdMinor);
+    if ($amount === 0) {
+        return;
+    }
+    $db["transactions"][] = [
+        "id" => "tx_" . $ref,
+        "userId" => "usr_admin",
+        "cardId" => $cardId,
+        "kind" => $kind,
+        "title" => mb_substr($title, 0, 80),
+        "note" => $note,
+        "amount" => $amount,
+        "usdMinor" => $cents,
+        "status" => "tamamlandi",
+        "createdAt" => clay_now(),
+        "ref" => $ref,
+    ];
+}
+
+function clay_pst_cash(array &$db, array $accounts, array $withdrawals): void
+{
+    clay_pst_ensure($db["settings"]);
+    $booked = [];
+    if (!isset($withdrawals["_error"])) {
+        foreach ($withdrawals as $row) {
+            if (!is_array($row) || !isset($row["id"])) {
+                continue;
+            }
+            $rawAmount = $row["amount"] ?? $row["amount_total"] ?? null;
+            $state = strtolower((string) ($row["status"] ?? "") . " " . (string) ($row["status_text"] ?? ""));
+            if (!is_numeric($rawAmount)) {
+                continue;
+            }
+            if (str_contains($state, "declin") || str_contains($state, "fail") || str_contains($state, "cancel")) {
+                continue;
+            }
+            $usd = (float) $rawAmount;
+            $minor = (int) round(abs($usd) * 100);
+            if ($minor === 0) {
+                continue;
+            }
+            $ref = "pst:cek:" . preg_replace("/\\D/", "", (string) $row["id"]);
+            $wallet = trim((string) ($row["wallet"] ?? ""));
+            $tail = $wallet === "" ? "" : " · " . substr($wallet, 0, 4) . "…" . substr($wallet, -4);
+            clay_pst_push_money(
+                $db,
+                $ref,
+                "transfer",
+                "PST çekim",
+                "PST çekimi." . $tail,
+                -$minor
+            );
+            $booked[$minor] = ($booked[$minor] ?? 0) + 1;
+        }
+    }
+    if (isset($accounts["_error"])) {
+        return;
+    }
+    $prevRows = $db["settings"]["pst"]["wallets"] ?? [];
+    $prev = [];
+    if (is_array($prevRows)) {
+        foreach ($prevRows as $row) {
+            if (is_array($row) && isset($row["id"])) {
+                $prev[(string) $row["id"]] = (int) ($row["minor"] ?? 0);
+            }
+        }
+    }
+    $next = [];
+    $known = $prevRows !== [] && $prevRows !== null;
+    foreach ($accounts as $account) {
+        if (!is_array($account) || !isset($account["id"]) || !is_numeric($account["balance"] ?? null)) {
+            continue;
+        }
+        if ((int) ($account["currency_id"] ?? 0) !== 2) {
+            continue;
+        }
+        $id = (string) $account["id"];
+        $minor = (int) round(((float) $account["balance"]) * 100);
+        $next[] = ["id" => (int) $account["id"], "minor" => $minor];
+        if (!$known || !array_key_exists($id, $prev) || $prev[$id] === $minor) {
+            continue;
+        }
+        $delta = $minor - $prev[$id];
+        if ($delta < 0 && isset($booked[abs($delta)])) {
+            continue;
+        }
+        $ref = "pst:cuzdan:" . $id . ":" . $prev[$id] . ":" . $minor;
+        if ($delta > 0) {
+            clay_pst_push_money($db, $ref, "yukleme", "PST yatırım", "PST cüzdanına yatırım geçti.", $delta);
+        } else {
+            clay_pst_push_money($db, $ref, "transfer", "PST çekim", "PST cüzdanından çekim geçti.", $delta);
+        }
+    }
+    if ($next) {
+        $db["settings"]["pst"]["wallets"] = $next;
+    }
+}
+
+function clay_pst_sync(array &$db, bool $force, int $minMs = 15000): bool
 {
     clay_pst_ensure($db["settings"]);
     $config = pst_config();
@@ -734,8 +989,9 @@ function clay_pst_sync(array &$db, bool $force): bool
         return $changed;
     }
     $seen = clay_ms((string) ($db["settings"]["pst"]["syncedAt"] ?? ""));
-    if (!$force && $seen > 0 && (int) round(microtime(true) * 1000) - $seen < 15000) {
-        return false;
+    if (!$force && $seen > 0 && (int) round(microtime(true) * 1000) - $seen < $minMs) {
+        $queueDirty = clay_pst_run_queue($db);
+        return $queueDirty;
     }
     set_time_limit(120);
     $txPages = $force ? 20 : 1;
@@ -757,5 +1013,15 @@ function clay_pst_sync(array &$db, bool $force): bool
         return true;
     }
     $fees = is_array($feeJson["data"] ?? null) ? $feeJson["data"] : [];
-    return clay_pst_apply($db, $cards, $transactions, $tariffs, $fees);
+    $applied = clay_pst_apply($db, $cards, $transactions, $tariffs, $fees);
+    clay_pst_cash($db, is_array($pulled["accounts"] ?? null) ? $pulled["accounts"] : [], is_array($pulled["withdrawals"] ?? null) ? $pulled["withdrawals"] : []);
+    $pstTx = 0;
+    foreach ($db["transactions"] as $entry) {
+        if (str_starts_with((string) ($entry["ref"] ?? ""), "pst:")) {
+            $pstTx += 1;
+        }
+    }
+    $db["settings"]["pst"]["transactions"] = $pstTx;
+    clay_pst_run_queue($db);
+    return $applied;
 }

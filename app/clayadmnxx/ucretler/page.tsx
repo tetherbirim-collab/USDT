@@ -53,6 +53,11 @@ export default function AdminFeesPage() {
             : "Henüz bağlı değil. PST API anahtarını yapıştır."}
           {settings.pst?.error ? ` ${settings.pst.error}` : ""}
         </p>
+        <p className="text-sm text-white/70">
+          {settings.pst?.watchedAt && Date.now() - Date.parse(settings.pst.watchedAt) < 90000
+            ? "VPS izleyici ayakta. Yatırım, çekim ve kart kapatma, ekran kapansa da yaklaşık 5 saniyede bir işlenir."
+            : "VPS izleyicisi duruyor. cPanel Cron’a her dakika şu satırı yaz: php /home/KULLANICI/public_html/api/pst-watch.php"}
+        </p>
         {settings.pst?.on ? (
           <p className="text-sm text-white/70">
             PST kart bedeli {String(settings.pst.issueSourceUsd).replace(".", ",")} USD, yükleme %{String(settings.pst.loadSource).replace(".", ",")}

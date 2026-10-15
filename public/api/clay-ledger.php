@@ -869,6 +869,9 @@ function clay_view(array $db, ?array $me): array
     if (($me["role"] ?? "") === "yonetici") {
         return $db;
     }
+    if (isset($db["settings"]["pst"]) && is_array($db["settings"]["pst"])) {
+        unset($db["settings"]["pst"]["queue"], $db["settings"]["pst"]["wallets"]);
+    }
     $id = (string) $me["id"];
     $mine = static function (array $rows) use ($id): array {
         $out = [];
@@ -1522,6 +1525,10 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             return clay_ok("iptal");
         }
         clay_notice($db, $me["id"], "Kart kapatıldı", $db["cards"][$cardIndex]["label"] . " kapatıldı. Basım ücreti bakiyeye geri yazıldı.");
+        if (str_starts_with((string) $db["cards"][$cardIndex]["id"], "crd_pst_")) {
+            clay_pst_queue_close($db, $db["cards"][$cardIndex]);
+            clay_pst_run_queue($db);
+        }
         return clay_ok("kapatildi");
     }
 
@@ -2403,6 +2410,10 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         $db["cards"][$cardIndex]["status"] = "kapali";
         $db["cards"][$cardIndex]["readyAt"] = null;
         clay_notice($db, $db["cards"][$cardIndex]["userId"], "Kart kapatıldı", $db["cards"][$cardIndex]["label"] . " yönetim masasında kapatıldı. Basım ücreti bakiyeye geri yazıldı.");
+        if (str_starts_with((string) $db["cards"][$cardIndex]["id"], "crd_pst_")) {
+            clay_pst_queue_close($db, $db["cards"][$cardIndex]);
+            clay_pst_run_queue($db);
+        }
         return clay_ok("kapatildi");
     }
 

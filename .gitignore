@@ -5,6 +5,7 @@ out
 data/*.json
 public/api/heleket-payments.json
 public/api/clay-ledger.json
+public/pst-watch.lock
 *.log
 .DS_Store
 tsconfig.tsbuildinfo

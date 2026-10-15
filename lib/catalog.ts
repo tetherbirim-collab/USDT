@@ -177,6 +177,7 @@ export function defaultSettings(): SiteSettings {
       transferSource: 0,
       error: "",
       tokenTail: "",
+      watchedAt: "",
     },
   };
 }

@@ -24,7 +24,7 @@ import {
   usdMinorToKurus,
 } from "./catalog";
 import { formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
-import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseDisplayName, parseUsername } from "./store";
+import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername } from "./store";
 import type { DB, User, Card } from "./types";
 
 export type FormState = { error: string };
@@ -728,6 +728,20 @@ export async function renewAction(formData: FormData) {
     return "yenilendi" as const;
   });
   bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
+}
+
+export async function addressAction(formData: FormData) {
+  const user = await actor();
+  if (user.role !== "uye") redirect("/admin");
+  const address = parseAddress(String(formData.get("adres") || ""));
+  if (address === null) bounce("/panel/hesap", "e-adres");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id && item.role === "uye");
+    if (!row) return "e-yok" as const;
+    row.address = address;
+    return "adres" as const;
+  });
+  bounce("/panel/hesap", result);
 }
 
 export async function displayNameAction(formData: FormData) {

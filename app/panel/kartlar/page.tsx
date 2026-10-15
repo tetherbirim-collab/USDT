@@ -30,8 +30,8 @@ export default async function CardsPage({
           <p className="text-xs font-bold tracking-[0.22em] text-gold">KARTLAR</p>
           <h1 className="font-display text-4xl font-extrabold">Sahne kartları</h1>
           <p className="mt-2 max-w-xl text-white/65">
-            Numaralar demo verisidir ve gerçek üye işyerinde kullanılamaz. Yeni kart, seçilen türün
-            BIN listesinden bir satır ister.
+            Numara, son kullanma, CVV ve adres yalnızca bu hesabın kartında durur. Numaralar demo
+            verisidir ve gerçek üye işyerinde kullanılamaz.
           </p>
         </div>
         <Link href="/panel/kartlar/yeni" className="btn btn-gold">
@@ -49,7 +49,11 @@ export default async function CardsPage({
               id={card.id}
               className={`glass rounded-[28px] p-4 ${highlight === card.id ? "ring-2 ring-gold" : ""}`}
             >
-              {card.status === "hazirlaniyor" ? <VirtualCard card={card} /> : <CardSecrets card={card} />}
+              {card.status === "hazirlaniyor" ? (
+                <VirtualCard card={card} />
+              ) : (
+                <CardSecrets card={card} address={user.address} />
+              )}
               <CardActions card={card} entries={txs.filter((entry) => entry.cardId === card.id).slice(0, 6)} />
             </article>
           ))}

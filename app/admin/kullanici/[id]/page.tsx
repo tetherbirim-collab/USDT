@@ -53,6 +53,7 @@ export default async function AdminUserPage({
         <p className="mt-3 text-xs font-bold tracking-[0.22em] text-gold">SİMÜLASYON</p>
         <h1 className="font-display text-4xl font-extrabold">{user.username}</h1>
         <p className="mt-1 text-white/70">{user.name}</p>
+        <p className="mt-1 text-sm text-white/70">Adres {user.address.trim() ? user.address : "yazılmadı"}</p>
         <p className="mt-2 font-mono text-sm text-white/70">Hesap no {user.id}</p>
         <p className="font-mono text-sm text-white/90">Parola {user.password}</p>
       </div>

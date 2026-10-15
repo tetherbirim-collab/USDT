@@ -1,5 +1,5 @@
 import { Notice } from "@/components/notice";
-import { displayNameAction, passwordChangeAction, planAction } from "@/lib/actions";
+import { addressAction, displayNameAction, passwordChangeAction, planAction } from "@/lib/actions";
 import { getCurrentUser } from "@/lib/auth";
 import { PLANS } from "@/lib/catalog";
 import type { PlanId } from "@/lib/types";
@@ -49,6 +49,16 @@ export default async function AccountPage({
         </label>
         <p className="text-xs text-white/50">Kartın ad satırında bunun ilk 24 karakteri büyük harfle durur.</p>
         <button className="btn btn-gold w-fit">Adı kaydet</button>
+      </form>
+      <form action={addressAction} className="glass grid max-w-md gap-3 rounded-[28px] p-5">
+        <label className="grid gap-1 text-sm">
+          Kart adresi
+          <textarea className="field min-h-24" name="adres" maxLength={120} defaultValue={user.address} />
+        </label>
+        <p className="text-xs text-white/50">
+          Yalnızca senin kartlarının detayında görünür. Boş bırakıp kaydedince satır silinir. Bu bir fatura adresi değildir.
+        </p>
+        <button className="btn btn-gold w-fit">Adresi kaydet</button>
       </form>
       <form action={planAction} className="glass grid max-w-xl gap-3 rounded-[28px] p-5">
         <p className="font-semibold">Vitrin planı</p>

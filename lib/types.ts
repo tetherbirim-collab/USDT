@@ -24,6 +24,8 @@ export type User = {
   plan: PlanId;
   role: UserRole;
   status: AccountStatus;
+  /** Billing line the member writes. Empty until they set it. Shown only on their cards. */
+  address: string;
   createdAt: string;
 };
 
@@ -36,6 +38,7 @@ export type PublicUser = {
   plan: PlanId;
   role: UserRole;
   status: AccountStatus;
+  address: string;
 };
 
 export type Card = {

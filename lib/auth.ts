@@ -65,6 +65,7 @@ export function toPublic(user: {
   plan: PublicUser["plan"];
   role: PublicUser["role"];
   status: PublicUser["status"];
+  address: string;
 }): PublicUser {
   return {
     id: user.id,
@@ -75,6 +76,7 @@ export function toPublic(user: {
     plan: user.plan,
     role: user.role,
     status: user.status,
+    address: user.address,
   };
 }
 

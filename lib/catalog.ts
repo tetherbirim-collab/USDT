@@ -127,6 +127,7 @@ export const NOTICES: Record<string, string> = {
   yenilendi: "Tavan yenilendi. Harcama sayacı sıfırlandı. Cüzdan tutarı değişmedi.",
   iade: "Simülasyon iadesi cüzdana ve tavana işlendi. Gerçek tahsilat yoktur.",
   ad: "Görünen ad güncellendi. Kartlardaki ad satırı buna çekildi.",
+  adres: "Kart adresi güncellendi. Yalnızca bu hesabın kart detaylarında görünür.",
   donduruldu: "Kart donduruldu. Harcama provası kapalı.",
   cozuldu: "Kart yeniden aktif. Bu hâlâ bir simülasyon.",
   kapatildi: "Kart kapatıldı. Basım ücreti bakiyeye geri yazıldı. Kapanış geri alınmaz.",
@@ -169,6 +170,7 @@ export const NOTICES: Record<string, string> = {
   "e-parola": "Yeni parola 6–72 karakter olmalı ve tekrar ile aynı olmalı.",
   "e-parola-eski": "Mevcut parola hatalı.",
   "e-ad": "Görünen ad 2–40 karakter olmalı ve bir harfle başlamalı.",
+  "e-adres": "Adres en fazla 120 karakter olabilir. Harf, rakam ve temel noktalama yeter.",
   "e-yenile": "Yenilenecek harcama yok. Tavan zaten boş.",
   okundu: "Bildirim okundu sayıldı.",
 };

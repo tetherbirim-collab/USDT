@@ -65,6 +65,21 @@ export function formatPan(pan: string): string {
   return pan.replace(/(.{4})/g, "$1 ").trim();
 }
 
+export function formatDay(iso: string): string {
+  return new Intl.DateTimeFormat("tr-TR", {
+    timeZone: "Europe/Istanbul",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(iso));
+}
+
+export function plusDaysIso(iso: string, days: number): string {
+  const date = new Date(iso);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString();
+}
+
 export function formatWhen(iso: string): string {
   const d = new Date(iso);
   const date = new Intl.DateTimeFormat("tr-TR", {

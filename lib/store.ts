@@ -79,6 +79,7 @@ function createSeed(): DB {
     plan: "atolye",
     role: "uye",
     status: "acik",
+    address: "Sahne 7, Simülasyon",
     createdAt: "2026-09-28T09:00:00.000Z",
   };
 
@@ -368,6 +369,7 @@ function adminRecord(): User {
     plan: "kivilcim",
     role: "yonetici",
     status: "acik",
+    address: "",
     createdAt: "2026-09-01T08:00:00.000Z",
   };
 }
@@ -421,6 +423,16 @@ function normalize(db: DB): DB {
     if (typeof user.usdMinor !== "number" || user.usdMinor < 0) {
       user.usdMinor = 0;
       dirty = true;
+    }
+    if (typeof user.address !== "string") {
+      user.address = "";
+      dirty = true;
+    } else {
+      const address = user.address.replace(/\s+/g, " ").trim().slice(0, 120);
+      if (address !== user.address) {
+        user.address = address;
+        dirty = true;
+      }
     }
   }
   if (!db.users.some((user) => user.username === "admin")) {
@@ -577,6 +589,14 @@ export function parseUsername(raw: string): string | null {
   return username;
 }
 
+export function parseAddress(raw: string): string | null {
+  const address = raw.replace(/\s+/g, " ").trim();
+  if (address.length === 0) return "";
+  if (address.length > 120) return null;
+  if (!/^[\p{L}\p{M}\p{N} .,/'#+\-]+$/u.test(address)) return null;
+  return address;
+}
+
 export function parseDisplayName(raw: string): string | null {
   const name = raw.replace(/\s+/g, " ").trim();
   if (name.length < 2 || name.length > 40) return null;
@@ -606,6 +626,7 @@ export function createUser(input: { username: string; password: string; name: st
       plan: "kivilcim",
       role: "uye",
       status: "acik",
+      address: "",
       createdAt: new Date().toISOString(),
     };
     db.users.push(user);

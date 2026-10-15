@@ -1,17 +1,14 @@
+"use client";
+
 import { cancelOrderAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { SubmitButton } from "@/components/submit-button";
-import { getCurrentUser } from "@/lib/auth";
 import { CARD_TYPES } from "@/lib/catalog";
 import { formatTL, formatWhen } from "@/lib/format";
+import { Boot, useQuery, useUser } from "@/lib/live";
 import { listOrders } from "@/lib/store";
 import type { OrderStatus } from "@/lib/types";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-
-function one(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 const LABEL: Record<OrderStatus, string> = {
   hazirlaniyor: "Hazırlanıyor",
@@ -19,14 +16,10 @@ const LABEL: Record<OrderStatus, string> = {
   iptal: "İptal",
 };
 
-export default async function OrdersPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/giris");
-  const sp = await searchParams;
+export default function OrdersPage() {
+  const user = useUser();
+  const query = useQuery();
+  if (!user || !query) return <Boot />;
   const orders = listOrders(user.id);
 
   return (
@@ -38,7 +31,7 @@ export default async function OrdersPage({
           Hazırlanan, teslim edilen ve iptal edilen kartlar burada durur. Ücret simülasyondur.
         </p>
       </div>
-      <Notice code={one(sp.bildirim)} />
+      <Notice code={query.get("bildirim") || undefined} />
       {orders.length === 0 ? (
         <p className="glass rounded-[24px] p-5 text-white/70">Henüz sipariş yok.</p>
       ) : (

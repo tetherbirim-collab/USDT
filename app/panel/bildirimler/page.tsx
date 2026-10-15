@@ -1,22 +1,15 @@
+"use client";
+
 import { Notice } from "@/components/notice";
 import { markAllNoticesReadAction, markNoticeReadAction } from "@/lib/actions";
-import { getCurrentUser } from "@/lib/auth";
 import { formatWhen } from "@/lib/format";
+import { Boot, useQuery, useUser } from "@/lib/live";
 import { listNotices } from "@/lib/store";
-import { redirect } from "next/navigation";
 
-function one(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-export default async function NoticesPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/giris");
-  const sp = await searchParams;
+export default function NoticesPage() {
+  const user = useUser();
+  const query = useQuery();
+  if (!user || !query) return <Boot />;
   const notes = listNotices(user.id);
   const unread = notes.filter((note) => !note.readAt).length;
 
@@ -36,7 +29,7 @@ export default async function NoticesPage({
           </form>
         )}
       </div>
-      <Notice code={one(sp.bildirim)} />
+      <Notice code={query.get("bildirim") || undefined} />
       {notes.length === 0 ? (
         <p className="glass rounded-[24px] px-4 py-6 text-white/60">Henüz bildirim yok.</p>
       ) : (

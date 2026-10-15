@@ -1,5 +1,3 @@
-import { crc32 } from "zlib";
-
 function xml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -35,62 +33,109 @@ function sheetXml(rows: string[][]) {
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${body}</sheetData></worksheet>`;
 }
 
-function zipStored(files: { name: string; data: Buffer }[]) {
-  const locals: Buffer[] = [];
-  const centrals: Buffer[] = [];
-  let offset = 0;
-  for (const file of files) {
-    const name = Buffer.from(file.name);
-    const crc = crc32(file.data) >>> 0;
-    const local = Buffer.alloc(30);
-    local.writeUInt32LE(0x04034b50, 0);
-    local.writeUInt16LE(20, 4);
-    local.writeUInt16LE(0x0800, 6);
-    local.writeUInt16LE(0, 8);
-    local.writeUInt16LE(0, 10);
-    local.writeUInt16LE(0, 12);
-    local.writeUInt32LE(crc, 14);
-    local.writeUInt32LE(file.data.length, 18);
-    local.writeUInt32LE(file.data.length, 22);
-    local.writeUInt16LE(name.length, 26);
-    local.writeUInt16LE(0, 28);
-    locals.push(local, name, file.data);
-    const central = Buffer.alloc(46);
-    central.writeUInt32LE(0x02014b50, 0);
-    central.writeUInt16LE(20, 4);
-    central.writeUInt16LE(20, 6);
-    central.writeUInt16LE(0x0800, 8);
-    central.writeUInt16LE(0, 10);
-    central.writeUInt16LE(0, 12);
-    central.writeUInt16LE(0, 14);
-    central.writeUInt32LE(crc, 16);
-    central.writeUInt32LE(file.data.length, 20);
-    central.writeUInt32LE(file.data.length, 24);
-    central.writeUInt16LE(name.length, 28);
-    central.writeUInt16LE(0, 30);
-    central.writeUInt16LE(0, 32);
-    central.writeUInt16LE(0, 34);
-    central.writeUInt16LE(0, 36);
-    central.writeUInt32LE(0, 38);
-    central.writeUInt32LE(offset, 42);
-    centrals.push(central, name);
-    offset += local.length + name.length + file.data.length;
-  }
-  const centralDir = Buffer.concat(centrals);
-  const end = Buffer.alloc(22);
-  end.writeUInt32LE(0x06054b50, 0);
-  end.writeUInt16LE(0, 4);
-  end.writeUInt16LE(0, 6);
-  end.writeUInt16LE(files.length, 8);
-  end.writeUInt16LE(files.length, 10);
-  end.writeUInt32LE(centralDir.length, 12);
-  end.writeUInt32LE(offset, 16);
-  end.writeUInt16LE(0, 20);
-  return Buffer.concat([...locals, centralDir, end]);
+const CRC_TABLE = new Uint32Array(256);
+for (let n = 0; n < 256; n += 1) {
+  let c = n;
+  for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  CRC_TABLE[n] = c >>> 0;
 }
 
-export function workbookXlsx(rows: string[][]): Buffer {
-  const text = (name: string, body: string) => ({ name, data: Buffer.from(body) });
+function crc32(data: Uint8Array) {
+  let crc = 0xffffffff;
+  for (const byte of data) crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function concat(parts: Uint8Array[]) {
+  const total = parts.reduce((sum, part) => sum + part.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.length;
+  }
+  return out;
+}
+
+function u16(value: number) {
+  const bytes = new Uint8Array(2);
+  new DataView(bytes.buffer).setUint16(0, value, true);
+  return bytes;
+}
+
+function u32(value: number) {
+  const bytes = new Uint8Array(4);
+  new DataView(bytes.buffer).setUint32(0, value, true);
+  return bytes;
+}
+
+function zipStored(files: { name: string; data: Uint8Array }[]) {
+  const locals: Uint8Array[] = [];
+  const centrals: Uint8Array[] = [];
+  let offset = 0;
+  for (const file of files) {
+    const name = new TextEncoder().encode(file.name);
+    const crc = crc32(file.data);
+    locals.push(
+      concat([
+        u32(0x04034b50),
+        u16(20),
+        u16(0x0800),
+        u16(0),
+        u16(0),
+        u16(0),
+        u32(crc),
+        u32(file.data.length),
+        u32(file.data.length),
+        u16(name.length),
+        u16(0),
+        name,
+        file.data,
+      ]),
+    );
+    centrals.push(
+      concat([
+        u32(0x02014b50),
+        u16(20),
+        u16(20),
+        u16(0x0800),
+        u16(0),
+        u16(0),
+        u16(0),
+        u32(crc),
+        u32(file.data.length),
+        u32(file.data.length),
+        u16(name.length),
+        u16(0),
+        u16(0),
+        u16(0),
+        u16(0),
+        u32(0),
+        u32(offset),
+        name,
+      ]),
+    );
+    offset += 30 + name.length + file.data.length;
+  }
+  const centralDir = concat(centrals);
+  return concat([
+    ...locals,
+    centralDir,
+    concat([
+      u32(0x06054b50),
+      u16(0),
+      u16(0),
+      u16(files.length),
+      u16(files.length),
+      u32(centralDir.length),
+      u32(offset),
+      u16(0),
+    ]),
+  ]);
+}
+
+export function workbookXlsx(rows: string[][]): Uint8Array {
+  const text = (name: string, body: string) => ({ name, data: new TextEncoder().encode(body) });
   return zipStored([
     text(
       "[Content_Types].xml",

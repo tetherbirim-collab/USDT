@@ -1,12 +1,42 @@
-import { randomUUID } from "crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "fs";
-import path from "path";
 import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, TEST_BIN, WELCOME_BONUS_KURUS } from "./catalog";
 import { holderLine } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
 import type { BinRow, Card, CardTypeId, DB, Order, Tx, User } from "./types";
 
-const DATA_PATH = path.join(process.cwd(), "data", "sanalkart.json");
+const LEDGER_KEY = "clay-ledger-v1";
+
+function rid() {
+  return globalThis.crypto.randomUUID();
+}
+
+let cache: DB | null = null;
+let booted = false;
+const listeners = new Set<() => void>();
+
+function emit() {
+  listeners.forEach((listener) => listener());
+}
+
+export function subscribeLedger(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function ledgerSnapshot(): DB | null {
+  return booted ? cache : null;
+}
+
+export function bootLedger() {
+  if (booted) return;
+  booted = true;
+  read();
+  emit();
+}
+
+export function touchLedger() {
+  if (!cache) return;
+  normalize(cache);
+}
 
 function tx(partial: Omit<Tx, "note"> & { note?: string }): Tx {
   return { note: "", ...partial };
@@ -499,9 +529,9 @@ function normalize(db: DB): DB {
         const ref = `hazir:${card.id}`;
         if (!db.notices.some((note) => note.ref === ref)) {
           db.notices.push({
-            id: `nt_${randomUUID()}`,
+            id: `nt_${rid()}`,
             userId: card.userId,
-            batch: randomUUID(),
+            batch: rid(),
             title: "Kart hazır",
             body: `${card.label} hazır. Numara test verisidir, gerçek üye işyerinde kullanılamaz.`,
             createdAt: new Date().toISOString(),
@@ -534,6 +564,7 @@ function normalize(db: DB): DB {
     assertDb(db);
     write(db);
   }
+  cache = db;
   return db;
 }
 
@@ -552,24 +583,26 @@ function assertDb(db: DB) {
 }
 
 function write(db: DB) {
-  mkdirSync(path.dirname(DATA_PATH), { recursive: true });
-  const tmp = `${DATA_PATH}.tmp`;
-  writeFileSync(tmp, JSON.stringify(db, null, 2));
-  renameSync(tmp, DATA_PATH);
+  cache = db;
+  if (typeof window !== "undefined") localStorage.setItem(LEDGER_KEY, JSON.stringify(db));
+  if (booted) emit();
 }
 
 function read(): DB {
-  if (!existsSync(DATA_PATH)) {
-    const seeded = createSeed();
-    assertDb(seeded);
-    write(seeded);
-    return seeded;
+  if (cache) return cache;
+  let parsed: DB | null = null;
+  if (typeof window !== "undefined") {
+    const raw = localStorage.getItem(LEDGER_KEY);
+    if (raw) {
+      try {
+        const data = JSON.parse(raw) as DB;
+        if (data.users && data.cards && data.transactions) parsed = data;
+      } catch {
+        parsed = null;
+      }
+    }
   }
-  const parsed = JSON.parse(readFileSync(DATA_PATH, "utf8")) as DB;
-  if (!parsed.users || !parsed.cards || !parsed.transactions) {
-    throw new Error("Simülasyon verisi okunamadı");
-  }
-  return normalize(parsed);
+  return normalize(parsed ?? createSeed());
 }
 
 export function mutate<T>(fn: (db: DB) => T): T {
@@ -618,7 +651,7 @@ export function createUser(input: { username: string; password: string; name: st
   return mutate((db) => {
     if (db.users.some((item) => item.username === input.username)) return null;
     const user: User = {
-      id: `usr_${randomUUID()}`,
+      id: `usr_${rid()}`,
       name: input.name,
       username: input.username,
       password: input.password,
@@ -632,7 +665,7 @@ export function createUser(input: { username: string; password: string; name: st
     };
     db.users.push(user);
     db.transactions.push({
-      id: `tx_${randomUUID()}`,
+      id: `tx_${rid()}`,
       userId: user.id,
       cardId: null,
       kind: "yukleme",
@@ -701,7 +734,7 @@ export function issueCard(
   db.nextSerial += 1;
   const now = new Date().toISOString();
   const card: Card = {
-    id: `crd_${randomUUID()}`,
+    id: `crd_${rid()}`,
     userId: user.id,
     type: input.type,
     label: input.label,
@@ -721,7 +754,7 @@ export function issueCard(
   user.balance -= input.fee;
   db.cards.push(card);
   db.orders.push({
-    id: `ord_${randomUUID()}`,
+    id: `ord_${rid()}`,
     userId: user.id,
     cardId: card.id,
     type: card.type,
@@ -733,7 +766,7 @@ export function issueCard(
     readyAt: card.readyAt,
   });
   db.transactions.push({
-    id: `tx_${randomUUID()}`,
+    id: `tx_${rid()}`,
     userId: user.id,
     cardId: card.id,
     kind: "basim",

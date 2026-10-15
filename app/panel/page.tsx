@@ -1,25 +1,18 @@
+"use client";
+
 import Link from "next/link";
 import { Notice } from "@/components/notice";
 import { VirtualCard } from "@/components/virtual-card";
-import { getCurrentUser } from "@/lib/auth";
 import { PLANS } from "@/lib/catalog";
 import { formatSigned, formatTL, formatUsd, formatWhen } from "@/lib/format";
+import { Boot, useQuery, useUser } from "@/lib/live";
 import { last7Spend, monthSpend, monthTopup } from "@/lib/stats";
 import { listCards, listNotices, listTransactions } from "@/lib/store";
-import { redirect } from "next/navigation";
 
-function one(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-export default async function PanelHome({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/giris");
-  const sp = await searchParams;
+export default function PanelHome() {
+  const user = useUser();
+  const query = useQuery();
+  if (!user) return <Boot />;
   const cards = listCards(user.id);
   const txs = listTransactions(user.id);
   const notes = listNotices(user.id).slice(0, 3);
@@ -29,7 +22,7 @@ export default async function PanelHome({
 
   return (
     <div className="grid gap-6">
-      <Notice code={one(sp.bildirim)} />
+      <Notice code={query?.get("bildirim") || undefined} />
       <section className="glass rounded-[28px] p-5">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-display text-2xl font-bold">Bildirimler</h2>

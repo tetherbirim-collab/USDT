@@ -1,21 +1,20 @@
-import type { Metadata } from "next";
+"use client";
+
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useEffect } from "react";
 import { RegisterForm } from "@/components/auth-form";
 import { AuthShell } from "@/components/auth-shell";
-import { deskPath, getCurrentUser } from "@/lib/auth";
+import { deskPath } from "@/lib/auth";
+import { Boot, useUser } from "@/lib/live";
 
-export const metadata: Metadata = { title: "Hesap aç" };
-export const dynamic = "force-dynamic";
-
-export default async function RegisterPage() {
-  const user = await getCurrentUser();
-  if (user) redirect(deskPath(user.role));
+export default function RegisterPage() {
+  const user = useUser();
+  useEffect(() => {
+    if (user) window.location.replace(`${deskPath(user.role)}/`);
+  }, [user]);
+  if (user) return <Boot />;
   return (
-    <AuthShell
-      title="Kayıt ol"
-      lede="Görünen ad kartın üzerine yazılır. Kimlik belgesi yok."
-    >
+    <AuthShell title="Kayıt ol" lede="Görünen ad kartın üzerine yazılır. Kimlik belgesi yok.">
       <RegisterForm />
       <Link href="/giris" className="auth-outline mt-3">
         Giriş yap

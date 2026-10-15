@@ -1,51 +1,103 @@
+"use client";
+
 import Link from "next/link";
 import { Notice } from "@/components/notice";
 import { PaymentsBoard } from "@/components/payments-board";
-import { getCurrentUser } from "@/lib/auth";
 import { KIND_LABEL } from "@/lib/catalog";
-import { formatTL } from "@/lib/format";
+import { formatTL, formatWhen } from "@/lib/format";
+import { Boot, useQuery, useUser } from "@/lib/live";
 import {
   PAY_TILES,
   bucketTotals,
   filterLedger,
+  payStatusLabel,
   paymentHref,
   paymentQueryFrom,
   presentPayments,
+  type PaymentQuery,
 } from "@/lib/payments";
 import { listCards, listTransactions } from "@/lib/store";
 import type { TxKind } from "@/lib/types";
-import { redirect } from "next/navigation";
-
-function one(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
+import { workbookXlsx } from "@/lib/xlsx";
 
 const KINDS = Object.keys(KIND_LABEL) as TxKind[];
 
-export default async function PaymentsPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/giris");
-  const sp = await searchParams;
+function saveFile(name: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function cell(value: string) {
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
+function downloadCsv(userId: string, query: PaymentQuery) {
+  const cards = new Map(listCards(userId).map((card) => [card.id, card]));
+  const lines = ["tarih;tür;başlık;kart;tutar_kurus;dolar_sent;durum;not"];
+  for (const entry of filterLedger(listTransactions(userId), query)) {
+    const card = entry.cardId ? cards.get(entry.cardId) : undefined;
+    lines.push(
+      [
+        cell(formatWhen(entry.createdAt)),
+        cell(KIND_LABEL[entry.kind]),
+        cell(entry.title),
+        cell(card ? `${card.label} ···· ${card.pan.slice(-4)}` : ""),
+        String(entry.amount),
+        entry.usdMinor == null ? "" : String(entry.usdMinor),
+        cell(payStatusLabel(entry)),
+        cell(entry.note),
+      ].join(";"),
+    );
+  }
+  saveFile("clay-odemeler.csv", new Blob([`\uFEFF${lines.join("\n")}\n`], { type: "text/csv;charset=utf-8" }));
+}
+
+function downloadXlsx(userId: string, query: PaymentQuery) {
+  const cards = new Map(listCards(userId).map((card) => [card.id, card]));
+  const rows = [
+    ["Tarih", "Kart", "Son dört", "Ödeme", "Miktar kuruş", "Durum", "Not"],
+    ...filterLedger(listTransactions(userId), query).map((entry) => {
+      const card = entry.cardId ? cards.get(entry.cardId) : undefined;
+      return [
+        formatWhen(entry.createdAt),
+        card?.label ?? "Cüzdan",
+        card ? card.pan.slice(-4) : "",
+        entry.title,
+        String(entry.amount),
+        payStatusLabel(entry),
+        entry.note,
+      ];
+    }),
+  ];
+  const bytes = workbookXlsx(rows);
+  saveFile(
+    "clay-odemeler.xlsx",
+    new Blob([bytes.slice()], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+  );
+}
+
+export default function PaymentsPage() {
+  const user = useUser();
+  const sp = useQuery();
+  if (!user || !sp) return <Boot />;
   const query = paymentQueryFrom({
-    tur: one(sp.tur),
-    durum: one(sp.durum),
-    kart: one(sp.kart),
-    q: one(sp.q),
-    bas: one(sp.bas),
-    bit: one(sp.bit),
-    enaz: one(sp.enaz),
-    encok: one(sp.encok),
+    tur: sp.get("tur") || "",
+    durum: sp.get("durum") || "",
+    kart: sp.get("kart") || "",
+    q: sp.get("q") || "",
+    bas: sp.get("bas") || "",
+    bit: sp.get("bit") || "",
+    enaz: sp.get("enaz") || "",
+    encok: sp.get("encok") || "",
   });
   const cards = listCards(user.id);
   const all = listTransactions(user.id);
   const rows = filterLedger(all, query);
   const totals = bucketTotals(all);
-  const csvHref = paymentHref("/panel/islemler/dokum", query);
-  const xlsxHref = paymentHref("/panel/islemler/xlsx", query);
 
   return (
     <div className="grid gap-5">
@@ -58,18 +110,18 @@ export default async function PaymentsPage({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a href={csvHref} className="btn btn-ghost px-3 py-2 text-sm">
+          <button type="button" className="btn btn-ghost px-3 py-2 text-sm" onClick={() => downloadCsv(user.id, query)}>
             Dışa aktar
-          </a>
-          <a href={csvHref} className="btn btn-ghost px-3 py-2 text-sm">
+          </button>
+          <button type="button" className="btn btn-ghost px-3 py-2 text-sm" onClick={() => downloadCsv(user.id, query)}>
             CSV
-          </a>
-          <a href={xlsxHref} className="btn btn-ghost px-3 py-2 text-sm">
+          </button>
+          <button type="button" className="btn btn-ghost px-3 py-2 text-sm" onClick={() => downloadXlsx(user.id, query)}>
             XLSX
-          </a>
+          </button>
         </div>
       </div>
-      <Notice code={one(sp.bildirim)} />
+      <Notice code={sp.get("bildirim") || undefined} />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {PAY_TILES.map((tile) => {
           const active = query.durum === tile.id;
@@ -88,7 +140,7 @@ export default async function PaymentsPage({
           );
         })}
       </div>
-      <form action="/panel/islemler" className="flex flex-wrap items-end gap-2">
+      <form action="/panel/islemler/" className="flex flex-wrap items-end gap-2">
         {query.durum && <input type="hidden" name="durum" value={query.durum} />}
         <label className="grid gap-1 text-xs text-white/55">
           Tür

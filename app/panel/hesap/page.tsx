@@ -1,22 +1,15 @@
+"use client";
+
 import { Notice } from "@/components/notice";
 import { addressAction, displayNameAction, passwordChangeAction, planAction } from "@/lib/actions";
-import { getCurrentUser } from "@/lib/auth";
 import { PLANS } from "@/lib/catalog";
+import { Boot, useQuery, useUser } from "@/lib/live";
 import type { PlanId } from "@/lib/types";
-import { redirect } from "next/navigation";
 
-function one(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-export default async function AccountPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/giris");
-  const sp = await searchParams;
+export default function AccountPage() {
+  const user = useUser();
+  const query = useQuery();
+  if (!user || !query) return <Boot />;
 
   return (
     <div className="grid gap-4">
@@ -27,7 +20,7 @@ export default async function AccountPage({
           Yükleme, basım ve harcama yalnızca bu hesabın bakiyesinden düşer. Başka bir kullanıcının kartı veya bakiyesi değişmez.
         </p>
       </div>
-      <Notice code={one(sp.bildirim)} />
+      <Notice code={query.get("bildirim") || undefined} />
       <dl className="glass grid max-w-md gap-3 rounded-[28px] p-5 text-sm">
         <div>
           <dt className="text-white/50">Hesap no</dt>

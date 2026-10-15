@@ -1,7 +1,3 @@
-"use server";
-
-import { randomUUID } from "crypto";
-import { redirect } from "next/navigation";
 import { clearSession, deskPath, getCurrentUser, setSession } from "./auth";
 import {
   CARD_PREP_MS,
@@ -31,14 +27,27 @@ import type { DB, User, Card } from "./types";
 
 export type FormState = { error: string };
 
+function rid() {
+  return globalThis.crypto.randomUUID();
+}
+
+function go(path: string): never {
+  const queryAt = path.indexOf("?");
+  const pathname = queryAt === -1 ? path : path.slice(0, queryAt);
+  const query = queryAt === -1 ? "" : path.slice(queryAt);
+  const href = pathname.endsWith("/") ? `${pathname}${query}` : `${pathname}/${query}`;
+  if (typeof window !== "undefined") window.location.assign(href);
+  throw new Error("yonlendirildi");
+}
+
 function bounce(path: string, code: string): never {
   const join = path.includes("?") ? "&" : "?";
-  redirect(`${path}${join}bildirim=${encodeURIComponent(code)}`);
+  go(`${path}${join}bildirim=${encodeURIComponent(code)}`);
 }
 
 async function actor() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/giris");
+  const user = getCurrentUser();
+  if (!user) go("/giris");
   return user;
 }
 
@@ -53,7 +62,7 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
     return { error: "Bu simülasyon hesabı askıya alındı. Giriş kapalı." };
   }
   await setSession(user.id);
-  redirect(deskPath(user.role));
+  go(deskPath(user.role));
 }
 
 export async function registerAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -69,12 +78,12 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
   const user = createUser({ username, password, name });
   if (!user) return { error: "Bu kullanıcı adı zaten var." };
   await setSession(user.id);
-  redirect("/panel?bildirim=hosgeldin");
+  go("/panel?bildirim=hosgeldin");
 }
 
 export async function logoutAction() {
   await clearSession();
-  redirect("/");
+  go("/");
 }
 
 function refundIssueFee(db: DB, row: User, card: Card): "ok" | "tavan" | "yok" {
@@ -87,7 +96,7 @@ function refundIssueFee(db: DB, row: User, card: Card): "ok" | "tavan" | "yok" {
   if (row.balance + fee > MAX_BALANCE_KURUS) return "tavan";
   row.balance += fee;
   db.transactions.push({
-    id: `tx_${randomUUID()}`,
+    id: `tx_${rid()}`,
     userId: row.id,
     cardId: card.id,
     kind: "duzeltme",
@@ -114,7 +123,7 @@ export async function topupAction(formData: FormData) {
       if (row.usdMinor + dollars > MAX_USD_MINOR) return "tavan" as const;
       row.usdMinor += dollars;
       db.transactions.push({
-        id: `tx_${randomUUID()}`,
+        id: `tx_${rid()}`,
         userId: row.id,
         cardId: null,
         kind: "yukleme",
@@ -141,7 +150,7 @@ export async function topupAction(formData: FormData) {
     if (row.balance + amount > MAX_BALANCE_KURUS) return "tavan" as const;
     row.balance += amount;
     db.transactions.push({
-      id: `tx_${randomUUID()}`,
+      id: `tx_${rid()}`,
       userId: row.id,
       cardId: null,
       kind: "yukleme",
@@ -172,7 +181,7 @@ export async function convertUsdAction(formData: FormData) {
     row.usdMinor -= dollars;
     row.balance += credit;
     db.transactions.push({
-      id: `tx_${randomUUID()}`,
+      id: `tx_${rid()}`,
       userId: row.id,
       cardId: null,
       kind: "yukleme",
@@ -288,7 +297,7 @@ export async function cancelOrderAction(formData: FormData) {
 
 export async function planAction(formData: FormData) {
   const user = await actor();
-  if (user.role !== "uye") redirect("/admin");
+  if (user.role !== "uye") go("/admin");
   const plan = String(formData.get("plan") || "");
   if (!isPlan(plan)) bounce("/panel/hesap", "e-plan");
   const result = mutate((db) => {
@@ -318,7 +327,7 @@ export async function spendAction(formData: FormData) {
     const now = new Date().toISOString();
     if (card.spent + amount > card.limit) {
       db.transactions.push({
-        id: `tx_${randomUUID()}`,
+        id: `tx_${rid()}`,
         userId: row.id,
         cardId: card.id,
         kind: "harcama",
@@ -332,7 +341,7 @@ export async function spendAction(formData: FormData) {
     }
     if (amount > row.balance) {
       db.transactions.push({
-        id: `tx_${randomUUID()}`,
+        id: `tx_${rid()}`,
         userId: row.id,
         cardId: card.id,
         kind: "harcama",
@@ -347,7 +356,7 @@ export async function spendAction(formData: FormData) {
     row.balance -= amount;
     card.spent += amount;
     db.transactions.push({
-      id: `tx_${randomUUID()}`,
+      id: `tx_${rid()}`,
       userId: row.id,
       cardId: card.id,
       kind: "harcama",
@@ -361,9 +370,9 @@ export async function spendAction(formData: FormData) {
       const ref = `tavan50:${card.id}:${card.period}`;
       if (!db.notices.some((note) => note.ref === ref)) {
         db.notices.push({
-          id: `nt_${randomUUID()}`,
+          id: `nt_${rid()}`,
           userId: row.id,
-          batch: randomUUID(),
+          batch: rid(),
           title: "Tavan yarıda",
           body: `${card.label} kartının tavanının yarısı kullanıldı.`,
           createdAt: now,
@@ -380,8 +389,8 @@ export async function spendAction(formData: FormData) {
 
 async function requireAdmin() {
   const user = await getCurrentUser();
-  if (!user) redirect("/giris");
-  if (user.role !== "yonetici") redirect("/panel");
+  if (!user) go("/giris");
+  if (user.role !== "yonetici") go("/panel");
   return user;
 }
 
@@ -401,7 +410,7 @@ export async function adminBalanceAction(formData: FormData) {
     if (next > MAX_BALANCE_KURUS) return "e-tavan" as const;
     row.balance = next;
     db.transactions.push({
-      id: `tx_${randomUUID()}`,
+      id: `tx_${rid()}`,
       userId: row.id,
       cardId: null,
       kind: "duzeltme",
@@ -459,12 +468,13 @@ export async function adminAccountAction(formData: FormData) {
     }
     return "e-durum" as const;
   });
-  bounce(`${back}?vurgu=${encodeURIComponent(userId)}`, result);
+  const join = back.includes("?") ? "&" : "?";
+  bounce(`${back}${join}vurgu=${encodeURIComponent(userId)}`, result);
 }
 
 function safeAdminReturn(formData: FormData, userId: string) {
   const raw = String(formData.get("donus") || "");
-  if (raw === "/admin" || raw === `/admin/kullanici/${userId}`) return raw;
+  if (raw === "/admin" || raw === `/admin/kullanici?id=${userId}`) return raw;
   return "/admin";
 }
 
@@ -480,11 +490,11 @@ export async function adminNoticeAction(formData: FormData) {
     const members = db.users.filter((user) => user.role === "uye");
     const targets = hedef === "tumu" ? members : members.filter((user) => user.id === hedef);
     if (targets.length === 0) return "e-hedef" as const;
-    const batch = randomUUID();
+    const batch = rid();
     const createdAt = new Date().toISOString();
     for (const user of targets) {
       db.notices.push({
-        id: `nt_${randomUUID()}`,
+        id: `nt_${rid()}`,
         userId: user.id,
         batch,
         title,
@@ -512,7 +522,7 @@ export async function adminSetBalanceAction(formData: FormData) {
     row.balance = next;
     if (delta !== 0) {
       db.transactions.push({
-        id: `tx_${randomUUID()}`,
+        id: `tx_${rid()}`,
         userId: row.id,
         cardId: null,
         kind: "duzeltme",
@@ -598,7 +608,7 @@ export async function adminBinAddAction(formData: FormData) {
   const result = mutate((db) => {
     if (db.bins.some((item) => item.type === type && item.digits === draft.digits)) return "e-bin-kayit" as const;
     db.bins.push({
-      id: `bin_${randomUUID()}`,
+      id: `bin_${rid()}`,
       type,
       label: draft.label,
       digits: draft.digits,
@@ -662,7 +672,7 @@ export async function adminBinPasteAction(formData: FormData) {
       if (seen.has(draft.digits)) continue;
       seen.add(draft.digits);
       db.bins.push({
-        id: `bin_${randomUUID()}`,
+        id: `bin_${rid()}`,
         type,
         label: draft.label,
         digits: draft.digits,
@@ -690,7 +700,7 @@ export async function refundAction(formData: FormData) {
     row.balance += amount;
     card.spent -= amount;
     db.transactions.push({
-      id: `tx_${randomUUID()}`,
+      id: `tx_${rid()}`,
       userId: row.id,
       cardId: card.id,
       kind: "iade",
@@ -717,7 +727,7 @@ export async function renewAction(formData: FormData) {
     card.spent = 0;
     card.period += 1;
     db.transactions.push({
-      id: `tx_${randomUUID()}`,
+      id: `tx_${rid()}`,
       userId: row.id,
       cardId: card.id,
       kind: "yenileme",
@@ -760,7 +770,7 @@ export async function transferAction(formData: FormData) {
     const feeText = formatTL(fee);
     db.transactions.push(
       {
-        id: `tx_${randomUUID()}`,
+        id: `tx_${rid()}`,
         userId: row.id,
         cardId: source.id,
         kind: "transfer",
@@ -772,7 +782,7 @@ export async function transferAction(formData: FormData) {
         createdAt: now,
       },
       {
-        id: `tx_${randomUUID()}`,
+        id: `tx_${rid()}`,
         userId: row.id,
         cardId: dest.id,
         kind: "transfer",
@@ -788,9 +798,9 @@ export async function transferAction(formData: FormData) {
       const ref = `tavan50:${source.id}:${source.period}`;
       if (!db.notices.some((note) => note.ref === ref)) {
         db.notices.push({
-          id: `nt_${randomUUID()}`,
+          id: `nt_${rid()}`,
           userId: row.id,
-          batch: randomUUID(),
+          batch: rid(),
           title: "Tavan yarıda",
           body: `${source.label} kartının tavanının yarısı kullanıldı.`,
           createdAt: now,
@@ -806,7 +816,7 @@ export async function transferAction(formData: FormData) {
 
 export async function addressAction(formData: FormData) {
   const user = await actor();
-  if (user.role !== "uye") redirect("/admin");
+  if (user.role !== "uye") go("/admin");
   const address = parseAddress(String(formData.get("adres") || ""));
   if (address === null) bounce("/panel/hesap", "e-adres");
   const result = mutate((db) => {
@@ -820,7 +830,7 @@ export async function addressAction(formData: FormData) {
 
 export async function displayNameAction(formData: FormData) {
   const user = await actor();
-  if (user.role !== "uye") redirect("/admin");
+  if (user.role !== "uye") go("/admin");
   const name = parseDisplayName(String(formData.get("ad") || ""));
   if (!name) bounce("/panel/hesap", "e-ad");
   const result = mutate((db) => {
@@ -838,7 +848,7 @@ export async function displayNameAction(formData: FormData) {
 
 export async function passwordChangeAction(formData: FormData) {
   const user = await actor();
-  if (user.role !== "uye") redirect("/admin");
+  if (user.role !== "uye") go("/admin");
   const current = String(formData.get("eski") || "");
   const next = String(formData.get("yeni") || "");
   const again = String(formData.get("yeni2") || "");

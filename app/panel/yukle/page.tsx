@@ -1,26 +1,19 @@
+"use client";
+
 import { convertUsdAction, topupAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { UsdField } from "@/components/usd-field";
-import { getCurrentUser } from "@/lib/auth";
 import { MAX_TOPUP_KURUS, MIN_TOPUP_KURUS } from "@/lib/catalog";
 import { formatSigned, formatTL, formatUsd, formatWhen } from "@/lib/format";
+import { Boot, useQuery, useUser } from "@/lib/live";
 import { listTransactions } from "@/lib/store";
-import { redirect } from "next/navigation";
-
-function one(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 const PRESETS = [500, 1500, 5000, 10000];
 
-export default async function TopupPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/giris");
-  const sp = await searchParams;
+export default function TopupPage() {
+  const user = useUser();
+  const query = useQuery();
+  if (!user || !query) return <Boot />;
   const receipt = listTransactions(user.id).find((entry) => entry.kind === "yukleme" && entry.status === "tamamlandi");
 
   return (
@@ -34,7 +27,7 @@ export default async function TopupPage({
           kripto çekilmez.
         </p>
       </div>
-      <Notice code={one(sp.bildirim)} />
+      <Notice code={query.get("bildirim") || undefined} />
       <form action={topupAction} className="glass grid gap-4 rounded-[28px] p-5">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {PRESETS.map((amount) => (

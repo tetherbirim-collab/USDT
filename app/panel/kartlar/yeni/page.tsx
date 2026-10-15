@@ -1,24 +1,17 @@
+"use client";
+
 import Link from "next/link";
 import { IssueForm } from "@/components/issue-form";
 import { Notice } from "@/components/notice";
-import { getCurrentUser } from "@/lib/auth";
 import { PLANS } from "@/lib/catalog";
 import { holderLine } from "@/lib/format";
+import { Boot, useQuery, useUser } from "@/lib/live";
 import { listCards, snapshot } from "@/lib/store";
-import { redirect } from "next/navigation";
 
-function one(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-export default async function NewCardPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/giris");
-  const sp = await searchParams;
+export default function NewCardPage() {
+  const user = useUser();
+  const query = useQuery();
+  if (!user || !query) return <Boot />;
   const open = listCards(user.id).filter((card) => card.status !== "kapali").length;
   const slotsLeft = PLANS[user.plan].cardLimit - open;
 
@@ -35,7 +28,7 @@ export default async function NewCardPage({
           oluşmaz. Numara sorgulama, kimlik belgesi ve ödeme yoktur. Tür adları senaryo etiketidir.
         </p>
       </div>
-      <Notice code={one(sp.bildirim)} />
+      <Notice code={query.get("bildirim") || undefined} />
       <div className="glass rounded-[28px] p-4 sm:p-6">
         <IssueForm
           holder={holderLine(user.name)}

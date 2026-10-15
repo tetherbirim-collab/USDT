@@ -1,26 +1,19 @@
+"use client";
+
 import Link from "next/link";
 import { CardActions } from "@/components/card-actions";
 import { CardSecrets } from "@/components/card-secrets";
 import { Notice } from "@/components/notice";
 import { VirtualCard } from "@/components/virtual-card";
-import { getCurrentUser } from "@/lib/auth";
 import { formatTL } from "@/lib/format";
+import { Boot, useQuery, useUser } from "@/lib/live";
 import { listCards, listTransactions } from "@/lib/store";
-import { redirect } from "next/navigation";
 
-function one(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-export default async function CardsPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/giris");
-  const sp = await searchParams;
-  const highlight = one(sp.vurgu);
+export default function CardsPage() {
+  const user = useUser();
+  const query = useQuery();
+  if (!user || !query) return <Boot />;
+  const highlight = query.get("vurgu");
   const cards = listCards(user.id);
   const txs = listTransactions(user.id);
 
@@ -39,7 +32,7 @@ export default async function CardsPage({
           Kart bas
         </Link>
       </div>
-      <Notice code={one(sp.bildirim)} />
+      <Notice code={query.get("bildirim") || undefined} />
       {cards.length === 0 ? (
         <div className="glass rounded-[24px] p-6">Henüz basılmış kart yok.</div>
       ) : (

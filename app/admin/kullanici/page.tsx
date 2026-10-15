@@ -1,5 +1,6 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import {
   adminAccountAction,
   adminEditCardAction,
@@ -10,11 +11,8 @@ import {
 import { Notice } from "@/components/notice";
 import { CARD_TYPES, KIND_LABEL } from "@/lib/catalog";
 import { formatSigned, formatTL, formatUsd, formatWhen, isoToIstanbulInput, kurusToInput } from "@/lib/format";
+import { Boot, useQuery } from "@/lib/live";
 import { snapshot } from "@/lib/store";
-
-function one(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 const STATUS_LABEL = {
   hazirlaniyor: "Hazırlanıyor",
@@ -23,25 +21,29 @@ const STATUS_LABEL = {
   kapali: "Kapalı",
 } as const;
 
-export default async function AdminUserPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const { id } = await params;
-  const sp = await searchParams;
+export default function AdminUserPage() {
+  const query = useQuery();
+  if (!query) return <Boot />;
+  const id = query.get("id") || "";
   const db = snapshot();
   const user = db.users.find((item) => item.id === id);
-  if (!user) notFound();
+  if (!user) {
+    return (
+      <div className="glass rounded-[28px] p-6">
+        <p>Bu hesap yok.</p>
+        <Link href="/admin" className="btn btn-gold mt-4">
+          Listeye dön
+        </Link>
+      </div>
+    );
+  }
 
   const cards = db.cards.filter((card) => card.userId === user.id);
   const txs = db.transactions
     .filter((entry) => entry.userId === user.id)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const lastTopup = txs.find((entry) => entry.kind === "yukleme" && entry.status === "tamamlandi");
-  const back = `/admin/kullanici/${user.id}`;
+  const back = `/admin/kullanici?id=${user.id}`;
   const member = user.role === "uye";
 
   return (
@@ -57,7 +59,7 @@ export default async function AdminUserPage({
         <p className="mt-2 font-mono text-sm text-white/70">Hesap no {user.id}</p>
         <p className="font-mono text-sm text-white/90">Parola {user.password}</p>
       </div>
-      <Notice code={one(sp.bildirim)} />
+      <Notice code={query.get("bildirim") || undefined} />
 
       <section className="glass rounded-[28px] p-5">
         <div className="flex flex-wrap items-end justify-between gap-4">

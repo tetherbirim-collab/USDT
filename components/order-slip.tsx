@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { CARD_TYPES } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
+import { touchLedger } from "@/lib/store";
 import type { Card } from "@/lib/types";
 
 export function OrderSlip({ card }: { card: Card }) {
-  const router = useRouter();
   const ready = card.readyAt ? Date.parse(card.readyAt) : Date.now();
   const [left, setLeft] = useState(() => Math.max(0, ready - Date.now()));
 
@@ -15,10 +14,10 @@ export function OrderSlip({ card }: { card: Card }) {
     const timer = setInterval(() => {
       const next = Math.max(0, ready - Date.now());
       setLeft(next);
-      if (next === 0) router.refresh();
+      if (next === 0) touchLedger();
     }, 500);
     return () => clearInterval(timer);
-  }, [ready, router]);
+  }, [ready]);
 
   const seconds = Math.ceil(left / 1000);
   return (

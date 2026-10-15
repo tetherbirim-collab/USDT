@@ -15,7 +15,11 @@ npm run dev
 
 Tarayıcıda [http://localhost:3000](http://localhost:3000) adresini aç.
 
-Veriler sunucuda `data/sanalkart.json` dosyasına yazılır. Dosyayı silmek demo hesabı ve tüm simülasyon defterini sıfırlar.
+## cPanel
+
+`clay-sanal-kart.zip` dosyasını cPanel Dosya Yöneticisinde `public_html` içine yükle ve Extract de. Zip’in kökünde `index.php` vardır; site alan adında açılır. `node_modules` kurmak gerekmez.
+
+Defter tarayıcıda durur. İlk açılışta demo hesap hazırdır: `demo` / `demo123`, yönetici `admin` / `admin123`.
 
 ## Demo giriş
 

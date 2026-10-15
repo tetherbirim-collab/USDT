@@ -1,15 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import { AdminBins } from "@/components/admin-bins";
 import { adminAccountAction, adminBalanceAction, adminCardAction, adminNoticeAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { CARD_TYPES, PLANS } from "@/lib/catalog";
 import { formatTL, formatWhen } from "@/lib/format";
+import { Boot, useQuery } from "@/lib/live";
 import { snapshot } from "@/lib/store";
 import type { InboxNote, User } from "@/lib/types";
-
-function one(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 function batches(notices: InboxNote[], users: User[]) {
   const names = new Map(users.map((user) => [user.id, user.username]));
@@ -44,13 +43,10 @@ const STATUS_LABEL = {
   kapali: "Kapalı",
 } as const;
 
-export default async function AdminPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const sp = await searchParams;
-  const highlight = one(sp.vurgu);
+export default function AdminPage() {
+  const query = useQuery();
+  if (!query) return <Boot />;
+  const highlight = query.get("vurgu");
   const db = snapshot();
   const users = [...db.users].sort((a, b) => {
     if (a.role !== b.role) return a.role === "uye" ? -1 : 1;
@@ -67,7 +63,7 @@ export default async function AdminPage({
           kart yok, tahsilat yok. Numaralar 400000 test önekidir.
         </p>
       </div>
-      <Notice code={one(sp.bildirim)} />
+      <Notice code={query.get("bildirim") || undefined} />
       <section className="glass rounded-[28px] p-5">
         <h2 className="font-display text-2xl font-bold">Bildirimler</h2>
         <p className="mt-1 text-sm text-white/60">
@@ -122,7 +118,7 @@ export default async function AdminPage({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-display text-2xl font-bold">{user.name}</p>
-                  <Link href={`/admin/kullanici/${user.id}`} className="text-gold underline decoration-gold/40">
+                  <Link href={`/admin/kullanici?id=${user.id}`} className="text-gold underline decoration-gold/40">
                     {user.username}
                   </Link>
                   <p className="mt-1 font-mono text-xs text-white/55">Hesap no {user.id}</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { cancelOrderAction } from "@/lib/actions";
+import { DeskArrival } from "@/components/desk-arrival";
 import { Notice } from "@/components/notice";
 import { SubmitButton } from "@/components/submit-button";
 import { CARD_TYPES } from "@/lib/catalog";
@@ -24,13 +25,12 @@ export default function OrdersPage() {
 
   return (
     <div className="grid gap-5">
-      <div>
-        <p className="text-xs font-bold tracking-[0.22em] text-gold">SİPARİŞLER</p>
-        <h1 className="font-display text-4xl font-extrabold">Basım siparişleri</h1>
-        <p className="mt-2 max-w-xl text-white/70">
-          Hazırlanan, teslim edilen ve iptal edilen kartlar burada durur.
-        </p>
-      </div>
+      <DeskArrival
+        tone="orders"
+        kicker="SİPARİŞLER"
+        title="Basım siparişleri"
+        line="Hazırlanan, teslim edilen ve iptal edilen kartlar burada durur."
+      />
       <Notice code={query.get("bildirim") || undefined} />
       {orders.length === 0 ? (
         <p className="glass rounded-[24px] p-5 text-white/70">Henüz sipariş yok.</p>

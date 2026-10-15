@@ -27,6 +27,8 @@ export type User = {
   /** Billing line the member writes. Empty until they set it. Shown only on their cards. */
   address: string;
   createdAt: string;
+  /** Set when the plan changes. Empty uses a 30-day window from the account date. */
+  planUntil?: string | null;
 };
 
 export type PublicUser = {
@@ -39,6 +41,8 @@ export type PublicUser = {
   role: UserRole;
   status: AccountStatus;
   address: string;
+  /** When the current package window ends. */
+  planUntil: string;
 };
 
 export type Card = {

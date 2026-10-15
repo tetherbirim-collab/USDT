@@ -1,3 +1,4 @@
+import { planEndsAt } from "./format";
 import { findUserById, remoteSession } from "./store";
 import type { PublicUser } from "./types";
 
@@ -26,6 +27,8 @@ export function toPublic(user: {
   role: PublicUser["role"];
   status: PublicUser["status"];
   address: string;
+  createdAt: string;
+  planUntil?: string | null;
 }): PublicUser {
   return {
     id: user.id,
@@ -37,6 +40,7 @@ export function toPublic(user: {
     role: user.role,
     status: user.status,
     address: user.address,
+    planUntil: planEndsAt(user.createdAt, user.planUntil),
   };
 }
 

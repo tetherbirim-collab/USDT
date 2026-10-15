@@ -294,8 +294,8 @@ select.field option {
   gap: 2.2cqw;
 }
 
-.vcard:has(.vcard-status) .vcard-top {
-  padding-right: 92px;
+.vcard:has(.vcard-seal) .vcard-top {
+  padding-top: 28px;
 }
 
 .vcard-id {
@@ -424,8 +424,64 @@ select.field option {
   width: 100%;
 }
 
-.card-face .vcard-status {
-  right: 52px;
+.vcard-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.vcard-veil-frost {
+  background:
+    linear-gradient(180deg, rgba(214, 240, 255, 0.28), rgba(8, 24, 42, 0.22) 55%, rgba(186, 230, 253, 0.16));
+}
+
+.vcard-veil-shut {
+  background: linear-gradient(180deg, rgba(8, 6, 10, 0.18), rgba(8, 6, 10, 0.46));
+}
+
+.vcard-seal {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 30;
+  display: grid;
+  gap: 1px;
+  max-width: 58%;
+  pointer-events: none;
+  border-radius: 14px;
+  padding: 6px 9px 7px;
+}
+
+.vcard-seal-kicker {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.vcard-seal-line {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.vcard-seal-hazirlaniyor {
+  color: #fff6df;
+  border: 1px solid rgba(240, 201, 138, 0.7);
+  background: linear-gradient(160deg, rgba(240, 201, 138, 0.28), rgba(20, 14, 8, 0.72));
+}
+
+.vcard-seal-donduruldu {
+  color: #eef8ff;
+  border: 1px solid rgba(186, 230, 253, 0.8);
+  background: linear-gradient(160deg, rgba(186, 230, 253, 0.34), rgba(8, 22, 40, 0.78));
+  box-shadow: 0 0 18px rgba(125, 211, 252, 0.35);
+}
+
+.vcard-seal-kapali {
+  color: #ffe4ea;
+  border: 1px solid rgba(255, 180, 196, 0.7);
+  background: linear-gradient(160deg, rgba(120, 16, 32, 0.35), rgba(12, 8, 10, 0.82));
 }
 
 .card-menu {
@@ -511,24 +567,60 @@ select.field option {
   }
 }
 
-.vcard-status {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 30;
-  pointer-events: none;
+.fee-left {
+  margin-top: 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #ffe7c2;
 }
 
-.vcard-status span {
+.fee-left-late {
+  color: #ffd0dc;
+}
+
+.nav-emoji,
+.plan-emoji {
   display: inline-block;
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  margin-right: 0.28rem;
+  line-height: 1;
+}
+
+.plan-menu {
+  display: inline-flex;
+  align-items: center;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 3px 7px;
-  font-size: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.45rem 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  color: white;
+  color: #fff;
+}
+
+.plan-menu-left {
+  margin-top: 0.75rem;
+  border-radius: 18px;
+  border: 1px solid rgba(240, 201, 138, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.8rem 0.95rem;
+}
+
+.desk-arrival-kicker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: #f0c98a;
+}
+
+.desk-arrival::after {
+  content: "";
+  display: block;
+  height: 2px;
+  width: min(100%, 220px);
+  margin-top: 0.85rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #f0c98a, #fff, transparent);
+  transform-origin: left center;
 }
 
 .vcard-light {
@@ -1628,6 +1720,27 @@ select.field option {
     animation: btn-burst-white 0.7s ease-out;
   }
 
+  .plan-emoji,
+  .nav-on .nav-emoji {
+    animation: plan-emoji 2.6s ease-in-out infinite;
+  }
+
+  .plan-menu-bronze { --plan-glow: rgba(205, 127, 50, 0.7); }
+  .plan-menu-silver { --plan-glow: rgba(226, 232, 240, 0.75); }
+  .plan-menu-gold { --plan-glow: rgba(240, 201, 138, 0.85); }
+
+  .plan-menu {
+    animation: plan-menu-glow 2.8s ease-in-out infinite;
+  }
+
+  .desk-arrival {
+    animation: desk-arrive 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .desk-arrival::after {
+    animation: desk-line 0.7s ease 0.12s both;
+  }
+
   .hero-still { display: none; }
   .hero-motion { display: block; }
   .desk-still { display: none; }
@@ -1712,6 +1825,28 @@ select.field option {
   0%,
   100% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55); }
   50% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 22px rgba(240, 201, 138, 0.8); }
+}
+
+@keyframes plan-emoji {
+  0%,
+  100% { scale: 1; }
+  50% { scale: 1.14; }
+}
+
+@keyframes plan-menu-glow {
+  0%,
+  100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 18px var(--plan-glow); }
+}
+
+@keyframes desk-arrive {
+  from { opacity: 0; translate: 0 16px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes desk-line {
+  from { scale: 0 1; }
+  to { scale: 1 1; }
 }
 
 @keyframes plan-fan {

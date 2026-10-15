@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { logoutAction } from "@/lib/actions";
+import { PLANS } from "@/lib/catalog";
+import { daysLeftLine, daysUntil, formatDay } from "@/lib/format";
+import type { PlanId } from "@/lib/types";
 import { Mark, Wordmark } from "./mark";
+
+const PLAN_EMOJI = { bronze: "🥉", silver: "🥈", gold: "🥇" } as const;
 
 const LINKS = [
   ["/panel", "Özet"],
@@ -33,7 +39,8 @@ function Bell({ unread }: { unread: number }) {
   );
 }
 
-function NavLinks({ path, stacked = false }: { path: string; stacked?: boolean }) {
+function NavLinks({ path, metal, stacked = false }: { path: string; metal: keyof typeof PLAN_EMOJI; stacked?: boolean }) {
+  const emoji = PLAN_EMOJI[metal];
   return (
     <>
       {LINKS.map(([href, label]) => {
@@ -42,8 +49,13 @@ function NavLinks({ path, stacked = false }: { path: string; stacked?: boolean }
           <Link
             key={href}
             href={href}
-            className={`nav-pill rounded-full px-3 py-2 text-sm font-bold whitespace-nowrap ${stacked ? "text-center" : ""} ${active ? "nav-on" : "bg-white/5 text-white/80"}`}
+            className={`nav-pill nav-metal-${metal} rounded-full px-3 py-2 text-sm font-bold whitespace-nowrap ${stacked ? "text-center" : ""} ${active ? "nav-on" : "bg-white/5 text-white/80"}`}
           >
+            {active && (
+              <span className="nav-emoji" aria-hidden>
+                {emoji}
+              </span>
+            )}
             {label}
           </Link>
         );
@@ -56,18 +68,27 @@ export function PanelFrame({
   name,
   username,
   balanceLabel,
+  planId,
   planName,
+  planUntil,
   unread = 0,
   children,
 }: {
   name: string;
   username: string;
   balanceLabel: string;
+  planId: PlanId;
   planName: string;
+  planUntil: string;
   unread?: number;
   children: React.ReactNode;
 }) {
   const path = usePathname().replace(/\/$/, "") || "/";
+  const [planOpen, setPlanOpen] = useState(false);
+  const metal = PLANS[planId].metal;
+  const emoji = PLAN_EMOJI[metal];
+  const days = daysUntil(planUntil);
+  const remain = days > 0 ? `Bitmesine ${daysLeftLine(days)}` : days === 0 ? "Paket bugün bitiyor" : "Paket günü geçti";
   return (
     <div className="mx-auto min-h-screen max-w-6xl px-4 pb-20 pt-5">
       <header className="glass rounded-[28px] px-4 py-4 sm:px-5">
@@ -82,9 +103,17 @@ export function PanelFrame({
               <span className="text-white/55">Bakiye </span>
               <span className="font-bold text-gold">{balanceLabel}</span>
             </Link>
-            <span className="hidden rounded-full border border-white/15 px-3 py-2 text-white/80 sm:inline">
+            <button
+              type="button"
+              className={`plan-menu plan-menu-${metal}`}
+              aria-expanded={planOpen}
+              onClick={() => setPlanOpen((open) => !open)}
+            >
+              <span className="plan-emoji" aria-hidden>
+                {emoji}
+              </span>
               {planName}
-            </span>
+            </button>
             <span className="hidden text-white/70 sm:inline">{name}</span>
             {name !== username && <span className="hidden text-white/40 md:inline">{username}</span>}
             <form action={logoutAction}>
@@ -92,15 +121,25 @@ export function PanelFrame({
             </form>
           </div>
         </div>
+        {planOpen && (
+          <p className="plan-menu-left">
+            <span className="plan-emoji" aria-hidden>
+              {emoji}
+            </span>{" "}
+            {planName}
+            <span className="mt-1 block font-display text-lg font-bold">{remain}</span>
+            <span className="mt-1 block text-sm text-white/60">{formatDay(planUntil)} tarihinde yenilenir.</span>
+          </p>
+        )}
         <nav className="mt-4 hidden flex-wrap gap-2 sm:flex">
-          <NavLinks path={path} />
+          <NavLinks path={path} metal={metal} />
         </nav>
         <details className="mt-4 sm:hidden">
           <summary className="btn btn-ghost w-full cursor-pointer list-none [&::-webkit-details-marker]:hidden">
             Menü
           </summary>
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <NavLinks path={path} stacked />
+            <NavLinks path={path} metal={metal} stacked />
           </div>
         </details>
         <p className="trust-line">

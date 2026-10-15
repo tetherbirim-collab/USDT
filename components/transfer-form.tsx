@@ -3,7 +3,7 @@
 import { useFormStatus } from "react-dom";
 import { useState } from "react";
 import { transferAction } from "@/lib/actions";
-import { MIN_TRANSFER_KURUS, transferFeeAt, usdMinorToKurus } from "@/lib/catalog";
+import { MIN_TRANSFER_KURUS, allTransferInput, transferFeeAt, usdMinorToKurus } from "@/lib/catalog";
 import { formatTL, parseTryToKurus } from "@/lib/format";
 import { useSiteSettings } from "@/lib/live";
 import type { Card } from "@/lib/types";
@@ -72,18 +72,28 @@ export function TransferForm({ card, peers }: { card: Card; peers: Card[] }) {
           ))}
         </select>
       </label>
-      <label className="grid gap-1 text-xs text-white/70">
+      <div className="grid gap-1 text-xs text-white/70">
         Tutar (USD)
-        <input
-          className="field"
-          name="tutar"
-          inputMode="decimal"
-          placeholder="100"
-          value={raw}
-          onChange={(event) => setRaw(event.target.value)}
-          required
-        />
-      </label>
+        <div className="flex items-center gap-2">
+          <input
+            className="field"
+            name="tutar"
+            inputMode="decimal"
+            placeholder="100"
+            value={raw}
+            onChange={(event) => setRaw(event.target.value)}
+            required
+          />
+          <button
+            type="button"
+            className="btn btn-ghost shrink-0 px-4 py-2 text-sm"
+            disabled={allTransferInput(kalan, settings.transferFeePercent) === ""}
+            onClick={() => setRaw(allTransferInput(kalan, settings.transferFeePercent))}
+          >
+            Tümü
+          </button>
+        </div>
+      </div>
       <input type="hidden" name="id" value={card.id} />
       {amount !== null && amount > 0 && (
         <div className="transfer-split">

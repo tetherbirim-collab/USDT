@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DeskArrival } from "@/components/desk-arrival";
 import { Notice } from "@/components/notice";
 import { PaymentsBoard } from "@/components/payments-board";
 import { KIND_LABEL } from "@/lib/catalog";
@@ -101,13 +102,12 @@ export default function PaymentsPage() {
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold tracking-[0.22em] text-gold">HAREKET</p>
-          <h1 className="font-display text-4xl font-extrabold">Ödemeler</h1>
-          <p className="mt-2 max-w-xl text-white/65">
-            Her harcamanın gittiği yer burada durur. Tutarlar, doların sabit kur karşılığıdır.
-          </p>
-        </div>
+        <DeskArrival
+          tone="payments"
+          kicker="HAREKET"
+          title="Ödemeler"
+          line="Her harcamanın gittiği yer burada durur. Kendiliğinden düşen tutarlar da bu listede görünür."
+        />
         <div className="flex flex-wrap gap-2">
           <button type="button" className="btn btn-ghost px-3 py-2 text-sm" onClick={() => downloadCsv(user.id, query)}>
             Dışa aktar

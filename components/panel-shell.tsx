@@ -28,7 +28,9 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
       name={user.name}
       username={user.username}
       balanceLabel={formatTL(user.balance)}
+      planId={user.plan}
       planName={settings.plans[user.plan].name}
+      planUntil={user.planUntil}
       unread={unreadNoticeCount(user.id)}
     >
       {lead && (

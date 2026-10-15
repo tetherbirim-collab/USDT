@@ -67,6 +67,32 @@ export function formatPan(pan: string): string {
   return pan.replace(/(.{4})/g, "$1 ").trim();
 }
 
+const PLAN_PERIOD_MS = 30 * 86_400_000;
+
+export function planEndsAt(createdAt: string, planUntil: string | null | undefined, now = Date.now()): string {
+  const stored = planUntil ? Date.parse(planUntil) : Number.NaN;
+  const anchor = Number.isFinite(stored) ? stored : Date.parse(createdAt);
+  if (!Number.isFinite(anchor)) return new Date(now + PLAN_PERIOD_MS).toISOString();
+  if (Number.isFinite(stored) && now < stored) return new Date(stored).toISOString();
+  if (now <= anchor) return new Date(anchor + PLAN_PERIOD_MS).toISOString();
+  const cycles = Math.floor((now - anchor) / PLAN_PERIOD_MS) + 1;
+  return new Date(anchor + cycles * PLAN_PERIOD_MS).toISOString();
+}
+
+export function daysUntil(iso: string, now = Date.now()): number {
+  const due = Date.parse(`${istanbulKey(iso)}T00:00:00+03:00`);
+  const today = Date.parse(`${istanbulKey(new Date(now).toISOString())}T00:00:00+03:00`);
+  if (!Number.isFinite(due) || !Number.isFinite(today)) return 0;
+  return Math.round((due - today) / 86_400_000);
+}
+
+export function daysLeftLine(days: number): string {
+  if (days > 1) return `${days} gün kaldı`;
+  if (days === 1) return "1 gün kaldı";
+  if (days === 0) return "Bugün";
+  return "Günü geçti";
+}
+
 export function formatDay(iso: string): string {
   return new Intl.DateTimeFormat("tr-TR", {
     timeZone: "Europe/Istanbul",

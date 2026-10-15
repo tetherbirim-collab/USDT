@@ -409,6 +409,7 @@ export async function planAction(formData: FormData) {
       });
     }
     row.plan = plan;
+    row.planUntil = new Date(Date.now() + 30 * 86_400_000).toISOString();
     pushNotice(db, {
       userId: row.id,
       title: "Plan güncellendi",

@@ -37,6 +37,24 @@ export function transferFee(amount: number): number {
   return transferFeeAt(TRANSFER_FEE_PERCENT, amount);
 }
 
+/** Largest dollar entry that still fits the card ceiling after the transfer cut. */
+export function allTransferInput(kalanKurus: number, percent: number): string {
+  let cents = kurusToUsdMinor(kalanKurus);
+  let guard = 0;
+  while (cents >= MIN_TRANSFER_USD_MINOR && guard < 40) {
+    guard += 1;
+    const amount = usdMinorToKurus(cents);
+    const fee = transferFeeAt(percent, amount);
+    if (amount <= kalanKurus && fee >= 1 && amount - fee >= 1) {
+      const whole = Math.floor(cents / 100);
+      const frac = String(cents % 100).padStart(2, "0");
+      return `${whole},${frac}`;
+    }
+    cents -= 1;
+  }
+  return "";
+}
+
 export function loadFee(amount: number): number {
   return loadFeeAt(LOAD_FEE_PERCENT, amount);
 }

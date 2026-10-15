@@ -38,11 +38,10 @@ const GLOW: Record<CardTypeId, string> = {
   ultima: "0 0 20px rgba(255,236,196,.9), 0 0 58px rgba(240,201,138,.62)",
 };
 
-const STATUS_LABEL = {
-  hazirlaniyor: "HAZIRLANIYOR",
-  aktif: "AKTİF",
-  donduruldu: "DONDURULDU",
-  kapali: "KAPALI",
+const SEAL = {
+  hazirlaniyor: { kicker: "HAZIR", line: "Kart hazırlanıyor" },
+  donduruldu: { kicker: "DONDU", line: "Bu kart buz tuttu" },
+  kapali: { kicker: "KAPANDI", line: "Bu kart kapandı" },
 } as const;
 
 function VisaMark({ ink }: { ink: string }) {
@@ -152,6 +151,14 @@ export function VirtualCard({
     >
       {card.type === "google_ads" && <span className="vcard-stripe" />}
       <span className="sheen" />
+      {card.status === "donduruldu" && <span className="vcard-veil vcard-veil-frost" />}
+      {card.status === "kapali" && <span className="vcard-veil vcard-veil-shut" />}
+      {card.status !== "aktif" && (
+        <div className={`vcard-seal vcard-seal-${card.status}`}>
+          <span className="vcard-seal-kicker">{SEAL[card.status].kicker}</span>
+          <span className="vcard-seal-line">{SEAL[card.status].line}</span>
+        </div>
+      )}
       <header className="vcard-top">
         <TypeMark type={card.type} />
         <div className="vcard-id">
@@ -190,11 +197,6 @@ export function VirtualCard({
           {network === "visa" ? <VisaMark ink={light ? "#1a1f71" : "#fff"} /> : <MastercardMark />}
         </div>
       </footer>
-      {card.status !== "aktif" && (
-        <div className="vcard-status">
-          <span>{STATUS_LABEL[card.status]}</span>
-        </div>
-      )}
     </article>
   );
 }

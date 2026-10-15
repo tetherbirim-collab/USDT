@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Notice } from "@/components/notice";
 import { addressAction, displayNameAction, passwordChangeAction, planAction } from "@/lib/actions";
 import { PLANS, usdMinorToKurus } from "@/lib/catalog";
-import { formatTL } from "@/lib/format";
+import { daysLeftLine, daysUntil, formatDay, formatTL } from "@/lib/format";
 import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import type { PlanId } from "@/lib/types";
 
@@ -11,7 +12,9 @@ export default function AccountPage() {
   const user = useUser();
   const query = useQuery();
   const settings = useSiteSettings();
+  const [peek, setPeek] = useState<PlanId | null>(null);
   if (!user || !query) return <Boot />;
+  const days = daysUntil(user.planUntil);
 
   return (
     <div className="grid gap-4">
@@ -63,12 +66,20 @@ export default function AccountPage() {
           açmak plan ücreti kesmez.
         </p>
         {(Object.keys(PLANS) as PlanId[]).map((id) => (
-          <label key={id} className={`plan-card plan-${PLANS[id].metal} !p-3`}>
+          <label key={id} className={`plan-card plan-${PLANS[id].metal} !p-3`} onClick={() => setPeek(id)}>
             <input className="mr-2" type="radio" name="plan" value={id} defaultChecked={user.plan === id} />
-            <span className="font-semibold">{settings.plans[id].name}</span>
+            <span className="font-semibold">
+              {PLANS[id].metal === "bronze" ? "🥉 " : PLANS[id].metal === "silver" ? "🥈 " : "🥇 "}
+              {settings.plans[id].name}
+            </span>
             <span className="mt-1 block text-sm text-white/80">
               {settings.plans[id].cardLimit} açık kart · {settings.plans[id].priceUsdMinor / 100} USD · {formatTL(usdMinorToKurus(settings.plans[id].priceUsdMinor))}
             </span>
+            {peek === id && id === user.plan && (
+              <span className="mt-2 block text-sm font-semibold text-[#ffe7c2]">
+                {days > 0 ? `Bitmesine ${daysLeftLine(days)}` : days === 0 ? "Paket bugün bitiyor" : "Paket günü geçti"}. {formatDay(user.planUntil)}
+              </span>
+            )}
           </label>
         ))}
         <button className="btn btn-gold w-fit">Planı kaydet</button>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { formatDay, formatPan, plusDaysIso } from "@/lib/format";
+import { daysLeftLine, daysUntil, formatDay, formatPan, plusDaysIso } from "@/lib/format";
 import type { Card } from "@/lib/types";
 import { VirtualCard } from "./virtual-card";
 
@@ -48,7 +48,9 @@ export function CardSecrets({
   const [copied, setCopied] = useState("");
   const dueIso = card.feeDueAt || plusDaysIso(card.createdAt, 30);
   const due = formatDay(dueIso);
-  const late = Boolean(card.feeDueAt && Date.parse(card.feeDueAt) <= Date.now());
+  const days = daysUntil(dueIso);
+  const late = days < 0 || Boolean(card.feeDueAt && Date.parse(card.feeDueAt) <= Date.now());
+  const leftLine = late ? "Ödeme günü geçti" : daysLeftLine(days);
   const pan = formatPan(card.pan);
   const expiry = prettyExpiry(card.expiry);
   const line = address.trim();
@@ -69,6 +71,7 @@ export function CardSecrets({
       `CVV: ${card.cvv}`,
       line ? `Adres: ${line}` : "Adres: yazılmadı",
       `Sonraki kart ödemesi: ${due}`,
+      leftLine,
     ].join("\n");
     await copy("hepsi", block);
   }
@@ -86,12 +89,13 @@ export function CardSecrets({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-bold tracking-[0.16em] text-white/45">SONRAKİ KART ÖDEMESİ</p>
-            <p className="mt-1 font-display text-xl font-bold">{open ? due : "•• ••• ••••"}</p>
+            <p className="mt-1 font-display text-2xl font-bold">{open ? due : "•• ••• ••••"}</p>
+            {open && <p className={`fee-left ${late ? "fee-left-late" : ""}`}>{leftLine}</p>}
             <p className="mt-1 text-xs text-white/45">
-              {late ? "Bu ödeme bakiyeden düşmedi. Kart açık kaldı." : "Sonraki kart ödemesinin tarihi. Her 30 günde kart bedeli düşer."}
+              {late ? "Bu ödeme bakiyeden düşmedi. Kart açık kaldı." : "Kart bedeli o gün bakiyeden düşer."}
             </p>
           </div>
-          {open && <CopyButton copied={copied === "odeme"} onCopy={() => copy("odeme", due)} />}
+          {open && <CopyButton copied={copied === "odeme"} onCopy={() => copy("odeme", `${due} · ${leftLine}`)} />}
         </div>
       </section>
       <section className="mt-3 rounded-[22px] bg-white/[0.04] p-4">

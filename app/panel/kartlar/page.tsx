@@ -48,7 +48,7 @@ export default function CardsPage() {
           <p className="text-xs font-bold tracking-[0.22em] text-gold">KARTLARIM</p>
           <h1 className="font-display text-4xl font-extrabold">Kartlarım</h1>
           <p className="mt-2 max-w-xl text-white/65">
-            Kart bas, kullanılabilir bakiye yaz, kartlar arası aktar, harca. Numara ve CVV kartın içinde durur.
+            Kart bas, kullanılabilir bakiye yaz, kartlar arası aktar. Harcama kendiliğinden işlem geçmişine düşer.
           </p>
         </div>
         <Link href="/panel/kartlar/yeni" className="btn btn-gold">
@@ -60,7 +60,7 @@ export default function CardsPage() {
           ["1", "Kart bas", "Bedel 300₺. Ödeyecek hesabı ve BIN’i seç."],
           ["2", "Bakiye yaz", "Ayırdığın tutardan %7,3 kesilir, kalan kullanılabilir bakiye olur."],
           ["3", "Aktar", "Kullanılabilir bakiye karşı karta gider. Karşı karta %4 yazılır. Ana bakiye durur."],
-          ["4", "Harca", "Kullanılabilir bakiye azalınca cüzdandan yeniden yükle."],
+          ["4", "Harcama", "Tutar kendiliğinden düşer ve ödemelerde görünür."],
           ["5", "Destek", "Takılırsan menüden talep aç. Yanıt zilde gelir."],
         ].map(([step, title, line]) => (
           <li key={step} className="glass rounded-[22px] p-4">

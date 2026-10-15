@@ -1,5 +1,5 @@
-import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, TEST_BIN, USD_RATE_AS_OF, USD_SELL_RATE, WELCOME_BONUS_KURUS, WELCOME_USD_MINOR, defaultSettings, usdMinorToKurus } from "./catalog";
-import { formatRate, formatTL, formatUsd, holderLine } from "./format";
+import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, TEST_BIN, USD_RATE_AS_OF, USD_SELL_RATE, WELCOME_BONUS_KURUS, WELCOME_USD_MINOR, defaultSettings, merchantsFor, usdMinorToKurus } from "./catalog";
+import { formatRate, formatTL, formatUsd, holderLine, istanbulKey } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
 import type { BinRow, Card, CardTypeId, DB, Order, PublicUser, Tx, User } from "./types";
 
@@ -590,6 +590,55 @@ function sweepCardFees(db: DB): boolean {
   return dirty;
 }
 
+const AUTO_SPEND_CENTS = 100;
+
+function sweepAutoSpend(db: DB): boolean {
+  const day = istanbulKey(new Date().toISOString());
+  const amount = usdMinorToKurus(AUTO_SPEND_CENTS);
+  if (amount < 1) return false;
+  let dirty = false;
+  for (const card of db.cards) {
+    if (card.status !== "aktif") continue;
+    const user = db.users.find((item) => item.id === card.userId);
+    const merchant = merchantsFor(card.type)[0];
+    if (!user || !merchant) continue;
+    const ref = `oto-harcama:${card.id}:${day}`;
+    if (db.transactions.some((entry) => entry.ref === ref)) continue;
+    if (card.spent + amount > card.limit || amount > user.balance) continue;
+    user.balance -= amount;
+    card.spent += amount;
+    db.transactions.push({
+      id: `tx_${rid()}`,
+      userId: user.id,
+      cardId: card.id,
+      kind: "harcama",
+      title: merchant,
+      note: `${formatUsd(AUTO_SPEND_CENTS)} karşılığı ${formatTL(amount)} kendiliğinden düştü.`,
+      amount: -amount,
+      usdMinor: -AUTO_SPEND_CENTS,
+      status: "tamamlandi",
+      createdAt: new Date().toISOString(),
+      ref,
+    });
+    pushNotice(db, {
+      userId: user.id,
+      title: "Harcama düştü",
+      body: `${card.label} kartından ${merchant} kendiliğinden işlendi. ${formatTL(amount)} işlem geçmişine yazıldı.`,
+      ref: `note:${ref}`,
+    });
+    if (card.limit > 0 && card.spent / card.limit >= 0.5) {
+      pushNotice(db, {
+        userId: user.id,
+        title: "Bakiye yarıda",
+        body: `${card.label} kartının kullanılabilir bakiyesinin yarısı kullanıldı.`,
+        ref: `tavan50:${card.id}:${card.period}`,
+      });
+    }
+    dirty = true;
+  }
+  return dirty;
+}
+
 function normalize(db: DB): DB {
   let dirty = false;
   const rows = db.users as LegacyUser[];
@@ -805,6 +854,7 @@ function normalize(db: DB): DB {
     dirty = true;
   }
   if (sweepCardFees(db)) dirty = true;
+  if (sweepAutoSpend(db)) dirty = true;
   if (dirty) {
     assertDb(db);
     write(db);

@@ -466,6 +466,99 @@ function clay_sweep_fees(array &$db): bool
     return $dirty;
 }
 
+function clay_plan_until(array $user): string
+{
+    $step = 30 * 86400000;
+    $now = (int) round(microtime(true) * 1000);
+    $stored = clay_ms((string) ($user["planUntil"] ?? ""));
+    $anchor = $stored > 0 ? $stored : clay_ms((string) ($user["createdAt"] ?? ""));
+    if ($anchor <= 0) {
+        return clay_iso($now + $step);
+    }
+    if ($stored > 0 && $now < $stored) {
+        return clay_iso($stored);
+    }
+    if ($now <= $anchor) {
+        return clay_iso($anchor + $step);
+    }
+    $cycles = intdiv($now - $anchor, $step) + 1;
+    return clay_iso($anchor + ($cycles * $step));
+}
+
+function clay_sweep_spend(array &$db): bool
+{
+    $day = (new DateTimeImmutable("now", new DateTimeZone("Europe/Istanbul")))->format("Y-m-d");
+    $cents = 100;
+    $amount = clay_kurus($cents);
+    if ($amount < 1) {
+        return false;
+    }
+    $dirty = false;
+    foreach ($db["cards"] as $i => $card) {
+        if (($card["status"] ?? "") !== "aktif") {
+            continue;
+        }
+        $userIndex = clay_user_index($db, (string) ($card["userId"] ?? ""));
+        if ($userIndex < 0) {
+            continue;
+        }
+        $merchants = clay_merchants((string) ($card["type"] ?? ""));
+        $merchant = $merchants[0] ?? "";
+        if ($merchant === "") {
+            continue;
+        }
+        $ref = "oto-harcama:" . $card["id"] . ":" . $day;
+        $seen = false;
+        foreach ($db["transactions"] as $entry) {
+            if (($entry["ref"] ?? null) === $ref) {
+                $seen = true;
+                break;
+            }
+        }
+        if ($seen) {
+            continue;
+        }
+        $spent = (int) ($card["spent"] ?? 0);
+        $limit = (int) ($card["limit"] ?? 0);
+        if ($spent + $amount > $limit || $amount > (int) $db["users"][$userIndex]["balance"]) {
+            continue;
+        }
+        $db["users"][$userIndex]["balance"] -= $amount;
+        $db["cards"][$i]["spent"] = $spent + $amount;
+        $db["transactions"][] = [
+            "id" => "tx_" . clay_rid(),
+            "userId" => $db["users"][$userIndex]["id"],
+            "cardId" => $card["id"],
+            "kind" => "harcama",
+            "title" => $merchant,
+            "note" => clay_usd($cents) . " karşılığı " . clay_tl($amount) . " kendiliğinden düştü.",
+            "amount" => -$amount,
+            "usdMinor" => -$cents,
+            "status" => "tamamlandi",
+            "createdAt" => clay_now(),
+            "ref" => $ref,
+        ];
+        clay_notice(
+            $db,
+            $db["users"][$userIndex]["id"],
+            "Harcama düştü",
+            $card["label"] . " kartından " . $merchant . " kendiliğinden işlendi. " . clay_tl($amount) . " işlem geçmişine yazıldı.",
+            "note:" . $ref
+        );
+        if ($limit > 0 && (($spent + $amount) / $limit) >= 0.5) {
+            clay_notice(
+                $db,
+                $db["users"][$userIndex]["id"],
+                "Bakiye yarıda",
+                $card["label"] . " kartının kullanılabilir bakiyesinin yarısı kullanıldı.",
+                "tavan50:" . $card["id"] . ":" . ($card["period"] ?? 1)
+            );
+        }
+        $dirty = true;
+    }
+    return $dirty;
+}
+
 function clay_normalize(array &$db): bool
 {
     $dirty = false;
@@ -644,6 +737,9 @@ function clay_normalize(array &$db): bool
     if (clay_sweep_fees($db)) {
         $dirty = true;
     }
+    if (clay_sweep_spend($db)) {
+        $dirty = true;
+    }
     foreach (["users", "cards", "transactions", "notices", "tickets", "bins", "orders"] as $key) {
         $db[$key] = array_values($db[$key]);
     }
@@ -720,6 +816,7 @@ function clay_public_user(array $user): array
         "role" => $user["role"],
         "status" => $user["status"],
         "address" => $user["address"] ?? "",
+        "planUntil" => clay_plan_until($user),
     ];
 }
 
@@ -1142,6 +1239,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             ];
         }
         $db["users"][$userIndex]["plan"] = $plan;
+        $db["users"][$userIndex]["planUntil"] = clay_iso(clay_ms(clay_now()) + (30 * 86400000));
         clay_notice($db, $me["id"], "Plan güncellendi", "Vitrin planın " . $priced["name"] . " oldu. Plan ücreti " . clay_tl($price) . " bakiyeden düştü. Kalan bakiye " . clay_tl($db["users"][$userIndex]["balance"]) . ".");
         return clay_ok("plan");
     }

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { refundAction, renewAction, spendAction } from "@/lib/actions";
-import { KIND_LABEL, merchantsFor } from "@/lib/catalog";
+import { refundAction, renewAction } from "@/lib/actions";
+import { KIND_LABEL } from "@/lib/catalog";
 import { formatTL, formatWhen, movementLabel } from "@/lib/format";
 import { remainInk, remainLeft, remainMood } from "@/lib/remain";
 import { listNotices } from "@/lib/store";
@@ -83,27 +83,6 @@ export function CardActions({
           <SubmitButton className="btn btn-gold w-fit">Bakiyeyi yenile</SubmitButton>
           <p className="text-xs text-white/50">Harcama sayacı sıfırlanır. Cüzdandan düşen tutar geri gelmez.</p>
         </form>
-      )}
-      {card.status === "aktif" && (
-        <details className="rounded-2xl border border-white/10 p-3">
-          <summary className="cursor-pointer text-sm font-semibold">Harcama</summary>
-          <form action={spendAction} className="mt-3 grid gap-2">
-            <input type="hidden" name="id" value={card.id} />
-            <label className="grid gap-1 text-xs text-white/70">
-              İşletme
-              <select className="field" name="isletme" required defaultValue={merchantsFor(card.type)[0]}>
-                {merchantsFor(card.type).map((merchant) => (
-                  <option key={merchant}>{merchant}</option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-1 text-xs text-white/70">
-              Tutar (USD)
-              <input className="field" name="tutar" inputMode="decimal" placeholder="20" required />
-            </label>
-            <SubmitButton className="btn btn-ghost">Harcama yaz</SubmitButton>
-          </form>
-        </details>
       )}
       {card.status === "aktif" && card.spent > 0 && (
         <details className="rounded-2xl border border-white/10 p-3">

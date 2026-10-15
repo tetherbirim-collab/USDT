@@ -67,7 +67,7 @@ export function CardSecrets({ card, address }: { card: Card; address: string }) 
           <div>
             <p className="text-xs font-bold tracking-[0.16em] text-white/45">SONRAKİ KART ÖDEMESİ</p>
             <p className="mt-1 font-display text-xl font-bold">{open ? due : "•• ••• ••••"}</p>
-            <p className="mt-1 text-xs text-white/45">Simülasyon tarihi. Tahsilat yoktur.</p>
+            <p className="mt-1 text-xs text-white/45">Sonraki kart ödemesinin tarihi.</p>
           </div>
           {open && <CopyButton copied={copied === "odeme"} onCopy={() => copy("odeme", due)} />}
         </div>

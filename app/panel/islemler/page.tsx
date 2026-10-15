@@ -37,7 +37,7 @@ function cell(value: string) {
 
 function downloadCsv(userId: string, query: PaymentQuery) {
   const cards = new Map(listCards(userId).map((card) => [card.id, card]));
-  const lines = ["tarih;tür;başlık;kart;tutar_kurus;dolar_sent;durum;not"];
+  const lines = ["tarih;tür;başlık;kart;tl;durum;not"];
   for (const entry of filterLedger(listTransactions(userId), query)) {
     const card = entry.cardId ? cards.get(entry.cardId) : undefined;
     lines.push(
@@ -46,8 +46,7 @@ function downloadCsv(userId: string, query: PaymentQuery) {
         cell(KIND_LABEL[entry.kind]),
         cell(entry.title),
         cell(card ? `${card.label} ···· ${card.pan.slice(-4)}` : ""),
-        String(entry.amount),
-        entry.usdMinor == null ? "" : String(entry.usdMinor),
+        (entry.amount / 100).toFixed(2),
         cell(payStatusLabel(entry)),
         cell(entry.note),
       ].join(";"),
@@ -59,7 +58,7 @@ function downloadCsv(userId: string, query: PaymentQuery) {
 function downloadXlsx(userId: string, query: PaymentQuery) {
   const cards = new Map(listCards(userId).map((card) => [card.id, card]));
   const rows = [
-    ["Tarih", "Kart", "Son dört", "Ödeme", "Miktar kuruş", "Durum", "Not"],
+    ["Tarih", "Kart", "Son dört", "Ödeme", "TL karşılığı", "Durum", "Not"],
     ...filterLedger(listTransactions(userId), query).map((entry) => {
       const card = entry.cardId ? cards.get(entry.cardId) : undefined;
       return [
@@ -67,7 +66,7 @@ function downloadXlsx(userId: string, query: PaymentQuery) {
         card?.label ?? "Cüzdan",
         card ? card.pan.slice(-4) : "",
         entry.title,
-        String(entry.amount),
+        (entry.amount / 100).toFixed(2),
         payStatusLabel(entry),
         entry.note,
       ];
@@ -106,7 +105,7 @@ export default function PaymentsPage() {
           <p className="text-xs font-bold tracking-[0.22em] text-gold">HAREKET</p>
           <h1 className="font-display text-4xl font-extrabold">Ödemeler</h1>
           <p className="mt-2 max-w-xl text-white/65">
-            Her harcamanın gittiği yer burada durur. Kayıtlar bu hesabın simülasyon defterindendir.
+            Her harcamanın gittiği yer burada durur. Tutarlar, doların sabit kur karşılığıdır.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

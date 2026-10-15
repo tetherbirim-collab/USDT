@@ -28,7 +28,7 @@ export default function OrdersPage() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">SİPARİŞLER</p>
         <h1 className="font-display text-4xl font-extrabold">Basım siparişleri</h1>
         <p className="mt-2 max-w-xl text-white/70">
-          Hazırlanan, teslim edilen ve iptal edilen kartlar burada durur. Ücret simülasyondur.
+          Hazırlanan, teslim edilen ve iptal edilen kartlar burada durur.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />

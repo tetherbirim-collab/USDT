@@ -11,11 +11,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "CLAY Sanal Kart Hizmetleri — simülasyon",
+    default: "CLAY Sanal Kart Hizmetleri",
     template: "%s · CLAY",
   },
   description:
-    "CLAY Sanal Kart Hizmetleri, Facebook Ads, TikTok, Google Ads ve Ultima senaryoları için simülasyon sanal kart panelidir. Gerçek tahsilat ve kart ihracı yoktur.",
+    "CLAY Sanal Kart Hizmetleri. Facebook Ads, TikTok, Google Ads ve Ultima kartları. Tutar dolar olarak girilir, bakiyede sabit kurun TL karşılığı durur.",
   robots: { index: false, follow: false },
 };
 

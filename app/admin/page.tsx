@@ -56,27 +56,26 @@ export default function AdminPage() {
   return (
     <div className="grid gap-5">
       <div>
-        <p className="text-xs font-bold tracking-[0.22em] text-gold">SİMÜLASYON</p>
+        <p className="text-xs font-bold tracking-[0.22em] text-gold">YÖNETİM</p>
         <h1 className="font-display text-4xl font-extrabold">Yönetim masası</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Üye listesi, simülasyon bakiyesi ve kart durumu burada değişir. Kimlik belgesi yok, gerçek
-          kart yok, tahsilat yok. Numaralar 400000 test önekidir.
+          Üye listesi, bakiye ve kart durumu burada değişir. Tutar dolar olarak yazılır, bakiyede sabit kurun TL karşılığı durur.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
       <section className="glass rounded-[28px] p-5">
         <h2 className="font-display text-2xl font-bold">Bildirimler</h2>
         <p className="mt-1 text-sm text-white/60">
-          Mesaj üye paneline düşer. Duyuru simülasyondur; e-posta veya kısa mesaj gitmez.
+          Mesaj üye paneline düşer. E-posta veya kısa mesaj gitmez.
         </p>
         <form action={adminNoticeAction} className="mt-4 grid gap-3">
           <label className="grid gap-1 text-sm">
             Başlık
-            <input className="field" name="baslik" required minLength={2} maxLength={80} placeholder="Prova notu" />
+            <input className="field" name="baslik" required minLength={2} maxLength={80} placeholder="Kısa başlık" />
           </label>
           <label className="grid gap-1 text-sm">
             Mesaj
-            <textarea className="field min-h-24" name="mesaj" required minLength={2} maxLength={400} placeholder="Bu bir simülasyon bildirimidir." />
+            <textarea className="field min-h-24" name="mesaj" required minLength={2} maxLength={400} placeholder="Üyelere kısa bir not." />
           </label>
           <label className="grid gap-1 text-sm">
             Kime
@@ -148,7 +147,7 @@ export default function AdminPage() {
                 <form action={adminBalanceAction} className="mt-4 flex flex-wrap items-end gap-2">
                   <input type="hidden" name="uye" value={user.id} />
                   <label className="grid gap-1 text-sm">
-                    Simülasyon tutarı (₺)
+                    Tutar (USD)
                     <input className="field w-40" name="tutar" inputMode="decimal" placeholder="250" required />
                   </label>
                   <button className="btn btn-gold" name="yon" value="artir">

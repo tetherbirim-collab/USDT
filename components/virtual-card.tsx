@@ -148,7 +148,7 @@ export function VirtualCard({
         boxShadow: `0 22px 48px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.5), ${GLOW[card.type]}`,
       }}
       data-size={size}
-      aria-label={`${name} kartı, ${holder}. Gerçek üye işyerinde kullanılamaz.`}
+      aria-label={`${name} kartı, ${holder}.`}
     >
       {card.type === "google_ads" && <span className="vcard-stripe" />}
       <span className="sheen" />

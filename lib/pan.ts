@@ -52,7 +52,7 @@ export function previewPan(bin: string): string {
 /** Demo PAN. Prefix is the BIN stored on the card; the rest is a local serial plus a Luhn digit. */
 export function makePan(serial: number, bin = TEST_BIN): string {
   if (!BIN_PATTERN.test(bin)) throw new Error("BIN rakamları geçersiz");
-  if (!Number.isInteger(serial) || serial < 0) throw new Error("Geçersiz simülasyon seri numarası");
+  if (!Number.isInteger(serial) || serial < 0) throw new Error("Geçersiz seri numarası");
   const accountLen = 15 - bin.length;
   const body = `${bin}${String(serial % 10 ** accountLen).padStart(accountLen, "0")}`;
   return body + luhnCheckDigit(body);

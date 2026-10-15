@@ -1,4 +1,4 @@
-import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, TEST_BIN, WELCOME_BONUS_KURUS } from "./catalog";
+import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, TEST_BIN, WELCOME_BONUS_KURUS, WELCOME_USD_MINOR } from "./catalog";
 import { holderLine } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
 import type { BinRow, Card, CardTypeId, DB, Order, Tx, User } from "./types";
@@ -53,7 +53,7 @@ function createSeed(): DB {
     spent: 0,
     pan: makePan(100_000_001),
     bin: "400000",
-    binLabel: "Test öneki",
+    binLabel: "Standart",
     expiry: "08/28",
     cvv: makeCvv(100_000_001),
     holder: holderLine("Clay Üye"),
@@ -71,7 +71,7 @@ function createSeed(): DB {
     spent: 0,
     pan: makePan(100_000_002),
     bin: "400000",
-    binLabel: "Test öneki",
+    binLabel: "Standart",
     expiry: "03/29",
     cvv: makeCvv(100_000_002),
     holder: holderLine("Clay Üye"),
@@ -89,7 +89,7 @@ function createSeed(): DB {
     spent: 0,
     pan: makePan(100_000_003),
     bin: "400000",
-    binLabel: "Test öneki",
+    binLabel: "Standart",
     expiry: "11/27",
     cvv: makeCvv(100_000_003),
     holder: holderLine("Clay Üye"),
@@ -109,7 +109,7 @@ function createSeed(): DB {
     plan: "atolye",
     role: "uye",
     status: "acik",
-    address: "Sahne 7, Simülasyon",
+    address: "",
     createdAt: "2026-09-28T09:00:00.000Z",
   };
 
@@ -119,7 +119,7 @@ function createSeed(): DB {
       userId: demoId,
       cardId: null,
       kind: "yukleme",
-      title: "Simülasyon yüklemesi",
+      title: "Bakiye yüklemesi",
       amount: 2_000_000,
       status: "tamamlandi",
       createdAt: "2026-09-28T09:00:00.000Z",
@@ -130,7 +130,7 @@ function createSeed(): DB {
       cardId: reklam.id,
       kind: "basim",
       title: "Basım · Akış Kampanyası",
-      note: "Simülasyon basım ücreti",
+      note: "Basım ücreti",
       amount: -4500,
       status: "tamamlandi",
       createdAt: "2026-09-28T09:05:00.000Z",
@@ -170,7 +170,7 @@ function createSeed(): DB {
       userId: demoId,
       cardId: null,
       kind: "yukleme",
-      title: "Simülasyon yüklemesi",
+      title: "Bakiye yüklemesi",
       amount: 800_000,
       status: "tamamlandi",
       createdAt: "2026-10-05T08:30:00.000Z",
@@ -181,7 +181,7 @@ function createSeed(): DB {
       cardId: alisveris.id,
       kind: "basim",
       title: "Basım · Kısa Video",
-      note: "Simülasyon basım ücreti",
+      note: "Basım ücreti",
       amount: -3900,
       status: "tamamlandi",
       createdAt: "2026-10-05T08:40:00.000Z",
@@ -212,7 +212,7 @@ function createSeed(): DB {
       cardId: abonelik.id,
       kind: "basim",
       title: "Basım · Arama Kampanyası",
-      note: "Simülasyon basım ücreti",
+      note: "Basım ücreti",
       amount: -4500,
       status: "tamamlandi",
       createdAt: "2026-10-08T09:00:00.000Z",
@@ -243,7 +243,7 @@ function createSeed(): DB {
       cardId: alisveris.id,
       kind: "iade",
       title: "Tezgah Pazaryeri iadesi",
-      note: "Simüle iade",
+      note: "İade",
       amount: 35_000,
       status: "tamamlandi",
       createdAt: "2026-10-11T15:12:00.000Z",
@@ -285,7 +285,7 @@ function createSeed(): DB {
       cardId: "crd_ultima",
       kind: "basim",
       title: "Basım · Ultima",
-      note: "Simülasyon basım ücreti",
+      note: "Basım ücreti",
       amount: -7900,
       status: "tamamlandi",
       createdAt: "2026-10-09T09:10:00.000Z",
@@ -301,7 +301,7 @@ function createSeed(): DB {
     spent: 0,
     pan: makePan(100_000_004),
     bin: "400000",
-    binLabel: "Test öneki",
+    binLabel: "Standart",
     expiry: "01/30",
     cvv: makeCvv(100_000_004),
     holder: holderLine("Clay Üye"),
@@ -347,7 +347,7 @@ function testBins(): BinRow[] {
   return CARD_TYPE_ORDER.map((type) => ({
     id: `bin_${type}`,
     type,
-    label: "Test öneki",
+    label: "Standart",
     digits: TEST_BIN,
   }));
 }
@@ -358,7 +358,7 @@ function ensureTestBins(db: DB) {
     db.bins.push({
       id: `bin_${type}`,
       type,
-      label: "Test öneki",
+      label: "Standart",
       digits: TEST_BIN,
     });
   }
@@ -392,7 +392,7 @@ function applyLedger(db: DB) {
 function adminRecord(): User {
   return {
     id: "usr_admin",
-    name: "Simülasyon Yöneticisi",
+    name: "CLAY Yönetici",
     username: "admin",
     password: "admin123",
     balance: 0,
@@ -542,7 +542,7 @@ function normalize(db: DB): DB {
             userId: card.userId,
             batch: rid(),
             title: "Kart hazır",
-            body: "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz. Numara test verisidir, gerçek üye işyerinde kullanılamaz.",
+            body: "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz.",
             createdAt: new Date().toISOString(),
             readAt: null,
             ref,
@@ -580,7 +580,7 @@ function normalize(db: DB): DB {
 
 function assertDb(db: DB) {
   for (const user of db.users) {
-    if (user.balance < 0 || user.usdMinor < 0) throw new Error("Simülasyon bakiyesi eksi olamaz");
+    if (user.balance < 0 || user.usdMinor < 0) throw new Error("Bakiye eksi olamaz");
   }
   for (const card of db.cards) {
     if (!/^\d{16}$/.test(card.pan) || !luhnOk(card.pan) || !card.pan.startsWith(card.bin)) {
@@ -679,10 +679,10 @@ export function createUser(input: { username: string; password: string; name: st
       userId: user.id,
       cardId: null,
       kind: "yukleme",
-      title: "Hoş geldin simülasyon bakiyesi",
-      note: "Gerçek tahsilat yoktur.",
+      title: "Hoş geldin bakiyesi",
+      note: "30 USD sabit kur karşılığı.",
       amount: WELCOME_BONUS_KURUS,
-      usdMinor: null,
+      usdMinor: WELCOME_USD_MINOR,
       status: "tamamlandi",
       createdAt: new Date().toISOString(),
     });
@@ -781,7 +781,7 @@ export function issueCard(
     cardId: card.id,
     kind: "basim",
     title: `Basım · ${card.label}`,
-    note: `Sipariş ${card.id}. Basım ücreti simülasyondur. Kart hazırlanıyor; numara test verisidir ve gerçek üye işyerinde kullanılamaz.`,
+    note: `Sipariş ${card.id}. Kart hazırlanıyor.`,
     amount: -input.fee,
     status: "tamamlandi",
     createdAt: now,

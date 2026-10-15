@@ -53,7 +53,6 @@ export function PanelFrame({
   name,
   username,
   balanceLabel,
-  usdLabel,
   planName,
   unread = 0,
   children,
@@ -61,7 +60,6 @@ export function PanelFrame({
   name: string;
   username: string;
   balanceLabel: string;
-  usdLabel: string;
   planName: string;
   unread?: number;
   children: React.ReactNode;
@@ -79,7 +77,6 @@ export function PanelFrame({
             <Link href="/panel/yukle" className="rounded-full bg-black/30 px-3 py-2">
               <span className="text-white/55">Bakiye </span>
               <span className="font-bold text-gold">{balanceLabel}</span>
-              <span className="ml-2 font-bold text-mint">{usdLabel}</span>
             </Link>
             <span className="hidden rounded-full border border-white/15 px-3 py-2 text-white/80 sm:inline">
               {planName}

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { Notice } from "@/components/notice";
+import { SpendChart } from "@/components/spend-chart";
 import { VirtualCard } from "@/components/virtual-card";
 import { PLANS } from "@/lib/catalog";
-import { formatSigned, formatTL, formatUsd, formatWhen } from "@/lib/format";
+import { formatSigned, formatTL, formatWhen } from "@/lib/format";
 import { Boot, useQuery, useUser } from "@/lib/live";
 import { last7Spend, monthSpend, monthTopup } from "@/lib/stats";
 import { listCards, listNotices, listTransactions } from "@/lib/store";
@@ -17,7 +18,6 @@ export default function PanelHome() {
   const txs = listTransactions(user.id);
   const notes = listNotices(user.id).slice(0, 3);
   const days = last7Spend(txs);
-  const peak = Math.max(...days.map((day) => day.total), 1);
   const open = cards.filter((card) => card.status !== "kapali").length;
 
   return (
@@ -48,12 +48,10 @@ export default function PanelHome() {
       </section>
       <section className="relative overflow-hidden rounded-[32px] border border-gold/30 bg-gradient-to-br from-[#2a2114] via-[#14121c] to-[#0c1c1a] p-6 sm:p-8">
         <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(240,201,138,.45),transparent_68%)]" />
-        <p className="text-xs font-bold tracking-[0.22em] text-gold">SİMÜLASYON CÜZDANI</p>
+        <p className="text-xs font-bold tracking-[0.22em] text-gold">CÜZDAN</p>
         <h1 className="font-display mt-3 text-4xl font-extrabold sm:text-6xl">{formatTL(user.balance)}</h1>
-        <p className="mt-1 font-display text-2xl font-bold text-mint">{formatUsd(user.usdMinor)}</p>
         <p className="mt-2 max-w-lg text-white/70">
-          Kullanılabilir bakiye. Bu tutar gerçek para değildir. {PLANS[user.plan].name} vitrininde{" "}
-          {open}/{PLANS[user.plan].cardLimit} açık kart var.
+          Dolar bakiyesinin sabit kur karşılığı. {PLANS[user.plan].name} planında {open}/{PLANS[user.plan].cardLimit} açık kart var.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link href="/panel/yukle" className="btn btn-gold">
@@ -79,22 +77,8 @@ export default function PanelHome() {
       </section>
 
       <section className="glass rounded-[28px] p-5">
-        <h2 className="font-display text-xl font-bold">Son 7 gün · simüle harcama</h2>
-        <div className="mt-5 flex h-36 items-end gap-2" role="img" aria-label="Son yedi günün simüle harcaması">
-          {days.map((day) => (
-            <div key={day.key} className="flex flex-1 flex-col items-center gap-2">
-              <div className="flex h-24 w-full items-end">
-                <div
-                  className={`w-full rounded-t-xl ${day.total === 0 ? "bg-white/10" : "bg-gradient-to-t from-gold/30 to-gold"}`}
-                  style={{
-                    height: day.total === 0 ? "8%" : `${Math.max(18, Math.round((day.total / peak) * 100))}%`,
-                  }}
-                />
-              </div>
-              <span className="text-[11px] text-white/50">{day.label}</span>
-            </div>
-          ))}
-        </div>
+        <h2 className="font-display text-xl font-bold">Son 7 gün</h2>
+        <SpendChart days={days} />
       </section>
 
       <section>

@@ -1,26 +1,24 @@
 import type { CardTypeId, PlanId, TxKind } from "./types";
 
 export const TEST_BIN = "400000";
-export const WELCOME_BONUS_KURUS = 150_000;
-export const MIN_TOPUP_KURUS = 5_000;
-export const MAX_TOPUP_KURUS = 2_000_000;
-export const MAX_BALANCE_KURUS = 25_000_000;
-export const MIN_SPEND_KURUS = 1_000;
-export const MAX_SPEND_KURUS = 2_000_000;
-export const MIN_LIMIT_KURUS = 10_000;
-export const MAX_LIMIT_KURUS = 10_000_000;
 /** How long a new card stays on the order slip before it becomes active. */
 export const CARD_PREP_MS = 15_000;
 /**
- * Fixed simulation selling rate, 15 Eki 2026. Not a live feed and not a payment.
- * One US dollar converts to this many lira.
+ * Fixed selling rate, 15 Eki 2026. Not a live feed.
+ * One US dollar converts to this many lira. Amounts are entered in dollars.
+ * The screen shows only that conversion.
  */
 export const USD_SELL_RATE = 49.3929;
 export const USD_RATE_AS_OF = "15 Eki 2026";
+export const WELCOME_USD_MINOR = 3_000;
 export const MIN_USD_MINOR = 100;
 export const MAX_USD_MINOR = 500_000;
-/** Smallest ceiling move. Two percent of this is still a whole kuruş. */
-export const MIN_TRANSFER_KURUS = 100;
+export const MAX_BALANCE_USD_MINOR = 2_000_000;
+export const MIN_SPEND_USD_MINOR = 100;
+export const MAX_SPEND_USD_MINOR = 200_000;
+export const MIN_LIMIT_USD_MINOR = 1_000;
+export const MAX_LIMIT_USD_MINOR = 1_000_000;
+export const MIN_TRANSFER_USD_MINOR = 100;
 export const TRANSFER_FEE_PERCENT = 2;
 
 export function transferFee(amount: number): number {
@@ -31,6 +29,26 @@ export function usdMinorToKurus(minor: number): number {
   return Math.round(minor * USD_SELL_RATE);
 }
 
+export function kurusToUsdMinor(kurus: number): number {
+  return Math.round(kurus / USD_SELL_RATE);
+}
+
+export const WELCOME_BONUS_KURUS = usdMinorToKurus(WELCOME_USD_MINOR);
+export const MIN_TOPUP_KURUS = usdMinorToKurus(MIN_USD_MINOR);
+export const MAX_TOPUP_KURUS = usdMinorToKurus(MAX_USD_MINOR);
+export const MAX_BALANCE_KURUS = usdMinorToKurus(MAX_BALANCE_USD_MINOR);
+export const MIN_SPEND_KURUS = usdMinorToKurus(MIN_SPEND_USD_MINOR);
+export const MAX_SPEND_KURUS = usdMinorToKurus(MAX_SPEND_USD_MINOR);
+export const MIN_LIMIT_KURUS = usdMinorToKurus(MIN_LIMIT_USD_MINOR);
+export const MAX_LIMIT_KURUS = usdMinorToKurus(MAX_LIMIT_USD_MINOR);
+export const MIN_TRANSFER_KURUS = usdMinorToKurus(MIN_TRANSFER_USD_MINOR);
+const FEE_USD_MINOR: Record<CardTypeId, number> = {
+  facebook_ads: 100,
+  tiktok: 100,
+  google_ads: 100,
+  ultima: 200,
+};
+
 export const CARD_TYPE_ORDER: CardTypeId[] = ["facebook_ads", "tiktok", "google_ads", "ultima"];
 
 export const CARD_TYPES: Record<
@@ -40,26 +58,26 @@ export const CARD_TYPES: Record<
   facebook_ads: {
     name: "Facebook Ads",
     pitch: "Akış bütçesi",
-    scene: "Akış reklamı provası için ayrı limit. Platforma bağlanmaz, tahsilat yapılmaz.",
-    fee: 4500,
+    scene: "Akış bütçesi için ayrı tavan.",
+    fee: usdMinorToKurus(FEE_USD_MINOR.facebook_ads),
   },
   tiktok: {
     name: "TikTok",
-    pitch: "Kısa video provası",
-    scene: "Kısa video kampanyasını kendi tavanında izle. Uygulama hesabına bağlanmaz.",
-    fee: 3900,
+    pitch: "Kısa video bütçesi",
+    scene: "Kısa video bütçesini kendi tavanında tut.",
+    fee: usdMinorToKurus(FEE_USD_MINOR.tiktok),
   },
   google_ads: {
     name: "Google Ads",
-    pitch: "Arama provası",
-    scene: "Arama kampanyası bütçesini ayrı tavanda dene. Resmi hesap bağlantısı ve iş ortaklığı yoktur.",
-    fee: 4500,
+    pitch: "Arama bütçesi",
+    scene: "Arama kampanyasının tavanı ayrı durur.",
+    fee: usdMinorToKurus(FEE_USD_MINOR.google_ads),
   },
   ultima: {
     name: "Ultima",
-    pitch: "Geniş prova tavanı",
-    scene: "Koyu metal bir prova kartı. Bir ağa bağlı değildir; basım ücreti simülasyondur.",
-    fee: 7900,
+    pitch: "Geniş tavan",
+    scene: "Geniş tavanlı metal kart.",
+    fee: usdMinorToKurus(FEE_USD_MINOR.ultima),
   },
 };
 
@@ -77,31 +95,31 @@ export const PLANS: Record<
 > = {
   kivilcim: {
     name: "Kıvılcım",
-    price: "0 ₺",
+    price: "0 USD",
     period: "vitrin",
     cardLimit: 2,
     blurb: "İki açık kart, hoş geldin bakiyesi, tüm türler. Yeni hesaplar burada başlar.",
   },
   atolye: {
     name: "Atölye",
-    price: "149 ₺",
-    period: "ay · tahsil edilmez",
+    price: "3 USD",
+    period: "ay",
     cardLimit: 8,
-    blurb: "Sekiz açık kart ve daha geniş prova alanı.",
+    blurb: "Sekiz açık kart ve daha geniş alan.",
   },
   galeri: {
     name: "Galeri",
-    price: "399 ₺",
-    period: "ay · tahsil edilmez",
+    price: "8 USD",
+    period: "ay",
     cardLimit: 25,
-    blurb: "Kalabalık ekip provası için yüksek kart adedi. Yine de gerçek ihrac yok.",
+    blurb: "Kalabalık ekip için yüksek kart adedi.",
   },
 };
 
 export const MERCHANTS_BY_TYPE: Record<CardTypeId, readonly string[]> = {
-  facebook_ads: ["Vitrin Akış", "Mavi Sayfa Prova", "Sahne Reklam"],
+  facebook_ads: ["Vitrin Akış", "Mavi Sayfa", "Sahne Reklam"],
   tiktok: ["Kısa Sahne", "Nota Akış", "Gece Klip"],
-  google_ads: ["Arama Vitrini", "Kelime Tezgahı", "Harita Prova"],
+  google_ads: ["Arama Vitrini", "Kelime Tezgahı", "Harita Vitrin"],
   ultima: ["Ultima Salon", "Metal Gece", "Kule Rezerv"],
 };
 
@@ -124,55 +142,52 @@ export const KIND_LABEL: Record<TxKind, string> = {
 };
 
 export const NOTICES: Record<string, string> = {
-  hosgeldin:
-    "Hoş geldin bakiyesi simülasyondur. Gerçek tahsilat yapılmadı.",
-  yuklendi: "Simülasyon bakiyesi eklendi. Gerçek tahsilat yapılmadı.",
-  basildi:
-    "Simülasyon kartı basıldı. Numara test verisidir, gerçek üye işyerinde kullanılamaz.",
-  siparis:
-    "Sipariş alındı. Kart kısa süre hazırlanır. Basım ücreti simülasyondur, numara test verisidir.",
-  hazir: "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz. Numara test verisidir ve gerçek üye işyerinde kullanılamaz.",
+  hosgeldin: "Hoş geldin bakiyesi yazıldı. Tutar, doların sabit kur karşılığıdır.",
+  yuklendi: "Bakiye yazıldı. Tutar, doların sabit kur karşılığıdır.",
+  basildi: "Kart oluşturuldu.",
+  siparis: "Sipariş alındı. Kart kısa süre hazırlanır.",
+  hazir: "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz.",
   yenilendi: "Tavan yenilendi. Harcama sayacı sıfırlandı. Cüzdan tutarı değişmedi.",
   transfer: "Kalan tavan aktarıldı. %2 komisyon kesildi. Cüzdan tutarı değişmedi.",
-  iade: "Simülasyon iadesi cüzdana ve tavana işlendi. Gerçek tahsilat yoktur.",
+  iade: "İade cüzdana ve tavana işlendi.",
   ad: "Görünen ad güncellendi.",
   adres: "Kart adresi güncellendi. Yalnızca bu hesabın kart detaylarında görünür.",
-  donduruldu: "Kart donduruldu. Harcama provası kapalı.",
-  cozuldu: "Kart yeniden aktif. Bu hâlâ bir simülasyon.",
+  donduruldu: "Kart donduruldu. Harcama kapalı.",
+  cozuldu: "Kart yeniden aktif.",
   kapatildi: "Kart kapatıldı. Basım ücreti bakiyeye geri yazıldı. Kapanış geri alınmaz.",
-  iptal: "Sipariş iptal edildi. Basım ücreti simülasyon bakiyesine geri yazıldı.",
-  dolar: "Dolar bakiyesine yazıldı. Harcama lira bakiyesinden düşer. Tahsilat yoktur.",
-  cevrildi: "Dolar bakiyesi sabit kurla liraya çevrildi. Tahsilat yoktur.",
-  plan: "Vitrin planı güncellendi. Tahsilat yoktur.",
-  harcama: "Simüle harcama bakiyeye ve limite işlendi.",
+  iptal: "Sipariş iptal edildi. Basım ücreti bakiyeye geri yazıldı.",
+  dolar: "Bakiye yazıldı. Ekranda doların sabit kur karşılığı durur.",
+  cevrildi: "Bakiye, doların sabit kur karşılığı olarak duruyor.",
+  plan: "Plan güncellendi.",
+  harcama: "Harcama bakiyeye ve limite işlendi.",
   reddedildi: "Harcama reddedildi. Kayıt işlem listesinde.",
   "e-tutar": "Tutar izin verilen aralığın dışında.",
-  "e-tavan": "Simülasyon bakiyesi üst sınıra ulaştı.",
-  "e-bakiye": "Simülasyon bakiyesi bu işlem için yetersiz.",
-  "e-limit": "Kart tavanı 100 ₺ ile 100.000 ₺ arasında olmalı.",
+  "e-tavan": "Bakiye üst sınıra ulaştı.",
+  "e-bakiye": "Bakiye bu işlem için yetersiz.",
+  "e-limit": "Kart tavanı 10 ile 10.000 USD arasında olmalı.",
   "e-etiket": "Kart adı 2–32 karakter olmalı.",
   "e-tur": "Kart türü seç.",
   "e-plan": "Bu vitrin planındaki açık kart adedine ulaşıldı.",
   "e-plan-dolu": "Açık kart adedi bu plana sığmıyor. Önce bir kart kapat.",
   "e-durum": "Kart bu işlem için uygun durumda değil.",
   "e-onay": "Kapatmak için onay kutusu gerekli.",
-  "e-yok": "Kayıt bu simülasyonda bulunamadı.",
-  "e-isletme": "Bu kart türünün prova listesinden bir işletme seç.",
-  bakiye: "Simülasyon bakiyesi güncellendi. Gerçek tahsilat yoktur.",
+  "e-yok": "Kayıt bulunamadı.",
+  "e-isletme": "Bu kart türünün listesinden bir işletme seç.",
+  bakiye: "Bakiye güncellendi.",
   askida: "Hesap askıya alındı. Bu kullanıcı giriş yapamaz.",
-  acildi: "Hesap yeniden açıldı. Simülasyon girişi yine mümkün.",
-  "e-askida": "Bu simülasyon hesabı askıya alındı. Giriş kapalı.",
+  acildi: "Hesap yeniden açıldı.",
+  "e-askida": "Bu hesap askıya alındı. Giriş kapalı.",
   "e-kendin": "Yönetici kendi hesabını askıya alamaz.",
   "e-yonetici": "Yönetici hesabı bu işlem için kapalı.",
-  gonderildi: "Bildirim üye paneline yazıldı. Bu bir simülasyon mesajıdır.",
-  kart: "Kart kaydı güncellendi. Numara değişmedi; hâlâ test verisidir.",
-  islem: "İşlem tutarı güncellendi. Tahsilat yoktur.",
+  gonderildi: "Bildirim üye paneline yazıldı.",
+  kart: "Kart kaydı güncellendi.",
+  islem: "İşlem tutarı güncellendi.",
   zaman: "Son yükleme zamanı güncellendi.",
   "e-mesaj": "Başlık 2–80, mesaj 2–400 karakter olmalı.",
   "e-hedef": "Bir üye seç veya tüm üyeleri işaretle.",
   "e-zaman": "Zaman İstanbul saatiyle seçilmeli.",
   "e-yukleme-yok": "Bu hesapta düzenlenecek bir yükleme yok.",
-  bin: "BIN satırı bu türün listesine yazıldı. Numara sorgulama yoktur.",
+  bin: "BIN satırı bu türün listesine yazıldı.",
   "e-bin": "Kart oluşturmak için bu türe ait bir BIN seç. Liste boşsa basım kapalı.",
   "e-bin-kayit": "Etiket 2–40 karakter, BIN ise 4–8 rakam olmalı. Aynı türde aynı rakam iki kez durmaz.",
   parola: "Parola güncellendi. Yönetim masasında yeni parola görünür.",
@@ -181,7 +196,7 @@ export const NOTICES: Record<string, string> = {
   "e-ad": "Görünen ad 2–40 karakter olmalı ve bir harfle başlamalı.",
   "e-adres": "Adres en fazla 120 karakter olabilir. Harf, rakam ve temel noktalama yeter.",
   "e-yenile": "Yenilenecek harcama yok. Tavan zaten boş.",
-  "e-transfer": "Aktarım en az 1 ₺ olmalı ve kartın kalan tavanını aşmamalı.",
+  "e-transfer": "Aktarım en az 1 USD olmalı ve kartın kalan tavanını aşmamalı.",
   "e-transfer-kart": "Aktarılacak başka bir açık kart seç.",
   "e-transfer-tavan": "Karşı kartın tavanı bu aktarımı almıyor.",
   okundu: "Bildirim okundu sayıldı.",

@@ -29,7 +29,7 @@ export function OrderSlip({ card }: { card: Card }) {
       </p>
       <p className="mt-2 font-mono text-xs text-white/55">Sipariş no {card.id}</p>
       <p className="mt-2 text-sm text-white/75">
-        Basım ücreti {formatTL(CARD_TYPES[card.type].fee)} deftere yazıldı. Bu bir simülasyon fişidir.
+        Basım ücreti {formatTL(CARD_TYPES[card.type].fee)} deftere yazıldı.
       </p>
       <p className="mt-3 font-semibold text-gold">
         {seconds > 0 ? `Hazırlanıyor · ${seconds} sn` : "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz."}

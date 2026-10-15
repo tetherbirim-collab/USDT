@@ -1,5 +1,5 @@
 import { CARD_TYPES, KIND_LABEL } from "./catalog";
-import { formatDay, formatSigned, formatUsd, formatWhen, istanbulKey, parseTryToKurus } from "./format";
+import { formatDay, formatWhen, istanbulKey, movementLabel, parseTryToKurus } from "./format";
 import { networkOf } from "./pan";
 import type { Card, CardTypeId, Tx, TxKind } from "./types";
 
@@ -153,7 +153,7 @@ export function presentPayments(entries: Tx[], cards: Card[]): PaymentRow[] {
       typeName: card ? CARD_TYPES[card.type].name : "Hesap",
       title: entry.title,
       detail: entry.note,
-      amountLabel: entry.amount === 0 && entry.usdMinor ? formatUsd(entry.usdMinor) : formatSigned(entry.amount),
+      amountLabel: movementLabel(entry.amount, entry.usdMinor),
       incoming: entry.amount > 0 || (entry.amount === 0 && (entry.usdMinor ?? 0) > 0),
       rejected: entry.status === "reddedildi",
       status: payStatusLabel(entry),

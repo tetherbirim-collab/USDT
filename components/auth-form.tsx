@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { loginAction, registerAction } from "@/lib/actions";
+import { WELCOME_BONUS_KURUS } from "@/lib/catalog";
+import { formatTL } from "@/lib/format";
 import { Boot } from "@/lib/live";
 
 export function LoginForm() {
@@ -74,7 +76,7 @@ export function RegisterForm() {
         maxLength={72}
       />
       <p className="text-sm text-[#8b95a5]">
-        Yeni hesaba 1.500 ₺ hoş geldin bakiyesi yazılır. Bu tutar simülasyondur, tahsil edilmez.
+        Yeni hesaba 30 USD karşılığı {formatTL(WELCOME_BONUS_KURUS)} yazılır.
       </p>
       {state.error && <p className="banner-bad">{state.error}</p>}
       <button className="auth-primary mt-1" disabled={pending}>

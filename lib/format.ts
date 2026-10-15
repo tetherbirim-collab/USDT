@@ -1,3 +1,5 @@
+import { usdMinorToKurus } from "./catalog";
+
 const money = new Intl.NumberFormat("tr-TR", {
   style: "currency",
   currency: "TRY",
@@ -107,6 +109,14 @@ export function istanbulKey(iso: string): string {
 
 export function holderLine(name: string): string {
   return name.toLocaleUpperCase("tr-TR").slice(0, 24);
+}
+
+export function movementLabel(amount: number, usdMinor?: number | null): string {
+  if (amount === 0 && usdMinor) {
+    const kurus = usdMinorToKurus(Math.abs(usdMinor));
+    return formatSigned(usdMinor < 0 ? -kurus : kurus);
+  }
+  return formatSigned(amount);
 }
 
 export function formatUsd(minor: number): string {

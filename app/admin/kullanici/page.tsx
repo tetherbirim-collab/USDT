@@ -9,8 +9,8 @@ import {
   adminSetBalanceAction,
 } from "@/lib/actions";
 import { Notice } from "@/components/notice";
-import { CARD_TYPES, KIND_LABEL } from "@/lib/catalog";
-import { formatSigned, formatTL, formatUsd, formatWhen, isoToIstanbulInput, kurusToInput } from "@/lib/format";
+import { CARD_TYPES, KIND_LABEL, kurusToUsdMinor } from "@/lib/catalog";
+import { formatSigned, formatTL, formatWhen, isoToIstanbulInput, kurusToInput } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
 import { snapshot } from "@/lib/store";
 
@@ -52,7 +52,7 @@ export default function AdminUserPage() {
         <Link href="/admin" className="text-sm font-semibold text-gold">
           ← Üye listesi
         </Link>
-        <p className="mt-3 text-xs font-bold tracking-[0.22em] text-gold">SİMÜLASYON</p>
+        <p className="mt-3 text-xs font-bold tracking-[0.22em] text-gold">ÜYE</p>
         <h1 className="font-display text-4xl font-extrabold">{user.username}</h1>
         <p className="mt-1 text-white/70">{user.name}</p>
         <p className="mt-1 text-sm text-white/70">Adres {user.address.trim() ? user.address : "yazılmadı"}</p>
@@ -66,7 +66,6 @@ export default function AdminUserPage() {
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-white/45">Bakiye</p>
             <p className="font-display text-4xl font-extrabold">{formatTL(user.balance)}</p>
-            <p className="mt-1 text-lg font-bold text-mint">{formatUsd(user.usdMinor)}</p>
           </div>
           <span className={`rounded-full px-3 py-1 text-sm font-bold ${user.status === "askida" ? "bg-[#ff8aa2] text-[#2a1018]" : "bg-mint text-[#10241f]"}`}>
             {user.status === "askida" ? "Askıda" : "Açık"}
@@ -77,8 +76,8 @@ export default function AdminUserPage() {
             <input type="hidden" name="uye" value={user.id} />
             <input type="hidden" name="donus" value={back} />
             <label className="grid gap-1 text-sm">
-              Yeni bakiye (₺)
-              <input className="field w-40" name="bakiye" inputMode="decimal" defaultValue={kurusToInput(user.balance)} required />
+              Yeni bakiye (USD)
+              <input className="field w-40" name="bakiye" inputMode="decimal" defaultValue={kurusToInput(kurusToUsdMinor(user.balance))} required />
             </label>
             <button className="btn btn-gold">Bakiyeyi yaz</button>
           </form>
@@ -126,8 +125,8 @@ export default function AdminUserPage() {
                   <input className="field" name="etiket" defaultValue={card.label} required minLength={2} maxLength={32} />
                 </label>
                 <label className="grid gap-1 text-sm">
-                  Limit (₺)
-                  <input className="field" name="limit" inputMode="decimal" defaultValue={kurusToInput(card.limit)} required />
+                  Tavan (USD)
+                  <input className="field" name="limit" inputMode="decimal" defaultValue={kurusToInput(kurusToUsdMinor(card.limit))} required />
                 </label>
                 <label className="grid gap-1 text-sm">
                   Durum
@@ -190,8 +189,8 @@ export default function AdminUserPage() {
                 <input type="hidden" name="uye" value={user.id} />
                 <input type="hidden" name="donus" value={back} />
                 <label className="grid gap-1 text-sm">
-                  Tutar (₺)
-                  <input className="field w-36" name="tutar" defaultValue={kurusToInput(entry.amount)} required />
+                  Tutar (USD)
+                  <input className="field w-36" name="tutar" defaultValue={kurusToInput(kurusToUsdMinor(entry.amount))} required />
                 </label>
                 <button className="btn btn-ghost">Tutarı yaz</button>
               </form>

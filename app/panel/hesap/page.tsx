@@ -55,7 +55,7 @@ export default function AccountPage() {
       </form>
       <form action={planAction} className="glass grid max-w-xl gap-3 rounded-[28px] p-5">
         <p className="font-semibold">Vitrin planı</p>
-        <p className="text-sm text-white/60">Fiyatlar örnektir, tahsil edilmez. Açık kart adedi yeni plana sığmalıdır.</p>
+        <p className="text-sm text-white/60">Açık kart adedi yeni plana sığmalıdır. Plan bedeli dolar cinsindendir.</p>
         {(Object.keys(PLANS) as PlanId[]).map((id) => (
           <label key={id} className="rounded-2xl border border-white/10 p-3">
             <input className="mr-2" type="radio" name="plan" value={id} defaultChecked={user.plan === id} />

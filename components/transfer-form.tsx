@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { transferAction } from "@/lib/actions";
-import { MIN_TRANSFER_KURUS, TRANSFER_FEE_PERCENT, transferFee } from "@/lib/catalog";
+import { MIN_TRANSFER_KURUS, TRANSFER_FEE_PERCENT, transferFee, usdMinorToKurus } from "@/lib/catalog";
 import { formatTL, parseTryToKurus } from "@/lib/format";
 import { SubmitButton } from "./submit-button";
 
@@ -17,7 +17,8 @@ export function TransferForm({
 }) {
   const [raw, setRaw] = useState("");
   const [target, setTarget] = useState(peers[0]?.id ?? "");
-  const amount = parseTryToKurus(raw);
+  const cents = parseTryToKurus(raw);
+  const amount = cents !== null ? usdMinorToKurus(cents) : null;
   const fee = amount !== null && amount > 0 ? transferFee(amount) : 0;
   const credit = amount !== null ? amount - fee : 0;
   const ready =
@@ -45,7 +46,7 @@ export function TransferForm({
         </select>
       </label>
       <label className="grid gap-1 text-xs text-white/70">
-        Tutar (₺)
+        Tutar (USD)
         <input
           className="field"
           name="tutar"

@@ -5,10 +5,11 @@ import { issueAction } from "@/lib/actions";
 import {
   CARD_TYPE_ORDER,
   CARD_TYPES,
-  MAX_LIMIT_KURUS,
-  MIN_LIMIT_KURUS,
+  MAX_LIMIT_USD_MINOR,
+  MIN_LIMIT_USD_MINOR,
+  usdMinorToKurus,
 } from "@/lib/catalog";
-import { formatTL, holderLine } from "@/lib/format";
+import { formatTL, holderLine, parseTryToKurus } from "@/lib/format";
 import { networkOf, previewPan } from "@/lib/pan";
 import type { BinRow, CardTypeId } from "@/lib/types";
 import { SubmitButton } from "./submit-button";
@@ -25,7 +26,7 @@ export function IssueForm({
 }) {
   const [type, setType] = useState<CardTypeId>("facebook_ads");
   const [label, setLabel] = useState("");
-  const [limit, setLimit] = useState("5000");
+  const [limit, setLimit] = useState("100");
   const [binId, setBinId] = useState("");
   const [localError, setLocalError] = useState("");
   const fee = CARD_TYPES[type].fee;
@@ -36,13 +37,13 @@ export function IssueForm({
 
   function readyToIssue() {
     const clean = label.trim();
-    const amount = Number(limit.replace(",", "."));
+    const cents = parseTryToKurus(limit);
     if (clean.length < 2 || clean.length > 32) {
       setLocalError("Kart adı 2–32 karakter olmalı.");
       return false;
     }
-    if (!Number.isFinite(amount) || amount * 100 < MIN_LIMIT_KURUS || amount * 100 > MAX_LIMIT_KURUS) {
-      setLocalError("Tavan izin verilen aralığın dışında.");
+    if (cents === null || cents < MIN_LIMIT_USD_MINOR || cents > MAX_LIMIT_USD_MINOR) {
+      setLocalError("Tavan 10 ile 10.000 USD arasında olmalı.");
       return false;
     }
     if (!chosen) {
@@ -103,7 +104,7 @@ export function IssueForm({
               <span className="text-white/50">Bu ad kartın üzerinde görünür.</span>
             </label>
             <label className="grid gap-1 text-sm">
-              Aylık tavan (₺)
+              Aylık tavan (USD)
               <input
                 className="field"
                 name="limit"
@@ -113,7 +114,7 @@ export function IssueForm({
                 required
               />
               <span className="text-white/50">
-                {MIN_LIMIT_KURUS / 100} ₺ – {MAX_LIMIT_KURUS / 100} ₺. Basım ücreti simülasyondur.
+                10–10.000 USD. Karşılığı {formatTL(usdMinorToKurus(parseTryToKurus(limit) ?? 0))}. Basım {formatTL(fee)}.
               </span>
             </label>
             {localError && <p className="banner-bad">{localError}</p>}
@@ -121,7 +122,7 @@ export function IssueForm({
               <p className="banner-bad">Bu plandaki açık kart adedine ulaşıldı. Bir kartı kapatınca yer açılır.</p>
             )}
             {balance < fee && (
-              <p className="banner-bad">Bu türün basım ücreti için simülasyon bakiyesi yetersiz. Önce cüzdanı yükle.</p>
+              <p className="banner-bad">Basım karşılığı için bakiye yetersiz. Önce cüzdanı yükle.</p>
             )}
             <section id="bin-sec" className="grid gap-3 rounded-[24px] border border-gold/30 bg-black/20 p-4">
               <div>

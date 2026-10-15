@@ -17,7 +17,7 @@ export default function NoticesPage() {
     <div className="grid gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-bold tracking-[0.22em] text-gold">SİMÜLASYON</p>
+          <p className="text-xs font-bold tracking-[0.22em] text-gold">MESAJLAR</p>
           <h1 className="font-display text-4xl font-extrabold">Bildirimler</h1>
           <p className="mt-2 max-w-xl text-white/70">
             CLAY yönetim masasının yazdığı mesajlar. Sayfayı açmak okundu saymaz. E-posta veya kısa mesaj gitmez.

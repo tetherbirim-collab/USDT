@@ -24,8 +24,7 @@ export default function CardsPage() {
           <p className="text-xs font-bold tracking-[0.22em] text-gold">KARTLAR</p>
           <h1 className="font-display text-4xl font-extrabold">Sahne kartları</h1>
           <p className="mt-2 max-w-xl text-white/65">
-            Numara, son kullanma, CVV ve adres yalnızca bu hesabın kartında durur. Gerçek üye
-            işyerinde kullanılamaz.
+            Numara, son kullanma, CVV ve adres bu hesabın kartında durur.
           </p>
         </div>
         <Link href="/panel/kartlar/yeni" className="btn btn-gold">

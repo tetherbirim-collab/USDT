@@ -6,7 +6,7 @@ import { PanelFrame } from "@/components/panel-frame";
 import { SubmitButton } from "@/components/submit-button";
 import { renewAction } from "@/lib/actions";
 import { PLANS } from "@/lib/catalog";
-import { formatTL, formatUsd } from "@/lib/format";
+import { formatTL } from "@/lib/format";
 import { Boot, useUser } from "@/lib/live";
 import { listCards, unreadNoticeCount } from "@/lib/store";
 
@@ -28,7 +28,6 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
       name={user.name}
       username={user.username}
       balanceLabel={formatTL(user.balance)}
-      usdLabel={formatUsd(user.usdMinor)}
       planName={`${PLANS[user.plan].name} · vitrin`}
       unread={unreadNoticeCount(user.id)}
     >

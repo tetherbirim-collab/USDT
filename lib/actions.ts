@@ -3,14 +3,15 @@ import {
   CARD_PREP_MS,
   CARD_TYPES,
   MAX_BALANCE_KURUS,
+  MAX_BALANCE_USD_MINOR,
   MAX_LIMIT_KURUS,
-  MAX_SPEND_KURUS,
-  MAX_TOPUP_KURUS,
+  MAX_LIMIT_USD_MINOR,
+  MAX_SPEND_USD_MINOR,
   MAX_USD_MINOR,
-  MIN_LIMIT_KURUS,
-  MIN_SPEND_KURUS,
-  MIN_TOPUP_KURUS,
+  MIN_LIMIT_USD_MINOR,
+  MIN_SPEND_USD_MINOR,
   MIN_TRANSFER_KURUS,
+  MIN_TRANSFER_USD_MINOR,
   MIN_USD_MINOR,
   PLANS,
   USD_RATE_AS_OF,
@@ -62,7 +63,7 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
     return { error: "Kullanıcı adı veya parola hatalı." };
   }
   if (user.status === "askida") {
-    return { error: "Bu simülasyon hesabı askıya alındı. Giriş kapalı." };
+    return { error: "Bu hesap askıya alındı. Giriş kapalı." };
   }
   await setSession(user.id);
   return go(deskPath(user.role));
@@ -100,7 +101,7 @@ function refundIssueFee(db: DB, row: User, card: Card): "ok" | "tavan" | "yok" {
     cardId: card.id,
     kind: "duzeltme",
     title: `Basım iadesi · ${card.label}`,
-    note: "Basım ücreti simülasyon bakiyesine geri yazıldı. Tahsilat yoktur.",
+    note: "Basım ücreti bakiyeye geri yazıldı.",
     amount: fee,
     usdMinor: null,
     status: "tamamlandi",
@@ -113,50 +114,24 @@ export async function topupAction(formData: FormData) {
   const user = await actor();
   const which = String(formData.get("tutar") || "");
   const custom = String(formData.get("ozel") || "");
-  if (which === "usd") {
-    const dollars = parseTryToKurus(String(formData.get("dolar") || ""));
-    if (dollars === null || dollars < MIN_USD_MINOR || dollars > MAX_USD_MINOR) return bounce("/panel/yukle", "e-tutar");
-    const result = mutate((db) => {
-      const row = db.users.find((item) => item.id === user.id);
-      if (!row) return "yok" as const;
-      if (row.usdMinor + dollars > MAX_USD_MINOR) return "tavan" as const;
-      row.usdMinor += dollars;
-      db.transactions.push({
-        id: `tx_${rid()}`,
-        userId: row.id,
-        cardId: null,
-        kind: "yukleme",
-        title: "Dolar simülasyon yüklemesi",
-        note: `${formatUsd(dollars)} dolar bakiyesine yazıldı. Satış kuru ${formatRate(USD_SELL_RATE)} (${USD_RATE_AS_OF}). Harcama lira bakiyesinden düşer. Tahsilat yoktur.`,
-        amount: 0,
-        usdMinor: dollars,
-        status: "tamamlandi",
-        createdAt: new Date().toISOString(),
-      });
-      return "ok" as const;
-    });
-    const code = result === "ok" ? "dolar" : result === "tavan" ? "e-tavan" : "e-yok";
-    return bounce("/panel/yukle", code);
-  }
   const raw = which === "ozel" || which === "" ? custom : which;
-  const amount = parseTryToKurus(raw);
-  if (amount === null || amount < MIN_TOPUP_KURUS || amount > MAX_TOPUP_KURUS) {
-    return bounce("/panel/yukle", "e-tutar");
-  }
+  const cents = parseTryToKurus(raw);
+  if (cents === null || cents < MIN_USD_MINOR || cents > MAX_USD_MINOR) return bounce("/panel/yukle", "e-tutar");
+  const credit = usdMinorToKurus(cents);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     if (!row) return "yok" as const;
-    if (row.balance + amount > MAX_BALANCE_KURUS) return "tavan" as const;
-    row.balance += amount;
+    if (row.balance + credit > MAX_BALANCE_KURUS) return "tavan" as const;
+    row.balance += credit;
     db.transactions.push({
       id: `tx_${rid()}`,
       userId: row.id,
       cardId: null,
       kind: "yukleme",
-      title: "Simülasyon yüklemesi",
-      note: "Gerçek tahsilat yoktur.",
-      amount,
-      usdMinor: null,
+      title: "Bakiye yüklemesi",
+      note: `${formatUsd(cents)} × ${formatRate(USD_SELL_RATE)} = ${formatTL(credit)}. Sabit kur, ${USD_RATE_AS_OF}.`,
+      amount: credit,
+      usdMinor: cents,
       status: "tamamlandi",
       createdAt: new Date().toISOString(),
     });
@@ -166,46 +141,17 @@ export async function topupAction(formData: FormData) {
   return bounce("/panel/yukle", code);
 }
 
-export async function convertUsdAction(formData: FormData) {
-  const user = await actor();
-  const which = String(formData.get("tutar") || "");
-  const result = mutate((db) => {
-    const row = db.users.find((item) => item.id === user.id);
-    if (!row) return "e-yok" as const;
-    const dollars = which === "hepsi" ? row.usdMinor : parseTryToKurus(String(formData.get("dolar") || ""));
-    if (dollars === null || dollars <= 0 || dollars > row.usdMinor) return "e-tutar" as const;
-    const credit = usdMinorToKurus(dollars);
-    if (credit < 1) return "e-tutar" as const;
-    if (row.balance + credit > MAX_BALANCE_KURUS) return "e-tavan" as const;
-    row.usdMinor -= dollars;
-    row.balance += credit;
-    db.transactions.push({
-      id: `tx_${rid()}`,
-      userId: row.id,
-      cardId: null,
-      kind: "yukleme",
-      title: "Doların liraya çevrilmesi",
-      note: `${formatUsd(dollars)} × ${formatRate(USD_SELL_RATE)} satış kuru = ${formatTL(credit)}. Simülasyon kuru, ${USD_RATE_AS_OF}. Canlı kur çekilmez, tahsilat yoktur.`,
-      amount: credit,
-      usdMinor: -dollars,
-      status: "tamamlandi",
-      createdAt: new Date().toISOString(),
-    });
-    return "cevrildi" as const;
-  });
-  return bounce("/panel/yukle", result);
-}
-
 export async function issueAction(formData: FormData) {
   const user = await actor();
   const typeRaw = String(formData.get("tur") || "");
   const label = String(formData.get("etiket") || "").replace(/\s+/g, " ").trim();
-  const limit = parseTryToKurus(String(formData.get("limit") || ""));
+  const limitCents = parseTryToKurus(String(formData.get("limit") || ""));
   if (!isCardType(typeRaw)) return bounce("/panel/kartlar/yeni", "e-tur");
   if (label.length < 2 || label.length > 32) return bounce("/panel/kartlar/yeni", "e-etiket");
-  if (limit === null || limit < MIN_LIMIT_KURUS || limit > MAX_LIMIT_KURUS) {
+  if (limitCents === null || limitCents < MIN_LIMIT_USD_MINOR || limitCents > MAX_LIMIT_USD_MINOR) {
     return bounce("/panel/kartlar/yeni", "e-limit");
   }
+  const limit = usdMinorToKurus(limitCents);
   const type = typeRaw;
   const binId = String(formData.get("bin") || "");
   const result = mutate((db) => {
@@ -313,10 +259,11 @@ export async function spendAction(formData: FormData) {
   const user = await actor();
   const id = String(formData.get("id") || "");
   const merchant = String(formData.get("isletme") || "");
-  const amount = parseTryToKurus(String(formData.get("tutar") || ""));
-  if (amount === null || amount < MIN_SPEND_KURUS || amount > MAX_SPEND_KURUS) {
+  const cents = parseTryToKurus(String(formData.get("tutar") || ""));
+  if (cents === null || cents < MIN_SPEND_USD_MINOR || cents > MAX_SPEND_USD_MINOR) {
     return bounce("/panel/kartlar", "e-tutar");
   }
+  const amount = usdMinorToKurus(cents);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
@@ -333,6 +280,7 @@ export async function spendAction(formData: FormData) {
         title: merchant,
         note: "Limit aşıldı",
         amount: -amount,
+        usdMinor: -cents,
         status: "reddedildi",
         createdAt: now,
       });
@@ -347,6 +295,7 @@ export async function spendAction(formData: FormData) {
         title: merchant,
         note: "Yetersiz bakiye",
         amount: -amount,
+        usdMinor: -cents,
         status: "reddedildi",
         createdAt: now,
       });
@@ -360,8 +309,9 @@ export async function spendAction(formData: FormData) {
       cardId: card.id,
       kind: "harcama",
       title: merchant,
-      note: `${row.username} hesabından düştü`,
+      note: `${formatUsd(cents)} karşılığı ${formatTL(amount)} düştü.`,
       amount: -amount,
+      usdMinor: -cents,
       status: "tamamlandi",
       createdAt: now,
     });
@@ -397,10 +347,11 @@ export async function adminBalanceAction(formData: FormData) {
   await requireAdmin();
   const userId = String(formData.get("uye") || "");
   const yon = String(formData.get("yon") || "");
-  const amount = parseTryToKurus(String(formData.get("tutar") || ""));
+  const cents = parseTryToKurus(String(formData.get("tutar") || ""));
   if (yon !== "artir" && yon !== "azalt") return bounce("/admin", "e-tutar");
-  if (amount === null || amount < 100 || amount > MAX_TOPUP_KURUS) return bounce("/admin", "e-tutar");
-  const signed = yon === "artir" ? amount : -amount;
+  if (cents === null || cents < MIN_USD_MINOR || cents > MAX_USD_MINOR) return bounce("/admin", "e-tutar");
+  const signed = usdMinorToKurus(yon === "artir" ? cents : -cents);
+  const signedCents = yon === "artir" ? cents : -cents;
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === userId);
     if (!row) return "e-yok" as const;
@@ -414,8 +365,9 @@ export async function adminBalanceAction(formData: FormData) {
       cardId: null,
       kind: "duzeltme",
       title: yon === "artir" ? "Yönetici bakiyesi artırdı" : "Yönetici bakiyesi azalttı",
-      note: "Simülasyon düzeltmesi. Tahsilat yoktur.",
+      note: `${formatUsd(Math.abs(signedCents))} karşılığı.`,
       amount: signed,
+      usdMinor: signedCents,
       status: "tamamlandi",
       createdAt: new Date().toISOString(),
     });
@@ -511,9 +463,10 @@ export async function adminNoticeAction(formData: FormData) {
 export async function adminSetBalanceAction(formData: FormData) {
   await requireAdmin();
   const userId = String(formData.get("uye") || "");
-  const next = parseTryToKurus(String(formData.get("bakiye") || ""));
+  const cents = parseTryToKurus(String(formData.get("bakiye") || ""));
   const back = safeAdminReturn(formData, userId);
-  if (next === null || next > MAX_BALANCE_KURUS) return bounce(back, "e-tutar");
+  if (cents === null || cents > MAX_BALANCE_USD_MINOR) return bounce(back, "e-tutar");
+  const next = usdMinorToKurus(cents);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === userId);
     if (!row || row.role !== "uye") return "e-yonetici" as const;
@@ -526,8 +479,9 @@ export async function adminSetBalanceAction(formData: FormData) {
         cardId: null,
         kind: "duzeltme",
         title: "Yönetici bakiyeyi yazdı",
-        note: "Simülasyon düzeltmesi. Tahsilat yoktur.",
+        note: `${formatUsd(cents)} karşılığı.`,
         amount: delta,
+        usdMinor: cents,
         status: "tamamlandi",
         createdAt: new Date().toISOString(),
       });
@@ -541,20 +495,22 @@ export async function adminEditCardAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") || "");
   const label = String(formData.get("etiket") || "").trim();
-  const limit = parseTryToKurus(String(formData.get("limit") || ""));
+  const limitCents = parseTryToKurus(String(formData.get("limit") || ""));
   const status = String(formData.get("durum") || "");
   const userId = String(formData.get("uye") || "");
   const back = safeAdminReturn(formData, userId);
   if (label.length < 2 || label.length > 32) return bounce(back, "e-etiket");
+  if (limitCents === null || limitCents < MIN_LIMIT_USD_MINOR || limitCents > MAX_LIMIT_USD_MINOR) {
+    return bounce(back, "e-limit");
+  }
   if (status !== "hazirlaniyor" && status !== "aktif" && status !== "donduruldu" && status !== "kapali") {
     return bounce(back, "e-durum");
   }
+  const limit = usdMinorToKurus(limitCents);
   const result = mutate((db) => {
     const card = db.cards.find((item) => item.id === id && item.userId === userId);
     if (!card) return "e-yok" as const;
-    if (limit === null || limit < MIN_LIMIT_KURUS || limit > MAX_LIMIT_KURUS || limit < card.spent) {
-      return "e-limit" as const;
-    }
+    if (limit < card.spent || limit > MAX_LIMIT_KURUS) return "e-limit" as const;
     card.label = label;
     card.holder = holderLine(label);
     card.limit = limit;
@@ -569,9 +525,10 @@ export async function adminEditTxAction(formData: FormData) {
   await requireAdmin();
   const txId = String(formData.get("islem") || "");
   const userId = String(formData.get("uye") || "");
-  const amount = parseSignedTryToKurus(String(formData.get("tutar") || ""));
+  const cents = parseSignedTryToKurus(String(formData.get("tutar") || ""));
   const back = safeAdminReturn(formData, userId);
-  if (amount === null || Math.abs(amount) > MAX_BALANCE_KURUS) return bounce(back, "e-tutar");
+  if (cents === null || Math.abs(cents) > MAX_BALANCE_USD_MINOR) return bounce(back, "e-tutar");
+  const amount = cents < 0 ? -usdMinorToKurus(-cents) : usdMinorToKurus(cents);
   const result = mutate((db) => {
     const tx = db.transactions.find((item) => item.id === txId && item.userId === userId);
     const row = db.users.find((item) => item.id === userId);
@@ -588,6 +545,7 @@ export async function adminEditTxAction(formData: FormData) {
     if (tx.status === "tamamlandi") row.balance = nextBalance;
     if (touchesCard && card && nextSpent !== undefined) card.spent = nextSpent;
     tx.amount = amount;
+    tx.usdMinor = cents;
     return "islem" as const;
   });
   return bounce(back, result);
@@ -687,15 +645,15 @@ export async function adminBinPasteAction(formData: FormData) {
 export async function refundAction(formData: FormData) {
   const user = await actor();
   const id = String(formData.get("id") || "");
-  const amount = parseTryToKurus(String(formData.get("tutar") || ""));
-  if (amount === null || amount <= 0 || amount > MAX_SPEND_KURUS) return bounce("/panel/kartlar", "e-tutar");
+  const cents = parseTryToKurus(String(formData.get("tutar") || ""));
+  if (cents === null || cents < 1 || cents > MAX_SPEND_USD_MINOR) return bounce("/panel/kartlar", "e-tutar");
+  const amount = usdMinorToKurus(cents);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
     if (!row || !card) return "e-yok" as const;
     if (card.status !== "aktif" || card.spent <= 0) return "e-durum" as const;
-    const floor = Math.min(MIN_SPEND_KURUS, card.spent);
-    if (amount < floor || amount > card.spent) return "e-tutar" as const;
+    if (amount < 1 || amount > card.spent) return "e-tutar" as const;
     if (row.balance + amount > MAX_BALANCE_KURUS) return "e-tavan" as const;
     row.balance += amount;
     card.spent -= amount;
@@ -704,9 +662,10 @@ export async function refundAction(formData: FormData) {
       userId: row.id,
       cardId: card.id,
       kind: "iade",
-      title: "Simülasyon iadesi",
-      note: `${row.username} hesabına simülasyon iadesi yazıldı. Gerçek tahsilat yoktur.`,
+      title: "İade",
+      note: `${formatUsd(cents)} karşılığı ${formatTL(amount)} yazıldı.`,
       amount,
+      usdMinor: cents,
       status: "tamamlandi",
       createdAt: new Date().toISOString(),
     });
@@ -750,9 +709,10 @@ export async function transferAction(formData: FormData) {
   const user = await actor();
   const id = String(formData.get("id") || "");
   const hedef = String(formData.get("hedef") || "");
-  const amount = parseTryToKurus(String(formData.get("tutar") || ""));
+  const cents = parseTryToKurus(String(formData.get("tutar") || ""));
   if (hedef === "" || hedef === id) return bounce("/panel/kartlar", "e-transfer-kart");
-  if (amount === null || amount < MIN_TRANSFER_KURUS) return bounce("/panel/kartlar", "e-transfer");
+  if (cents === null || cents < MIN_TRANSFER_USD_MINOR) return bounce("/panel/kartlar", "e-transfer");
+  const amount = usdMinorToKurus(cents);
   const fee = transferFee(amount);
   const credit = amount - fee;
   if (fee < 1 || credit < 1) return bounce("/panel/kartlar", "e-transfer");

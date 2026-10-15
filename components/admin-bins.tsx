@@ -8,8 +8,8 @@ export function AdminBins({ bins }: { bins: BinRow[] }) {
       <h2 className="font-display text-2xl font-bold">BIN listeleri</h2>
       <p className="mt-1 max-w-2xl text-sm text-white/60">
         Eklediğin satırlar müşterinin kart basarken gördüğü BIN seçenekleridir. 4 ile başlayan satır Visa,
-        5 veya 2 ile başlayan satır Mastercard işareti taşır. Türün listesi tamamen silinirse test öneki
-        400000 yeniden yazılır. Gerçek BIN tablosu burada yoktur. Numara sorgulama yoktur.
+        5 veya 2 ile başlayan satır Mastercard işareti taşır. Türün listesi tamamen silinirse standart
+        satır 400000 yeniden yazılır.
       </p>
       <div className="mt-4 grid gap-4">
         {CARD_TYPE_ORDER.map((type) => {
@@ -19,8 +19,8 @@ export function AdminBins({ bins }: { bins: BinRow[] }) {
               <h3 className="font-display text-xl font-bold">{CARD_TYPES[type].name}</h3>
               {rows.length === 0 ? (
                 <p className="mt-2 text-sm text-white/55">
-                  Bu türde satır kalmamış. Yeni satır eklenince liste yeniden açılır. Tür boş kalırsa Test
-                  öneki 400000 kendiliğinden geri gelir.
+                  Bu türde satır kalmamış. Yeni satır eklenince liste yeniden açılır. Tür boş kalırsa Standart
+                  400000 kendiliğinden geri gelir.
                 </p>
               ) : (
                 <ul className="mt-3 grid gap-2">

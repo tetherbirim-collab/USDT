@@ -45,12 +45,12 @@ const STEPS = [
   {
     n: "01",
     title: "Hesap aç",
-    text: "Kullanıcı adı ve parola yeter. Kimlik belgesi istenmez; çünkü gerçek bir doğrulama yapılmaz.",
+    text: "Kullanıcı adı ve parola yeter. Kimlik belgesi istenmez.",
   },
   {
     n: "02",
     title: "Bakiye yükle",
-    text: "Tutar anında simülasyon bakiyesine yazılır. Banka, kart veya kripto çekilmez.",
+    text: "Tutarı dolar olarak girersin. Bakiyede sabit kurun TL karşılığı durur.",
   },
   {
     n: "03",
@@ -60,22 +60,22 @@ const STEPS = [
   {
     n: "04",
     title: "İzle ve dondur",
-    text: "Harcama provası limite işlenir. İstediğin an dondur veya kapat. Hepsi bu stüdyoda kalır.",
+    text: "Harcama limite işlenir. İstediğin an dondur veya kapat.",
   },
 ];
 
 const FAQ = [
   {
-    q: "Bu gerçek bir kart mı?",
-    a: "Hayır. CLAY kart basmaz, banka değildir ve bir ödeme kuruluşu değildir. Numaralar ayrılmış test öneki ile üretilir.",
+    q: "Kart nasıl oluşur?",
+    a: "Türü, adı ve tavanı seçersin. Üzerindeki ad, verdiğin addır.",
   },
   {
-    q: "Param çekilir mi?",
-    a: "Hayır. Bakiye yükleme, basım ücreti ve harcama yalnızca yerel simülasyon defterine yazılır. Ödeme sağlayıcısı yoktur.",
+    q: "Bakiye nasıl durur?",
+    a: "Tutar dolar olarak girilir. Ekranda yalnız sabit kurun TL karşılığı görünür.",
   },
   {
-    q: "Numarayı bir sitede dener miyim?",
-    a: "Hayır. Numaralar gerçek üye işyerinde geçmez. Dışa aktarma veya “çalışan kart” paketi yoktur.",
+    q: "Numara ne zaman görünür?",
+    a: "Satın almadan önce BIN kalır, kalan haneler X olur. Kart oluşunca 16 hane yazılır. CVV’yi sen açarsın.",
   },
 ];
 
@@ -141,13 +141,12 @@ export function Marketing({
               Her iş için ayrı bir sanal kart.
             </h1>
             <p className="mt-5 max-w-xl text-lg text-white/75">
-              Facebook Ads, TikTok, Google Ads ve Ultima provasını aynı cüzdanda tut. CLAY
-              kart basar, tavan koyar, dondurur ve işlem dökümü tutar — tamamen simülasyon olarak.
-              Kasaya gerçek para girmez.
+              Facebook Ads, TikTok, Google Ads ve Ultima kartlarını aynı cüzdanda tut. CLAY
+              kartı basar, tavan koyar, dondurur ve işlem dökümünü tutar. Bakiye, doların sabit kur karşılığıdır.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href={loggedIn ? deskHref : "/kayit"} className="btn btn-gold">
-                {loggedIn ? deskLabel : "Ücretsiz prova aç"}
+                {loggedIn ? deskLabel : "Hesap aç"}
               </Link>
               <Link href="/giris" className="btn btn-ghost">
                 Giriş yap
@@ -155,9 +154,9 @@ export function Marketing({
             </div>
             <dl className="mt-10 grid grid-cols-3 gap-3 text-sm">
               {[
-                ["400000", "test öneki"],
+                ["49,3929", "sabit kur"],
                 [String(CARD_TYPE_ORDER.length), "kart türü"],
-                ["0 ₺", "gerçek tahsilat"],
+                ["30 USD", "hoş geldin"],
               ].map(([value, label]) => (
                 <div key={label} className="glass rounded-2xl px-3 py-3">
                   <dt className="font-display text-xl font-bold text-gold">{value}</dt>
@@ -171,7 +170,7 @@ export function Marketing({
               <VirtualCard card={sample} />
             </TiltCard>
             <p className="mt-4 text-center text-sm text-white/60">
-              Örnek görünüm. Numara gerçek üye işyerinde geçmez.
+              Örnek görünüm.
             </p>
           </div>
         </section>
@@ -181,8 +180,7 @@ export function Marketing({
             <p className="text-xs font-bold tracking-[0.22em] text-mint">TÜRLER</p>
             <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">Ayrı sahneler</h2>
             <p className="mt-3 text-white/70">
-              Her türün kendi tavanı ve simülasyon basım ücreti vardır. Hiçbiri canlı bir ağa
-              bağlanmaz. Tür adları senaryo etiketidir; resmi iş ortaklığı yoktur.
+              Her türün kendi tavanı ve basım karşılığı vardır. Tutar dolar cinsindendir, ekranda TL karşılığı durur.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -208,7 +206,7 @@ export function Marketing({
         </section>
 
         <section id="nasil" className="mx-auto max-w-6xl px-4 py-16">
-          <h2 className="font-display text-3xl font-bold sm:text-4xl">Dört adımda prova</h2>
+          <h2 className="font-display text-3xl font-bold sm:text-4xl">Dört adım</h2>
           <ol className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((step) => (
               <li key={step.n} className="glass rounded-[24px] p-5">
@@ -223,10 +221,9 @@ export function Marketing({
         <section id="fiyat" className="mx-auto max-w-6xl px-4 py-8">
           <div className="mb-8 max-w-2xl">
             <p className="text-xs font-bold tracking-[0.22em] text-gold">VİTRİN</p>
-            <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">Fiyatlar örnektir</h2>
+            <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">Planlar</h2>
             <p className="mt-3 text-white/70">
-              Rakamlar paneldeki plan adını anlatır. Bu sürümde tahsilat yapılmaz, kart
-              gönderilmez, fatura kesilmez.
+              Plan fiyatı dolardır. Kart adedi plana göre değişir.
             </p>
           </div>
           <div className="grid gap-4 lg:grid-cols-3">
@@ -245,7 +242,7 @@ export function Marketing({
                   <p className="mt-4 text-sm text-white/75">{plan.blurb}</p>
                   <p className="mt-3 text-sm">En fazla {plan.cardLimit} açık kart</p>
                   <Link href="/kayit" className="btn btn-gold mt-6 w-full">
-                    Simülasyon hesabı aç
+                    Hesap aç
                   </Link>
                 </article>
               );
@@ -273,8 +270,7 @@ export function Marketing({
             <Wordmark />
           </div>
           <p className="max-w-xl text-sm text-white/55">
-            Banka değil. Kart kuruluşu değil. Basılan numaralar gerçek üye işyerinde
-            kullanılamaz.
+            CLAY Sanal Kart Hizmetleri. Bakiye, doların sabit kur karşılığıdır.
           </p>
         </div>
       </footer>

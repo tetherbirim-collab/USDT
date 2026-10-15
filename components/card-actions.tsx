@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cancelOrderAction, closeAction, freezeAction, refundAction, renewAction, spendAction } from "@/lib/actions";
 import { KIND_LABEL, merchantsFor } from "@/lib/catalog";
-import { formatSigned, formatTL, formatUsd, formatWhen } from "@/lib/format";
+import { formatTL, formatWhen, movementLabel } from "@/lib/format";
 import { listNotices } from "@/lib/store";
 import type { Card, Tx } from "@/lib/types";
 import { OrderSlip } from "./order-slip";
@@ -33,9 +33,7 @@ export function CardActions({
     return (
       <div className="mt-4 grid gap-3">
         <OrderSlip card={card} />
-        <p className="text-xs text-white/50">
-          Bu bilgiler simülasyon test verisidir. Gerçek üye işyerinde kullanılamaz.
-        </p>
+        <p className="text-xs text-white/50">Kart hazırlanıyor.</p>
         <form action={cancelOrderAction}>
           <input type="hidden" name="id" value={card.id} />
           <SubmitButton className="btn btn-danger w-fit">Siparişi iptal et</SubmitButton>
@@ -81,9 +79,6 @@ export function CardActions({
           <p className="text-xs text-white/50">Harcama sayacı sıfırlanır. Cüzdandan düşen tutar geri gelmez.</p>
         </form>
       )}
-      <p className="text-xs text-white/50">
-        Bu bilgiler simülasyon test verisidir. Gerçek üye işyerinde kullanılamaz.
-      </p>
       <div className="flex flex-wrap gap-2">
         {card.status === "aktif" && (
           <form action={freezeAction}>
@@ -102,11 +97,11 @@ export function CardActions({
       </div>
       {card.status === "aktif" && (
         <details className="rounded-2xl border border-white/10 p-3">
-          <summary className="cursor-pointer text-sm font-semibold">Simüle harcama</summary>
+          <summary className="cursor-pointer text-sm font-semibold">Harcama</summary>
           <form action={spendAction} className="mt-3 grid gap-2">
             <input type="hidden" name="id" value={card.id} />
             <label className="grid gap-1 text-xs text-white/70">
-              Bu türün prova işletmesi
+              İşletme
               <select className="field" name="isletme" required defaultValue={merchantsFor(card.type)[0]}>
                 {merchantsFor(card.type).map((merchant) => (
                   <option key={merchant}>{merchant}</option>
@@ -114,8 +109,8 @@ export function CardActions({
               </select>
             </label>
             <label className="grid gap-1 text-xs text-white/70">
-              Tutar (₺)
-              <input className="field" name="tutar" inputMode="decimal" placeholder="120" required />
+              Tutar (USD)
+              <input className="field" name="tutar" inputMode="decimal" placeholder="20" required />
             </label>
             <SubmitButton className="btn btn-ghost">Harcama yaz</SubmitButton>
           </form>
@@ -123,12 +118,12 @@ export function CardActions({
       )}
       {card.status === "aktif" && card.spent > 0 && (
         <details className="rounded-2xl border border-white/10 p-3">
-          <summary className="cursor-pointer text-sm font-semibold">Simüle iade</summary>
+          <summary className="cursor-pointer text-sm font-semibold">İade</summary>
           <form action={refundAction} className="mt-3 grid gap-2">
             <input type="hidden" name="id" value={card.id} />
             <label className="grid gap-1 text-xs text-white/70">
-              Tutar (₺)
-              <input className="field" name="tutar" inputMode="decimal" placeholder="40" required />
+              Tutar (USD)
+              <input className="field" name="tutar" inputMode="decimal" placeholder="10" required />
             </label>
             <p className="text-xs text-white/50">
               En fazla {formatTL(card.spent)} geri yazılır. Tutar cüzdana döner, tavan açılır.
@@ -144,7 +139,7 @@ export function CardActions({
             <input type="hidden" name="id" value={card.id} />
             <label className="flex items-start gap-2 text-sm text-white/75">
               <input type="checkbox" name="onay" required className="mt-1" />
-              Bu simülasyon kartını kapatıyorum. Geri açılmaz. Basım ücreti bakiyeye geri yazılır.
+              Bu kartı kapatıyorum. Geri açılmaz. Basım ücreti bakiyeye geri yazılır.
             </label>
             <SubmitButton className="btn btn-danger">Kapat</SubmitButton>
           </form>
@@ -168,7 +163,7 @@ export function CardActions({
                   </span>
                 </span>
                 <span className={entry.amount > 0 ? "font-semibold text-mint" : "font-semibold"}>
-                  {entry.amount === 0 && entry.usdMinor ? formatUsd(entry.usdMinor) : formatSigned(entry.amount)}
+                  {movementLabel(entry.amount, entry.usdMinor)}
                 </span>
               </li>
             ))}

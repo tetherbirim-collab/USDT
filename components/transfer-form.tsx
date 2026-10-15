@@ -6,6 +6,8 @@ import { transferAction } from "@/lib/actions";
 import { MIN_TRANSFER_KURUS, transferFeeAt, usdMinorToKurus } from "@/lib/catalog";
 import { formatTL, parseTryToKurus } from "@/lib/format";
 import { useSiteSettings } from "@/lib/live";
+import type { Card } from "@/lib/types";
+import { VirtualCard } from "./virtual-card";
 
 function TransferSubmit({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
@@ -16,18 +18,15 @@ function TransferSubmit({ disabled }: { disabled: boolean }) {
   );
 }
 
-export function TransferForm({
-  cardId,
-  kalan,
-  peers,
-}: {
-  cardId: string;
-  kalan: number;
-  peers: { id: string; label: string }[];
-}) {
+function tail(pan: string) {
+  return pan.replace(/\D/g, "").slice(-4);
+}
+
+export function TransferForm({ card, peers }: { card: Card; peers: Card[] }) {
   const [raw, setRaw] = useState("");
   const [target, setTarget] = useState(peers[0]?.id ?? "");
   const settings = useSiteSettings();
+  const kalan = card.limit - card.spent;
   const cents = parseTryToKurus(raw);
   const amount = cents !== null ? usdMinorToKurus(cents) : null;
   const fee = amount !== null && amount > 0 ? transferFeeAt(settings.transferFeePercent, amount) : 0;
@@ -39,7 +38,8 @@ export function TransferForm({
     fee >= 1 &&
     credit >= 1 &&
     target !== "";
-  const peer = peers.find((item) => item.id === target);
+  const peer = peers.find((item) => item.id === target) ?? peers[0];
+  if (!peer) return null;
 
   return (
     <form action={transferAction} className="transfer-panel">
@@ -47,20 +47,27 @@ export function TransferForm({
         <p className="text-sm font-semibold">Bakiye aktar</p>
         <span className="text-[11px] font-bold tracking-[0.16em] text-gold">%{settings.transferFeePercent}</span>
       </div>
-      <p className="text-xs text-white/50">Kullanılabilir bakiye karşı karta gider. Ana bakiye değişmez, karşı karta %{settings.transferFeePercent} komisyon yazılır.</p>
-      <div className="transfer-lane" aria-hidden>
-        <span>Bu kart</span>
-        <span className="transfer-track">
+      <div className="transfer-stage">
+        <div className="transfer-face">
+          <VirtualCard size="sm" card={card} />
+        </div>
+        <span className="transfer-track" aria-hidden>
           <span className="transfer-bead" />
         </span>
-        <span className="truncate">{peer?.label.split("·")[0]?.trim() || "Karşı kart"}</span>
+        <div className="transfer-face">
+          <VirtualCard size="sm" card={peer} />
+        </div>
       </div>
+      <p className="transfer-route">
+        {tail(card.pan)} karttan {tail(peer.pan)} karta transfer oluyor
+        {amount !== null && amount > 0 ? ` · ${formatTL(amount)}` : ""}
+      </p>
       <label className="grid gap-1 text-xs text-white/70">
         Karşı kart
         <select className="field" name="hedef" value={target} onChange={(event) => setTarget(event.target.value)} required>
           {peers.map((item) => (
             <option key={item.id} value={item.id}>
-              {item.label}
+              {item.label} · {tail(item.pan)} · kullanılabilir {formatTL(item.limit - item.spent)}
             </option>
           ))}
         </select>
@@ -77,7 +84,7 @@ export function TransferForm({
           required
         />
       </label>
-      <input type="hidden" name="id" value={cardId} />
+      <input type="hidden" name="id" value={card.id} />
       {amount !== null && amount > 0 && (
         <div className="transfer-split">
           <span>

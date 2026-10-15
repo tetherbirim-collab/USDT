@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { CardActions } from "@/components/card-actions";
 import { CardMenu } from "@/components/card-menu";
 import { CardSecrets } from "@/components/card-secrets";
@@ -8,18 +9,31 @@ import { TransferForm } from "@/components/transfer-form";
 import { Notice } from "@/components/notice";
 import { TransferBurst } from "@/components/transfer-burst";
 import { VirtualCard } from "@/components/virtual-card";
-import { formatTL } from "@/lib/format";
 import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import { listCards, listTransactions } from "@/lib/store";
 import type { Card } from "@/lib/types";
+
+const TABS = [
+  ["acik", "Açık"],
+  ["donuk", "Dondurulmuş"],
+  ["kapali", "Kapanmış"],
+] as const;
 
 export default function CardsPage() {
   const user = useUser();
   const query = useQuery();
   const settings = useSiteSettings();
+  const [tab, setTab] = useState<(typeof TABS)[number][0]>("acik");
+  const highlight = query?.get("vurgu") ?? null;
+  const landed = query?.get("karsi") ?? null;
+  useEffect(() => {
+    if (!user) return;
+    const hit = listCards(user.id).find((card) => card.id === highlight || card.id === landed);
+    if (hit?.status === "donduruldu") setTab("donuk");
+    else if (hit?.status === "kapali") setTab("kapali");
+    else if (hit) setTab("acik");
+  }, [user, highlight, landed]);
   if (!user || !query) return <Boot />;
-  const highlight = query.get("vurgu");
-  const landed = query.get("karsi");
   const cards = listCards(user.id);
   const txs = listTransactions(user.id);
   const sent = highlight ? txs.find((entry) => entry.cardId === highlight && entry.kind === "transfer" && entry.amount < 0) : undefined;
@@ -58,8 +72,8 @@ export default function CardsPage() {
       </ol>
       {query.get("bildirim") === "transfer" && fromCard && toCard && sent && got ? (
         <TransferBurst
-          from={fromCard.label}
-          to={toCard.label}
+          from={fromCard}
+          to={toCard}
           left={Math.abs(sent.amount)}
           fee={Math.abs(sent.amount) - got.amount}
           arrived={got.amount}
@@ -70,22 +84,38 @@ export default function CardsPage() {
       {cards.length === 0 ? (
         <div className="glass rounded-[24px] p-6">Henüz basılmış kart yok.</div>
       ) : (
-        <div className="grid gap-8">
-          {(
-            [
-              ["Açık", cards.filter((card) => card.status === "aktif" || card.status === "hazirlaniyor")],
-              ["Dondurulmuş", cards.filter((card) => card.status === "donduruldu")],
-              ["Kapanmış", cards.filter((card) => card.status === "kapali")],
-            ] as [string, Card[]][]
-          ).map(([title, rows]) => (
-            <section key={title} className="grid gap-4">
-              <h2 className="font-display text-2xl font-bold">
-                {title}
-                <span className="ml-2 text-base text-white/45">{rows.length}</span>
-              </h2>
-              {rows.length === 0 ? (
-                <p className="text-sm text-white/50">Bu bölümde kart yok.</p>
-              ) : (
+        <div className="grid gap-5">
+          <div className="card-tabs" role="tablist" aria-label="Kart durumları">
+            {TABS.map(([id, title]) => {
+              const count =
+                id === "acik"
+                  ? cards.filter((card) => card.status === "aktif" || card.status === "hazirlaniyor").length
+                  : id === "donuk"
+                    ? cards.filter((card) => card.status === "donduruldu").length
+                    : cards.filter((card) => card.status === "kapali").length;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === id}
+                  className="card-tab"
+                  onClick={() => setTab(id)}
+                >
+                  {title} {count}
+                </button>
+              );
+            })}
+          </div>
+          {(() => {
+            const rows: Card[] =
+              tab === "acik"
+                ? cards.filter((card) => card.status === "aktif" || card.status === "hazirlaniyor")
+                : tab === "donuk"
+                  ? cards.filter((card) => card.status === "donduruldu")
+                  : cards.filter((card) => card.status === "kapali");
+            if (rows.length === 0) return <p className="text-sm text-white/50">Bu sekmede kart yok.</p>;
+            return (
                 <div className="grid gap-5 lg:grid-cols-2">
                   {rows.map((card) => (
                     <article
@@ -109,14 +139,8 @@ export default function CardsPage() {
                             cards.some((item) => item.id !== card.id && (item.status === "aktif" || item.status === "donduruldu")) && (
                               <div className="mt-4">
                                 <TransferForm
-                                  cardId={card.id}
-                                  kalan={card.limit - card.spent}
-                                  peers={cards
-                                    .filter((item) => item.id !== card.id && (item.status === "aktif" || item.status === "donduruldu"))
-                                    .map((item) => ({
-                                      id: item.id,
-                                      label: `${item.label} · kullanılabilir ${formatTL(item.limit - item.spent)}`,
-                                    }))}
+                                  card={card}
+                                  peers={cards.filter((item) => item.id !== card.id && (item.status === "aktif" || item.status === "donduruldu"))}
                                 />
                               </div>
                             )}
@@ -131,9 +155,8 @@ export default function CardsPage() {
                     </article>
                   ))}
                 </div>
-              )}
-            </section>
-          ))}
+            );
+          })()}
         </div>
       )}
     </div>

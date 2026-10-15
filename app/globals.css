@@ -1294,9 +1294,13 @@ select.field option {
 }
 
 .trust-line {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
   gap: 0.45rem 0.9rem;
   margin: 0;
   padding: 0.55rem 1rem;
@@ -1306,17 +1310,98 @@ select.field option {
   color: #fff;
 }
 
+.trust-line > span {
+  position: relative;
+  z-index: 1;
+}
+
+.trust-line::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 34%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(240, 201, 138, 0) 16%,
+    rgba(255, 246, 224, 0.38) 50%,
+    rgba(240, 201, 138, 0.1) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+  opacity: 0;
+  translate: -150% 0;
+}
+
+header .trust-line:not(.trust-bar) {
+  margin-top: 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(240, 201, 138, 0.34);
+  background: linear-gradient(180deg, rgba(240, 201, 138, 0.1), rgba(0, 0, 0, 0.28));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 24px rgba(0, 0, 0, 0.16);
+}
+
 .trust-hot {
   border-radius: 999px;
   background: #fff;
   padding: 0.12rem 0.55rem;
   color: #c41025;
+  box-shadow: 0 0 0 1px rgba(240, 201, 138, 0.5), 0 0 12px rgba(240, 201, 138, 0.26);
 }
 
 .trust-foot {
-  padding: 1rem 1rem 0;
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  margin: 1.15rem auto 0;
+  padding: 0.62rem 1.15rem;
+  border-radius: 999px;
+  border: 1px solid rgba(240, 201, 138, 0.3);
+  background: linear-gradient(180deg, rgba(240, 201, 138, 0.08), rgba(0, 0, 0, 0.22));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   font-size: 0.84rem;
   letter-spacing: 0.16em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .trust-line::before {
+    animation: trust-sheen 11s linear infinite;
+  }
+
+  .trust-line > span.trust-hot {
+    animation: trust-seal 5.6s ease-in-out infinite;
+  }
+}
+
+@keyframes trust-sheen {
+  0%,
+  16% {
+    translate: -150% 0;
+    opacity: 0;
+  }
+  26% {
+    opacity: 1;
+  }
+  54% {
+    opacity: 1;
+  }
+  66%,
+  100% {
+    translate: 450% 0;
+    opacity: 0;
+  }
+}
+
+@keyframes trust-seal {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(240, 201, 138, 0.4), 0 0 8px rgba(240, 201, 138, 0.16);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(240, 201, 138, 0.85), 0 0 18px rgba(240, 201, 138, 0.4);
+  }
 }
 
 .note-count {

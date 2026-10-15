@@ -157,7 +157,7 @@ export function IssueForm({
             </label>
             {localError && <p className="banner-bad">{localError}</p>}
             {slotsLeft <= 0 && (
-              <p className="banner-bad">Bu plandaki açık kart adedine ulaşıldı. Bir kartı kapatınca yer açılır.</p>
+              <p className="banner-bad">Bu plandaki kart tavanı doldu. Daha fazla kart için planı yükselt.</p>
             )}
             {short && (
               <p className="banner-bad">Hesap {formatTL(due)} için yetersiz. Önce ana bakiyeyi yükle.</p>

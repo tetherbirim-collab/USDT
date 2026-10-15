@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CARD_TYPES, CARD_TYPE_ORDER, PLANS } from "@/lib/catalog";
+import { CARD_TYPES, CARD_TYPE_ORDER, PLANS, usdMinorToKurus } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
 import { makeCvv, makePan } from "@/lib/pan";
 import type { CardTypeId } from "@/lib/types";
@@ -218,30 +218,43 @@ export function Marketing({
           </ol>
         </section>
 
-        <section id="fiyat" className="mx-auto max-w-6xl px-4 py-8">
+        <section id="fiyat" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-8">
           <div className="mb-8 max-w-2xl">
             <p className="text-xs font-bold tracking-[0.22em] text-gold">VİTRİN</p>
             <h2 className="font-display mt-2 text-3xl font-bold sm:text-4xl">Planlar</h2>
             <p className="mt-3 text-white/70">
-              Plan fiyatı dolardır. Kart adedi plana göre değişir.
+              Clay Bronze 10 USD, Clay Silver 25 USD, Clay Gold 50 USD. Ekranda sabit kurun TL karşılığı durur. Her kart ayrıca 300₺. Tavan dolunca plan yükselir: 2, 8 ve 25 kart.
             </p>
           </div>
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="plan-grid">
             {(Object.keys(PLANS) as (keyof typeof PLANS)[]).map((id) => {
               const plan = PLANS[id];
-              const featured = id === "atolye";
+              const chips = Math.min(plan.cardLimit, 4);
               return (
-                <article
-                  key={id}
-                  className={`rounded-[24px] p-5 ${featured ? "bg-gradient-to-b from-[#3a2a14] to-[#14110c] ring-1 ring-gold" : "glass"}`}
-                >
-                  <p className="text-sm text-white/60">{featured ? "Öne çıkan plan" : "Vitrin planı"}</p>
-                  <h3 className="font-display mt-2 text-2xl font-bold">{plan.name}</h3>
-                  <p className="mt-3 font-display text-4xl font-extrabold text-gold">{plan.price}</p>
-                  <p className="text-sm text-white/55">{plan.period}</p>
-                  <p className="mt-4 text-sm text-white/75">{plan.blurb}</p>
-                  <p className="mt-3 text-sm">En fazla {plan.cardLimit} açık kart</p>
-                  <Link href="/kayit" className="btn btn-gold mt-6 w-full">
+                <article key={id} className={`plan-card plan-${plan.metal}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold tracking-[0.18em] text-white/70">
+                        {plan.metal === "silver" ? "ÖNE ÇIKAN" : "VİTRİN"}
+                      </p>
+                      <h3 className="font-display mt-2 text-2xl font-bold">{plan.name}</h3>
+                    </div>
+                    <div className="plan-medal" aria-hidden>
+                      <span className="font-display text-xl font-extrabold">{plan.cardLimit}</span>
+                    </div>
+                  </div>
+                  <p className="mt-5 font-display text-4xl font-extrabold">{plan.priceUsdMinor / 100} USD</p>
+                  <p className="text-sm font-semibold text-[#ffe7c2]">
+                    {formatTL(usdMinorToKurus(plan.priceUsdMinor))} · {plan.period}
+                  </p>
+                  <p className="mt-4 text-sm text-white/80">{plan.blurb}</p>
+                  <div className="plan-fan" aria-hidden>
+                    {Array.from({ length: chips }, (_, index) => (
+                      <span key={index} className="plan-chip" />
+                    ))}
+                  </div>
+                  <p className="mt-3 text-sm font-semibold">En fazla {plan.cardLimit} açık kart</p>
+                  <Link href="/kayit" className="btn btn-gold relative z-[1] mt-6 w-full">
                     Hesap aç
                   </Link>
                 </article>

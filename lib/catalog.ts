@@ -92,28 +92,31 @@ export function isCardType(value: string): value is CardTypeId {
 
 export const PLANS: Record<
   PlanId,
-  { name: string; price: string; period: string; cardLimit: number; blurb: string }
+  { name: string; metal: "bronze" | "silver" | "gold"; priceUsdMinor: number; period: string; cardLimit: number; blurb: string }
 > = {
   kivilcim: {
-    name: "Kıvılcım",
-    price: "0 USD",
-    period: "vitrin",
+    name: "Clay Bronze",
+    metal: "bronze",
+    priceUsdMinor: 1_000,
+    period: "ay",
     cardLimit: 2,
-    blurb: "İki açık kart, hoş geldin bakiyesi, tüm türler. Yeni hesaplar burada başlar.",
+    blurb: "En fazla 2 kart. Her kart 300₺. İkisinden fazlası için plan yükselir.",
   },
   atolye: {
-    name: "Atölye",
-    price: "3 USD",
+    name: "Clay Silver",
+    metal: "silver",
+    priceUsdMinor: 2_500,
     period: "ay",
     cardLimit: 8,
-    blurb: "Sekiz açık kart ve daha geniş alan.",
+    blurb: "En fazla 8 kart. Her kart 300₺. Bronze dolunca buraya geçilir.",
   },
   galeri: {
-    name: "Galeri",
-    price: "8 USD",
+    name: "Clay Gold",
+    metal: "gold",
+    priceUsdMinor: 5_000,
     period: "ay",
     cardLimit: 25,
-    blurb: "Kalabalık ekip için yüksek kart adedi.",
+    blurb: "En fazla 25 kart. Her kart 300₺. Bu tavanın üstü açılmaz.",
   },
 };
 
@@ -172,8 +175,8 @@ export const NOTICES: Record<string, string> = {
   "e-limit": "Kart tavanı 10 ile 10.000 USD arasında olmalı.",
   "e-etiket": "Kart adı 2–32 karakter olmalı.",
   "e-tur": "Kart türü seç.",
-  "e-plan": "Bu vitrin planındaki açık kart adedine ulaşıldı.",
-  "e-plan-dolu": "Açık kart adedi bu plana sığmıyor. Önce bir kart kapat.",
+  "e-plan": "Bu plandaki kart tavanı doldu. Daha fazla kart için planı yükselt.",
+  "e-plan-dolu": "Açık kart adedi bu plana sığmıyor. Önce bir kart kapat ya da daha yüksek plana geç.",
   "e-durum": "Kart bu işlem için uygun durumda değil.",
   "e-onay": "Kapatmak için onay kutusu gerekli.",
   "e-yok": "Kayıt bulunamadı.",

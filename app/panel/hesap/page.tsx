@@ -2,7 +2,8 @@
 
 import { Notice } from "@/components/notice";
 import { addressAction, displayNameAction, passwordChangeAction, planAction } from "@/lib/actions";
-import { PLANS } from "@/lib/catalog";
+import { PLANS, usdMinorToKurus } from "@/lib/catalog";
+import { formatTL } from "@/lib/format";
 import { Boot, useQuery, useUser } from "@/lib/live";
 import type { PlanId } from "@/lib/types";
 
@@ -54,14 +55,16 @@ export default function AccountPage() {
         <button className="btn btn-gold w-fit">Adresi kaydet</button>
       </form>
       <form action={planAction} className="glass grid max-w-xl gap-3 rounded-[28px] p-5">
-        <p className="font-semibold">Vitrin planı</p>
-        <p className="text-sm text-white/60">Açık kart adedi yeni plana sığmalıdır. Plan bedeli dolar cinsindendir.</p>
+        <p className="font-semibold">Plan</p>
+        <p className="text-sm text-white/60">
+          Açık kart adedi planın tavanını aşamaz. Bronze 2, Silver 8, Gold 25. Her kart ayrıca 300₺.
+        </p>
         {(Object.keys(PLANS) as PlanId[]).map((id) => (
-          <label key={id} className="rounded-2xl border border-white/10 p-3">
+          <label key={id} className={`plan-card plan-${PLANS[id].metal} !p-3`}>
             <input className="mr-2" type="radio" name="plan" value={id} defaultChecked={user.plan === id} />
             <span className="font-semibold">{PLANS[id].name}</span>
-            <span className="mt-1 block text-sm text-white/65">
-              {PLANS[id].cardLimit} açık kart · {PLANS[id].price} · {PLANS[id].period}
+            <span className="mt-1 block text-sm text-white/80">
+              {PLANS[id].cardLimit} açık kart · {PLANS[id].priceUsdMinor / 100} USD · {formatTL(usdMinorToKurus(PLANS[id].priceUsdMinor))}
             </span>
           </label>
         ))}

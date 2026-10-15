@@ -1046,7 +1046,125 @@ select.field option {
   opacity: 1;
 }
 
+.plan-grid {
+  display: grid;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+@media (min-width: 1024px) {
+  .plan-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.plan-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 28px;
+  padding: 1.35rem 1.25rem 1.25rem;
+  color: #f6f1ff;
+}
+
+.plan-card::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -30%;
+  width: 38%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: skewX(-18deg);
+  translate: -40% 0;
+  pointer-events: none;
+}
+
+.plan-bronze {
+  background:
+    radial-gradient(90% 70% at 0% 0%, rgba(232, 164, 112, 0.48), transparent 52%),
+    linear-gradient(165deg, #6b3d24 0%, #2a160f 58%, #140c09 100%);
+  border: 1px solid rgba(224, 156, 108, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 190, 0.28);
+}
+
+.plan-silver {
+  background:
+    radial-gradient(90% 70% at 100% 0%, rgba(255, 255, 255, 0.42), transparent 48%),
+    linear-gradient(165deg, #4c5666 0%, #1b212b 55%, #10141b 100%);
+  border: 1px solid rgba(226, 232, 240, 0.62);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.plan-gold {
+  background:
+    radial-gradient(80% 70% at 0% 0%, rgba(255, 224, 160, 0.5), transparent 46%),
+    linear-gradient(165deg, #5a3e14 0%, #24180a 58%, #120e08 100%);
+  border: 1px solid rgba(240, 201, 138, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 236, 200, 0.4), 0 0 36px rgba(240, 201, 138, 0.18);
+}
+
+.plan-medal {
+  display: grid;
+  width: 4.4rem;
+  height: 4.4rem;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.plan-bronze .plan-medal {
+  background: radial-gradient(circle at 35% 30%, #f3c7a8, #b56d42 55%, #5c3218);
+  color: #2a140c;
+}
+
+.plan-silver .plan-medal {
+  background: radial-gradient(circle at 35% 30%, #ffffff, #c9d2dc 52%, #6e7886);
+  color: #1b212b;
+}
+
+.plan-gold .plan-medal {
+  background: radial-gradient(circle at 35% 30%, #fff3d2, #e2b15a 48%, #8a5a16);
+  color: #3a2508;
+}
+
+.plan-fan {
+  display: flex;
+  height: 2.2rem;
+  margin-top: 1rem;
+}
+
+.plan-chip {
+  width: 2.55rem;
+  height: 1.65rem;
+  margin-right: -1.05rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.42), rgba(0, 0, 0, 0.28));
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.28);
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  .plan-card::after {
+    animation: plan-sheen 4.8s ease-in-out infinite;
+  }
+
+  .plan-silver {
+    animation: plan-float 5s ease-in-out infinite;
+  }
+
+  .plan-gold .plan-medal {
+    animation: plan-glow 2.8s ease-in-out infinite;
+  }
+
+  .plan-chip {
+    animation: plan-fan 3.2s ease-in-out infinite;
+  }
+
+  .plan-chip:nth-child(2) { animation-delay: 0.12s; }
+  .plan-chip:nth-child(3) { animation-delay: 0.24s; }
+  .plan-chip:nth-child(4) { animation-delay: 0.36s; }
+
   .spend-line {
     animation: spend-draw 1.15s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
@@ -1064,6 +1182,30 @@ select.field option {
 @keyframes spend-fade {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes plan-sheen {
+  0%,
+  38% { translate: -40% 0; }
+  100% { translate: 380% 0; }
+}
+
+@keyframes plan-float {
+  0%,
+  100% { translate: 0 0; }
+  50% { translate: 0 -8px; }
+}
+
+@keyframes plan-glow {
+  0%,
+  100% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55); }
+  50% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 22px rgba(240, 201, 138, 0.8); }
+}
+
+@keyframes plan-fan {
+  0%,
+  100% { translate: 0 0; rotate: 0deg; }
+  50% { translate: 0 -4px; rotate: -7deg; }
 }
 
 @media (prefers-reduced-motion: reduce) {

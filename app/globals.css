@@ -605,6 +605,60 @@ select.field option {
   padding: 0.8rem 0.95rem;
 }
 
+.account-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 32px;
+  border: 1px solid rgba(240, 201, 138, 0.35);
+  background:
+    radial-gradient(80% 80% at 100% 0%, rgba(240, 201, 138, 0.22), transparent 46%),
+    linear-gradient(160deg, #2a2114 0%, #14121c 58%, #101820 100%);
+  padding: 1.6rem 1.4rem 1.45rem;
+}
+
+.account-kicker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: #f0c98a;
+}
+
+.account-name {
+  margin-top: 0.45rem;
+  font-size: clamp(2.1rem, 5vw, 3.4rem);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.account-line {
+  max-width: 40rem;
+  margin-top: 0.75rem;
+  font-size: 1.02rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.account-line strong {
+  color: #fff;
+}
+
+.account-id {
+  margin-top: 1.1rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.account-sheet {
+  display: grid;
+  max-width: 36rem;
+  gap: 0.8rem;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 1.25rem;
+}
+
 .desk-arrival-kicker {
   font-size: 0.75rem;
   font-weight: 700;
@@ -1733,9 +1787,19 @@ select.field option {
     animation: plan-menu-glow 2.8s ease-in-out infinite;
   }
 
-  .desk-arrival {
+  .desk-arrival,
+  .account-kicker,
+  .account-name,
+  .account-line,
+  .account-id {
     animation: desk-arrive 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
+
+  .account-name { animation-delay: 0.08s; }
+  .account-hero .account-line:nth-child(3) { animation-delay: 0.16s; }
+  .account-hero .account-line:nth-child(4) { animation-delay: 0.24s; }
+  .account-hero .account-line:nth-child(5) { animation-delay: 0.32s; }
+  .account-id { animation-delay: 0.4s; }
 
   .desk-arrival::after {
     animation: desk-line 0.7s ease 0.12s both;

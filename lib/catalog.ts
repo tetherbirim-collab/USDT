@@ -210,6 +210,7 @@ export const NOTICES: Record<string, string> = {
   cozuldu: "Kart aktif edildi ve açık bölüme alındı. Kart bedeli bakiyeden düştü.",
   "kart-acildi": "Kapanmış kart yeniden açıldı. Kart bedeli bakiyeden düştü.",
   kapatildi: "Kart kapanmış bölüme alındı. Basım ücreti bakiyeye geri yazıldı. Yeniden açmak kart bedeli kadar tutar.",
+  silindi: "Kart kalıcı olarak silindi. Cüzdandaki hareket duruyor.",
   iptal: "Sipariş iptal edildi. Basım ücreti bakiyeye geri yazıldı.",
   dolar: "Bakiye yazıldı. Ekranda doların sabit kur karşılığı durur.",
   cevrildi: "Bakiye, doların sabit kur karşılığı olarak duruyor.",

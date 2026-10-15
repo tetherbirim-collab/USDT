@@ -349,6 +349,29 @@ export async function closeAction(formData: FormData) {
   return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
 }
 
+export async function purgeCardAction(formData: FormData) {
+  const user = await actor();
+  const id = String(formData.get("id") || "");
+  if (String(formData.get("onay") || "") !== "on") return bounce("/panel/kartlar", "e-onay");
+  const remote = await remoteCall("purge", pack(formData, ["id", "onay"]));
+  if (remote) return bounce("/panel/kartlar", remote.code);
+  const result = mutate((db) => {
+    const card = db.cards.find((item) => item.id === id && item.userId === user.id);
+    if (!card) return "e-yok" as const;
+    if (card.status !== "kapali") return "e-durum" as const;
+    const label = card.label;
+    db.cards = db.cards.filter((item) => item.id !== id);
+    db.orders = db.orders.filter((item) => item.cardId !== id);
+    pushNotice(db, {
+      userId: user.id,
+      title: "Kart silindi",
+      body: `${label} kalıcı olarak silindi. Cüzdan hareketi duruyor.`,
+    });
+    return "silindi" as const;
+  });
+  return bounce("/panel/kartlar", result);
+}
+
 export async function cancelOrderAction(formData: FormData) {
   const user = await actor();
   const id = String(formData.get("id") || "");

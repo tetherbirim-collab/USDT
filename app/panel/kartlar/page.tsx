@@ -26,13 +26,18 @@ export default function CardsPage() {
   const [tab, setTab] = useState<(typeof TABS)[number][0]>("acik");
   const highlight = query?.get("vurgu") ?? null;
   const landed = query?.get("karsi") ?? null;
+  const note = query?.get("bildirim") ?? null;
   useEffect(() => {
     if (!user) return;
+    if (note === "silindi") {
+      setTab("kapali");
+      return;
+    }
     const hit = listCards(user.id).find((card) => card.id === highlight || card.id === landed);
     if (hit?.status === "donduruldu") setTab("donuk");
     else if (hit?.status === "kapali") setTab("kapali");
     else if (hit) setTab("acik");
-  }, [user, highlight, landed]);
+  }, [user, highlight, landed, note]);
   if (!user || !query) return <Boot />;
   const cards = listCards(user.id);
   const txs = listTransactions(user.id);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { activateCardAction, cancelOrderAction, closeAction, freezeAction } from "@/lib/actions";
+import { activateCardAction, cancelOrderAction, closeAction, freezeAction, purgeCardAction } from "@/lib/actions";
 import { formatTL } from "@/lib/format";
 import type { Card } from "@/lib/types";
 
@@ -9,6 +9,7 @@ export function CardMenu({ card, fee }: { card: Card; fee: number }) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [freezing, setFreezing] = useState(false);
+  const [erasing, setErasing] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const price = formatTL(fee);
 
@@ -19,6 +20,7 @@ export function CardMenu({ card, fee }: { card: Card; fee: number }) {
         setOpen(false);
         setClosing(false);
         setFreezing(false);
+        setErasing(false);
       }
     }
     document.addEventListener("mousedown", onDoc);
@@ -36,6 +38,7 @@ export function CardMenu({ card, fee }: { card: Card; fee: number }) {
           setOpen((value) => !value);
           setClosing(false);
           setFreezing(false);
+          setErasing(false);
         }}
       >
         <span />
@@ -82,11 +85,32 @@ export function CardMenu({ card, fee }: { card: Card; fee: number }) {
               </button>
             </form>
           )}
-          {(card.status === "donduruldu" || card.status === "kapali") && (
+          {(card.status === "donduruldu" || card.status === "kapali") && !erasing && (
             <form action={activateCardAction}>
               <input type="hidden" name="id" value={card.id} />
               <button className="card-menu-item" type="submit">
                 Kartı aktifleştir · {price}
+              </button>
+            </form>
+          )}
+          {card.status === "kapali" && !erasing && (
+            <button type="button" className="card-menu-item card-menu-danger" onClick={() => setErasing(true)}>
+              Kartı kalıcı olarak sil
+            </button>
+          )}
+          {erasing && card.status === "kapali" && (
+            <form action={purgeCardAction} className="grid gap-2 px-2 py-2">
+              <input type="hidden" name="id" value={card.id} />
+              <p className="text-xs font-semibold">Emin misin?</p>
+              <label className="flex items-start gap-2 text-xs text-white/75">
+                <input type="checkbox" name="onay" required className="mt-0.5" />
+                Kart ve siparişi silinir. Geri gelmez. Cüzdan hareketi durur.
+              </label>
+              <button className="btn btn-danger" type="submit">
+                Kalıcı olarak sil
+              </button>
+              <button className="btn btn-ghost" type="button" onClick={() => setErasing(false)}>
+                Vazgeç
               </button>
             </form>
           )}

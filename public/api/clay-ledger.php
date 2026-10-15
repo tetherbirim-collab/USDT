@@ -1188,7 +1188,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         return $code === "ok" || $code === "var" ? clay_ok($code) : clay_fail($code);
     }
 
-    $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "plan", "spend", "ticket", "refund", "renew", "transfer", "address", "name", "password", "notice-read", "notice-read-all"];
+    $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "purge", "plan", "spend", "ticket", "refund", "renew", "transfer", "address", "name", "password", "notice-read", "notice-read-all"];
     $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup"];
     if (in_array($action, $memberActions, true)) {
         $gate = clay_member($me);
@@ -1496,6 +1496,30 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         }
         clay_notice($db, $me["id"], "Kart kapatıldı", $db["cards"][$cardIndex]["label"] . " kapatıldı. Basım ücreti bakiyeye geri yazıldı.");
         return clay_ok("kapatildi");
+    }
+
+    if ($action === "purge") {
+        if (clay_in($in, "onay") !== "on") {
+            return clay_fail("e-onay");
+        }
+        $cardIndex = clay_card_index($db, clay_in($in, "id"), $me["id"]);
+        if ($cardIndex < 0) {
+            return clay_fail("e-yok");
+        }
+        if (($db["cards"][$cardIndex]["status"] ?? "") !== "kapali") {
+            return clay_fail("e-durum");
+        }
+        $cardId = (string) $db["cards"][$cardIndex]["id"];
+        $label = (string) $db["cards"][$cardIndex]["label"];
+        array_splice($db["cards"], $cardIndex, 1);
+        $db["orders"] = array_values(array_filter(
+            $db["orders"],
+            static function ($order) use ($cardId): bool {
+                return ($order["cardId"] ?? "") !== $cardId;
+            }
+        ));
+        clay_notice($db, $me["id"], "Kart silindi", $label . " kalıcı olarak silindi. Cüzdan hareketi duruyor.");
+        return clay_ok("silindi");
     }
 
     if ($action === "spend") {

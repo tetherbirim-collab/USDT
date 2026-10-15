@@ -137,6 +137,21 @@ export function holderLine(name: string): string {
   return name.toLocaleUpperCase("tr-TR").slice(0, 24);
 }
 
+/** Same folding as the PHP ledger, so a Turkish answer matches later. */
+export function foldAnswer(raw: string): string {
+  return raw
+    .replace(/\s+/g, " ")
+    .trim()
+    .replaceAll("İ", "i")
+    .replaceAll("I", "ı")
+    .replaceAll("Ş", "ş")
+    .replaceAll("Ğ", "ğ")
+    .replaceAll("Ü", "ü")
+    .replaceAll("Ö", "ö")
+    .replaceAll("Ç", "ç")
+    .toLowerCase();
+}
+
 export function movementLabel(amount: number, usdMinor?: number | null): string {
   if (amount === 0 && usdMinor) {
     const kurus = usdMinorToKurus(Math.abs(usdMinor));

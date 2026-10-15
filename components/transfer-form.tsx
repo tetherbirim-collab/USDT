@@ -9,10 +9,10 @@ import { useSiteSettings } from "@/lib/live";
 import type { Card } from "@/lib/types";
 import { VirtualCard } from "./virtual-card";
 
-function TransferSubmit({ disabled }: { disabled: boolean }) {
+function TransferSubmit() {
   const { pending } = useFormStatus();
   return (
-    <button className="btn btn-gold w-fit" disabled={pending || disabled}>
+    <button className="btn btn-gold w-fit" disabled={pending}>
       {pending ? "Aktarılıyor" : "Aktar"}
     </button>
   );
@@ -87,7 +87,6 @@ export function TransferForm({ card, peers }: { card: Card; peers: Card[] }) {
           <button
             type="button"
             className="btn btn-ghost shrink-0 px-4 py-2 text-sm"
-            disabled={allTransferInput(kalan, settings.transferFeePercent) === ""}
             onClick={() => setRaw(allTransferInput(kalan, settings.transferFeePercent))}
           >
             Tümü
@@ -111,7 +110,7 @@ export function TransferForm({ card, peers }: { card: Card; peers: Card[] }) {
           </span>
         </div>
       )}
-      <TransferSubmit disabled={!ready} />
+      <TransferSubmit />
     </form>
   );
 }

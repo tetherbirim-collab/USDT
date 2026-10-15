@@ -1,8 +1,8 @@
 "use client";
 
 import { Notice } from "@/components/notice";
-import { addressAction, displayNameAction, passwordChangeAction, planAction } from "@/lib/actions";
-import { PLANS, usdMinorToKurus } from "@/lib/catalog";
+import { addressAction, displayNameAction, passwordChangeAction, planAction, securityQuestionAction } from "@/lib/actions";
+import { PLANS, SECURITY_QUESTIONS, securityQuestionLabel, usdMinorToKurus } from "@/lib/catalog";
 import { daysLeftLine, daysUntil, formatDay, formatTL } from "@/lib/format";
 import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import type { PlanId } from "@/lib/types";
@@ -89,6 +89,33 @@ export default function AccountPage() {
           })}
         </div>
       </section>
+      <form action={securityQuestionAction} className="account-sheet">
+        <h2 className="font-display text-2xl font-bold">Güvenlik sorusu</h2>
+        <p className="text-sm text-white/60">
+          {user.securityQuestion
+            ? `Kayıtlı sorun: ${securityQuestionLabel(user.securityQuestion)}. Yanıt ekranda durmaz. Değiştirmek için mevcut parolanı ve yeni yanıtı yaz.`
+            : "Henüz sorun yok. Mevcut parolanı, soruyu ve yanıtı yazıp kaydet. Şifreni unutursan girişteki Şifremi unuttum ile kullanıcı adın ve bu yanıt yeni parola belirler."}
+        </p>
+        <label className="grid gap-1 text-sm">
+          Mevcut parola
+          <input className="field" name="eski" type="password" required autoComplete="current-password" />
+        </label>
+        <label className="grid gap-1 text-sm">
+          Soru
+          <select className="field" name="soru" required defaultValue={user.securityQuestion || "hayvan"}>
+            {SECURITY_QUESTIONS.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1 text-sm">
+          Yanıt
+          <input className="field" name="cevap" required minLength={2} maxLength={40} autoComplete="off" placeholder="Yanıtını yaz" />
+        </label>
+        <button className="btn btn-gold w-fit">Soruyu kaydet</button>
+      </form>
       <form action={passwordChangeAction} className="account-sheet">
         <h2 className="font-display text-2xl font-bold">Parola</h2>
         <p className="text-sm text-white/60">Yeni parola en az 6 karakter. Yönetici masasında düz metin olarak durur.</p>

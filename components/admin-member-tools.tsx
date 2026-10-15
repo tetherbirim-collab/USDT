@@ -43,7 +43,7 @@ export function AdminIssueForm({ userId, bins, back }: { userId: string; bins: B
           ))}
         </select>
       </label>
-      <button className="btn btn-gold w-fit" disabled={choices.length === 0}>
+      <button className="btn btn-gold w-fit">
         Kartı ver
       </button>
     </form>

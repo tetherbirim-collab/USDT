@@ -55,9 +55,7 @@ export function FundForm({ cardId, balance }: { cardId: string; balance: number 
         </div>
       )}
       <p className="text-xs text-white/45">Ana bakiye {formatTL(balance)}. Heleket yüklemesinde bu komisyon yoktur.</p>
-      <SubmitButton className="btn btn-gold w-fit" disabled={!ready}>
-        {ready ? `${formatTL(gross)} düşür` : "Tutarı yaz"}
-      </SubmitButton>
+      <SubmitButton className="btn btn-gold w-fit">{ready ? `${formatTL(gross)} düşür` : "Hesaptan karta yükle"}</SubmitButton>
     </form>
   );
 }

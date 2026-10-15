@@ -227,7 +227,7 @@ export function IssueForm({
                 </fieldset>
               )}
             </section>
-            <SubmitButton className="btn btn-gold w-fit" disabled={blocked || !chosen}>
+            <SubmitButton className="btn btn-gold w-fit">
               Kartı oluştur · {formatTL(due)} düşer
             </SubmitButton>
       </div>

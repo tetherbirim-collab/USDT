@@ -1003,7 +1003,7 @@ export function findUserById(id: string): User | undefined {
   return read().users.find((user) => user.id === id);
 }
 
-export function createUser(input: { username: string; password: string; name: string }): User | null {
+export function createUser(input: { username: string; password: string; name: string; securityQuestion?: string; securityAnswer?: string }): User | null {
   return mutate((db) => {
     if (db.users.some((item) => item.username === input.username)) return null;
     const user: User = {
@@ -1011,6 +1011,8 @@ export function createUser(input: { username: string; password: string; name: st
       name: input.name,
       username: input.username,
       password: input.password,
+      securityQuestion: input.securityQuestion,
+      securityAnswer: input.securityAnswer,
       balance: WELCOME_BONUS_KURUS,
       usdMinor: 0,
       plan: "kivilcim",

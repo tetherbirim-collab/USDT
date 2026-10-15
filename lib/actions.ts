@@ -18,10 +18,11 @@ import {
   isMerchantForType,
   isPlan,
   loadFeeAt,
+  SECURITY_QUESTIONS,
   transferFeeAt,
   usdMinorToKurus,
 } from "./catalog";
-import { formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
+import { foldAnswer, formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
 import { COPY, COPY_KEYS } from "./copy";
 import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, pushNotice, readSettings, remoteCall, usingRemoteLedger } from "./store";
 import type { DB, User, Card } from "./types";
@@ -85,27 +86,107 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
   return go(deskPath(user.role));
 }
 
+function passwordPair(password: string, again: string): string | null {
+  if (password.length < 6 || password.length > 72 || password !== again) {
+    return "Parola 6–72 karakter olmalı ve iki kutu aynı olmalı.";
+  }
+  return null;
+}
+
 export async function registerAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const username = parseUsername(String(formData.get("kullanici") || ""));
   const password = String(formData.get("parola") || "");
-  const remote = await remoteCall("register", { kullanici: String(formData.get("kullanici") || ""), parola: password });
+  const again = String(formData.get("parola2") || "");
+  const question = String(formData.get("soru") || "");
+  const answer = String(formData.get("cevap") || "").replace(/\s+/g, " ").trim();
+  const fields = {
+    kullanici: String(formData.get("kullanici") || ""),
+    parola: password,
+    parola2: again,
+    soru: question,
+    cevap: answer,
+  };
+  const remote = await remoteCall("register", fields);
   if (remote) {
     if (remote.code === "ok") {
       const me = getCurrentUser();
       if (me) setSession(me.id);
       return go("/panel?bildirim=hosgeldin");
     }
-    if (remote.code === "e-kullanici") return { error: "Kullanıcı adı 2–24 karakter olmalı; yalnızca harf, rakam ve alt çizgi." };
-    if (remote.code === "e-parola") return { error: "Parola 6–72 karakter olmalı." };
-    return { error: "Bu kullanıcı adı zaten var." };
+    if (remote.code === "e-kullanici") return { error: "Kullanıcı adı 2–24 karakter olmalı. Yalnızca harf, rakam ve alt çizgi yaz." };
+    if (remote.code === "e-parola") return { error: "Parola 6–72 karakter olmalı ve iki kutu aynı olmalı." };
+    if (remote.code === "e-soru") return { error: "Güvenlik sorusunu listeden seç." };
+    if (remote.code === "e-cevap") return { error: "Güvenlik yanıtı en az 2 karakter olmalı." };
+    return { error: "Bu kullanıcı adı zaten var. Başka bir ad seç." };
   }
-  if (!username) return { error: "Kullanıcı adı 2–24 karakter olmalı; yalnızca harf, rakam ve alt çizgi." };
-  if (password.length < 6 || password.length > 72) return { error: "Parola 6–72 karakter olmalı." };
-  if (findUserByUsername(username)) return { error: "Bu kullanıcı adı zaten var." };
-  const user = createUser({ username, password, name: username });
-  if (!user) return { error: "Bu kullanıcı adı zaten var." };
+  if (!username) return { error: "Kullanıcı adı 2–24 karakter olmalı. Yalnızca harf, rakam ve alt çizgi yaz." };
+  const pair = passwordPair(password, again);
+  if (pair) return { error: pair };
+  if (!SECURITY_QUESTIONS.some((item) => item.id === question)) return { error: "Güvenlik sorusunu listeden seç." };
+  if (answer.length < 2 || answer.length > 40) return { error: "Güvenlik yanıtı en az 2 karakter olmalı." };
+  if (findUserByUsername(username)) return { error: "Bu kullanıcı adı zaten var. Başka bir ad seç." };
+  const user = createUser({ username, password, name: username, securityQuestion: question, securityAnswer: foldAnswer(answer) });
+  if (!user) return { error: "Bu kullanıcı adı zaten var. Başka bir ad seç." };
   await setSession(user.id);
   return go("/panel?bildirim=hosgeldin");
+}
+
+export async function resetPasswordAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const password = String(formData.get("parola") || "");
+  const again = String(formData.get("parola2") || "");
+  const pair = passwordPair(password, again);
+  if (pair) return { error: pair };
+  const remote = await remoteCall("unuttum", pack(formData, ["kullanici", "soru", "cevap", "parola", "parola2"]));
+  if (remote) {
+    if (remote.code === "sifre") {
+      const me = getCurrentUser();
+      if (me) setSession(me.id);
+      return go("/panel?bildirim=sifre");
+    }
+    if (remote.code === "e-kullanici") return { error: "Kullanıcı adını yaz. 2–24 karakter, harf, rakam ve alt çizgi." };
+    if (remote.code === "e-parola") return { error: pair || "Parola 6–72 karakter olmalı ve iki kutu aynı olmalı." };
+    if (remote.code === "e-soru") return { error: "Güvenlik sorusunu listeden seç." };
+    if (remote.code === "e-cevap") return { error: "Güvenlik yanıtını yaz." };
+    if (remote.code === "e-sorusuz") return { error: "Bu hesapta güvenlik sorusu yok. Giriş yapıp Hesap sayfasından kaydet." };
+    return { error: "Kullanıcı adı, soru veya yanıt hatalı." };
+  }
+  const username = parseUsername(String(formData.get("kullanici") || ""));
+  const question = String(formData.get("soru") || "");
+  const answer = foldAnswer(String(formData.get("cevap") || ""));
+  if (!username) return { error: "Kullanıcı adını yaz." };
+  const user = findUserByUsername(username);
+  if (!user || user.role !== "uye") return { error: "Kullanıcı adı, soru veya yanıt hatalı." };
+  if (!user.securityQuestion || !user.securityAnswer) return { error: "Bu hesapta güvenlik sorusu yok. Giriş yapıp Hesap sayfasından kaydet." };
+  if (user.securityQuestion !== question || user.securityAnswer !== answer) return { error: "Kullanıcı adı, soru veya yanıt hatalı." };
+  mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id);
+    if (!row) return;
+    row.password = password;
+    pushNotice(db, { userId: row.id, title: "Parola yenilendi", body: "Yeni parolan kaydedildi. Bu parola ile girersin." });
+  });
+  await setSession(user.id);
+  return go("/panel?bildirim=sifre");
+}
+
+export async function securityQuestionAction(formData: FormData) {
+  const user = await actor();
+  if (user.role !== "uye") return go("/panel/hesap");
+  const remote = await remoteCall("soru", pack(formData, ["eski", "soru", "cevap"]));
+  if (remote) return bounce("/panel/hesap", remote.code);
+  const question = String(formData.get("soru") || "");
+  const answer = foldAnswer(String(formData.get("cevap") || ""));
+  const current = String(formData.get("eski") || "");
+  if (!SECURITY_QUESTIONS.some((item) => item.id === question)) return bounce("/panel/hesap", "e-soru");
+  if (answer.length < 2 || answer.length > 40) return bounce("/panel/hesap", "e-cevap");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id);
+    if (!row || row.password !== current) return "e-parola-eski" as const;
+    row.securityQuestion = question;
+    row.securityAnswer = answer;
+    pushNotice(db, { userId: row.id, title: "Güvenlik sorusu kaydedildi", body: "Şifreni unutursan kullanıcı adın ve bu yanıtla yeni parola belirlersin." });
+    return "soru" as const;
+  });
+  return bounce("/panel/hesap", result);
 }
 
 export async function logoutAction() {

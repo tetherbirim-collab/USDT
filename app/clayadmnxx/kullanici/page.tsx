@@ -11,7 +11,7 @@ import {
 import { AdminCardOps, AdminIssueForm, AdminTransferForm } from "@/components/admin-member-tools";
 import { Notice } from "@/components/notice";
 import { ADMIN_PATH } from "@/lib/auth";
-import { CARD_TYPES, KIND_LABEL, kurusToUsdMinor } from "@/lib/catalog";
+import { CARD_TYPES, KIND_LABEL, kurusToUsdMinor, securityQuestionLabel } from "@/lib/catalog";
 import { formatSigned, formatTL, formatWhen, isoToIstanbulInput, kurusToInput } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
 import { snapshot } from "@/lib/store";
@@ -60,6 +60,10 @@ export default function AdminUserPage() {
         <p className="mt-1 text-sm text-white/70">Adres {user.address.trim() ? user.address : "yazılmadı"}</p>
         <p className="mt-2 font-mono text-sm text-white/70">Hesap no {user.id}</p>
         <p className="font-mono text-sm text-white/90">Parola {user.password}</p>
+        <p className="mt-1 text-sm text-white/80">
+          Güvenlik sorusu {user.securityQuestion ? securityQuestionLabel(user.securityQuestion) : "yok"}
+          {user.securityAnswer ? ` · yanıt ${user.securityAnswer}` : ""}
+        </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
 

@@ -197,6 +197,17 @@ export function isMerchantForType(type: CardTypeId, value: string): boolean {
   return MERCHANTS_BY_TYPE[type].includes(value);
 }
 
+export const SECURITY_QUESTIONS = [
+  { id: "hayvan", label: "İlk evcil hayvanının adı neydi?" },
+  { id: "okul", label: "İlk okulunun adı nedir?" },
+  { id: "sehir", label: "Doğduğun şehir neresi?" },
+  { id: "anne", label: "Annenin kızlık soyadı nedir?" },
+] as const;
+
+export function securityQuestionLabel(id: string): string {
+  return SECURITY_QUESTIONS.find((item) => item.id === id)?.label ?? "";
+}
+
 export const KIND_LABEL: Record<TxKind, string> = {
   yukleme: "Yükleme",
   harcama: "Harcama",
@@ -281,7 +292,13 @@ export const NOTICES: Record<string, string> = {
   telegram: "Telegram kaydı güncellendi. Sağ alttaki düğme bu hesaba gider.",
   "e-telegram": "Telegram adı 5–32 karakter olmalı ve bir harfle başlamalı.",
   "e-ayar": "Bu ayar izin verilen aralığın dışında.",
-  "e-parola": "Yeni parola 6–72 karakter olmalı ve tekrar ile aynı olmalı.",
+  "e-parola": "Parola 6–72 karakter olmalı ve iki kutu aynı olmalı.",
+  "e-soru": "Güvenlik sorusunu listeden seç.",
+  "e-cevap": "Güvenlik yanıtı en az 2 karakter olmalı.",
+  "e-eslesmedi": "Kullanıcı adı, soru veya yanıt hatalı.",
+  "e-sorusuz": "Bu hesapta güvenlik sorusu yok. Giriş yapıp Hesap sayfasından kaydet.",
+  sifre: "Yeni parolan kaydedildi. Bu parola ile girersin.",
+  soru: "Güvenlik sorun kaydedildi. Şifreni unutursan bununla yenilersin.",
   "e-parola-eski": "Mevcut parola hatalı.",
   "e-ad": "Görünen ad 2–40 karakter olmalı ve bir harfle başlamalı.",
   "e-adres": "Adres en fazla 120 karakter olabilir. Harf, rakam ve temel noktalama yeter.",

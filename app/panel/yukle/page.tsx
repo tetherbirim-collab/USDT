@@ -155,7 +155,7 @@ export default function TopupPage() {
             {formatUsd(cents)} karşılığı {formatTL(usdMinorToKurus(cents))}
           </p>
         )}
-        <button className="btn btn-gold w-fit" type="submit" disabled={!ready || pending}>
+        <button className="btn btn-gold w-fit" type="submit" disabled={pending}>
           {pending ? "Ödeme sayfası açılıyor" : "Ödeme sayfasına git"}
         </button>
         <p className="text-sm text-white/55">1–5.000 USD. Onaydan sonra bu bakiye kart harcamasında kullanılır.</p>

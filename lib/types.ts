@@ -18,6 +18,9 @@ export type User = {
   username: string;
   /** Plain text so the simulation admin desk can show the current password. */
   password: string;
+  /** Question id chosen at signup. The answer stays off the public profile. */
+  securityQuestion?: string;
+  securityAnswer?: string;
   balance: number;
   /** Dollar pocket in US cents. Spending still uses the lira balance. */
   usdMinor: number;
@@ -43,6 +46,8 @@ export type PublicUser = {
   address: string;
   /** When the current package window ends. */
   planUntil: string;
+  /** Question id only. The answer is not sent to the browser. */
+  securityQuestion?: string;
 };
 
 export type Card = {

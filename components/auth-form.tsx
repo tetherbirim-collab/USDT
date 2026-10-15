@@ -1,10 +1,34 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
-import { loginAction, registerAction } from "@/lib/actions";
-import { WELCOME_BONUS_KURUS } from "@/lib/catalog";
+import { loginAction, registerAction, resetPasswordAction } from "@/lib/actions";
+import { SECURITY_QUESTIONS, WELCOME_BONUS_KURUS } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
 import { Boot } from "@/lib/live";
+
+function QuestionFields() {
+  return (
+    <>
+      <label className="grid gap-1 text-sm font-semibold text-[#1c2430]">
+        Güvenlik sorusu
+        <select className="auth-field" name="soru" required defaultValue="hayvan">
+          {SECURITY_QUESTIONS.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs font-normal text-[#8b95a5]">Şifreni unutursan bu soruyu seçip yanıtını yazarsın.</span>
+      </label>
+      <label className="grid gap-1 text-sm font-semibold text-[#1c2430]">
+        Güvenlik yanıtı
+        <input className="auth-field" name="cevap" autoComplete="off" placeholder="Yanıtını yaz" required minLength={2} maxLength={40} />
+        <span className="text-xs font-normal text-[#8b95a5]">En az 2 karakter. Büyük küçük harf fark etmez.</span>
+      </label>
+    </>
+  );
+}
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, { error: "" });
@@ -18,29 +42,41 @@ export function LoginForm() {
           <Boot />
         </div>
       )}
-      <input
-        className="auth-field"
-        name="kullanici"
-        autoComplete="username"
-        placeholder="Kullanıcı adı"
-        required
-        value={username}
-        onChange={(event) => setUsername(event.target.value)}
-      />
-      <input
-        className="auth-field"
-        name="parola"
-        type="password"
-        autoComplete="current-password"
-        placeholder="Parola"
-        required
-        value={password}
-        onChange={(event) => setPassword(event.target.value)}
-      />
+      <label className="grid gap-1 text-sm font-semibold text-[#1c2430]">
+        Kullanıcı adı
+        <input
+          className="auth-field"
+          name="kullanici"
+          autoComplete="username"
+          placeholder="ornek_ad"
+          required
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+        />
+      </label>
+      <label className="grid gap-1 text-sm font-semibold text-[#1c2430]">
+        Parola
+        <input
+          className="auth-field"
+          name="parola"
+          type="password"
+          autoComplete="current-password"
+          placeholder="Parolan"
+          required
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+      </label>
+      <p className="text-xs font-normal text-[#8b95a5]">
+        Parolanı unuttuysan Şifremi unuttum düğmesine bas. Kullanıcı adın ve güvenlik yanıtın doğruysa yeni parola belirlersin.
+      </p>
       {state.error && <p className="banner-bad">{state.error}</p>}
-      <button className="auth-primary mt-2" disabled={pending}>
+      <button className="auth-primary mt-2" type="submit" disabled={pending}>
         Giriş yap
       </button>
+      <Link href="/sifre" className="auth-outline">
+        Şifremi unuttum
+      </Link>
     </form>
   );
 }
@@ -54,23 +90,68 @@ export function RegisterForm() {
           <Boot />
         </div>
       )}
-      <input className="auth-field" name="kullanici" autoComplete="username" placeholder="Kullanıcı adı" required minLength={2} maxLength={24} />
-      <input
-        className="auth-field"
-        name="parola"
-        type="password"
-        autoComplete="new-password"
-        placeholder="Parola"
-        required
-        minLength={6}
-        maxLength={72}
-      />
-      <p className="text-sm text-[#8b95a5]">
-        Yeni hesaba 30 USD karşılığı {formatTL(WELCOME_BONUS_KURUS)} yazılır.
-      </p>
+      <ol className="grid list-decimal gap-1 pl-5 text-sm text-[#5c6774]">
+        <li>Kullanıcı adını yaz. Girişte bu adı kullanırsın.</li>
+        <li>Parolayı iki kez aynı yaz. En az 6 karakter.</li>
+        <li>Güvenlik sorusunu seç ve yanıtını yaz. Şifreni unutursan bu yanıtla yenilersin.</li>
+        <li>Kayıt olunca panele girersin. Hoş geldin bakiyesi 30 USD, yani {formatTL(WELCOME_BONUS_KURUS)}.</li>
+        <li>Panelden bakiye yükle, kart bas, kartlar arası aktar ve harcamayı izle.</li>
+      </ol>
+      <label className="grid gap-1 text-sm font-semibold text-[#1c2430]">
+        Kullanıcı adı
+        <input className="auth-field" name="kullanici" autoComplete="username" placeholder="ornek_ad" required minLength={2} maxLength={24} />
+        <span className="text-xs font-normal text-[#8b95a5]">2–24 karakter. Harf, rakam ve alt çizgi.</span>
+      </label>
+      <label className="grid gap-1 text-sm font-semibold text-[#1c2430]">
+        Parola
+        <input className="auth-field" name="parola" type="password" autoComplete="new-password" placeholder="En az 6 karakter" required minLength={6} maxLength={72} />
+      </label>
+      <label className="grid gap-1 text-sm font-semibold text-[#1c2430]">
+        Parolayı yeniden yaz
+        <input className="auth-field" name="parola2" type="password" autoComplete="new-password" placeholder="Aynı parolayı yaz" required minLength={6} maxLength={72} />
+      </label>
+      <QuestionFields />
       {state.error && <p className="banner-bad">{state.error}</p>}
-      <button className="auth-primary mt-1" disabled={pending}>
+      <button className="auth-primary mt-1" type="submit" disabled={pending}>
         Kayıt ol
+      </button>
+      <Link href="/sifre" className="auth-outline">
+        Şifremi unuttum
+      </Link>
+    </form>
+  );
+}
+
+export function ResetForm() {
+  const [state, action, pending] = useActionState(resetPasswordAction, { error: "" });
+  return (
+    <form action={action} className="grid gap-3">
+      {pending && (
+        <div className="fixed inset-0 z-[80] bg-[#07060b]">
+          <Boot />
+        </div>
+      )}
+      <ol className="grid list-decimal gap-1 pl-5 text-sm text-[#5c6774]">
+        <li>Kayıt olurken yazdığın kullanıcı adını yaz.</li>
+        <li>Aynı güvenlik sorusunu seç ve yanıtını yaz. Büyük küçük harf fark etmez.</li>
+        <li>Yeni parolanı iki kez yaz. Doğruysa parola değişir ve panele girersin.</li>
+      </ol>
+      <label className="grid gap-1 text-sm font-semibold text-[#1c2430]">
+        Kullanıcı adı
+        <input className="auth-field" name="kullanici" autoComplete="username" placeholder="ornek_ad" required minLength={2} maxLength={24} />
+      </label>
+      <QuestionFields />
+      <label className="grid gap-1 text-sm font-semibold text-[#1c2430]">
+        Yeni parola
+        <input className="auth-field" name="parola" type="password" autoComplete="new-password" placeholder="En az 6 karakter" required minLength={6} maxLength={72} />
+      </label>
+      <label className="grid gap-1 text-sm font-semibold text-[#1c2430]">
+        Yeni parolayı yeniden yaz
+        <input className="auth-field" name="parola2" type="password" autoComplete="new-password" placeholder="Aynı parolayı yaz" required minLength={6} maxLength={72} />
+      </label>
+      {state.error && <p className="banner-bad">{state.error}</p>}
+      <button className="auth-primary mt-1" type="submit" disabled={pending}>
+        Yeni parolayı kaydet
       </button>
     </form>
   );

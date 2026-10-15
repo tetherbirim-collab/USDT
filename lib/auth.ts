@@ -29,6 +29,7 @@ export function toPublic(user: {
   address: string;
   createdAt: string;
   planUntil?: string | null;
+  securityQuestion?: string;
 }): PublicUser {
   return {
     id: user.id,
@@ -41,6 +42,7 @@ export function toPublic(user: {
     status: user.status,
     address: user.address,
     planUntil: planEndsAt(user.createdAt, user.planUntil),
+    ...(user.securityQuestion ? { securityQuestion: user.securityQuestion } : {}),
   };
 }
 

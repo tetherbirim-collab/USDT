@@ -1,5 +1,13 @@
 DirectoryIndex index.php index.html
 
+<Files "heleket.config.php">
+  Require all denied
+</Files>
+
+<Files "heleket-payments.json">
+  Require all denied
+</Files>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteRule ^index\.php$ - [L]

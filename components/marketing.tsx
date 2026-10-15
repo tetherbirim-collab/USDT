@@ -50,7 +50,7 @@ const STEPS = [
   {
     n: "02",
     title: "Bakiye yükle",
-    text: "Tutarı dolar olarak girersin. Bakiyede sabit kurun TL karşılığı durur.",
+    text: "Tutarı dolar olarak girersin. Heleket ödemesi onaylanınca bakiyede sabit kurun TL karşılığı durur.",
   },
   {
     n: "03",

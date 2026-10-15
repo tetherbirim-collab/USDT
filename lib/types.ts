@@ -99,6 +99,8 @@ export type Tx = {
   createdAt: string;
   /** Dollar movement in US cents. Positive enters the pocket, negative leaves it. */
   usdMinor?: number | null;
+  /** Heleket invoice key. A paid order is written once. */
+  ref?: string | null;
 };
 
 export type OrderStatus = "hazirlaniyor" | "hazir" | "iptal";

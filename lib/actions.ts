@@ -110,37 +110,6 @@ function refundIssueFee(db: DB, row: User, card: Card): "ok" | "tavan" | "yok" {
   return "ok";
 }
 
-export async function topupAction(formData: FormData) {
-  const user = await actor();
-  const which = String(formData.get("tutar") || "");
-  const custom = String(formData.get("ozel") || "");
-  const raw = which === "ozel" || which === "" ? custom : which;
-  const cents = parseTryToKurus(raw);
-  if (cents === null || cents < MIN_USD_MINOR || cents > MAX_USD_MINOR) return bounce("/panel/yukle", "e-tutar");
-  const credit = usdMinorToKurus(cents);
-  const result = mutate((db) => {
-    const row = db.users.find((item) => item.id === user.id);
-    if (!row) return "yok" as const;
-    if (row.balance + credit > MAX_BALANCE_KURUS) return "tavan" as const;
-    row.balance += credit;
-    db.transactions.push({
-      id: `tx_${rid()}`,
-      userId: row.id,
-      cardId: null,
-      kind: "yukleme",
-      title: "Bakiye yüklemesi",
-      note: `${formatUsd(cents)} × ${formatRate(USD_SELL_RATE)} = ${formatTL(credit)}. Sabit kur, ${USD_RATE_AS_OF}.`,
-      amount: credit,
-      usdMinor: cents,
-      status: "tamamlandi",
-      createdAt: new Date().toISOString(),
-    });
-    return "ok" as const;
-  });
-  const code = result === "ok" ? "yuklendi" : result === "tavan" ? "e-tavan" : "e-yok";
-  return bounce("/panel/yukle", code);
-}
-
 export async function issueAction(formData: FormData) {
   const user = await actor();
   const typeRaw = String(formData.get("tur") || "");

@@ -1,5 +1,5 @@
-import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, TEST_BIN, WELCOME_BONUS_KURUS, WELCOME_USD_MINOR } from "./catalog";
-import { holderLine } from "./format";
+import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, TEST_BIN, USD_RATE_AS_OF, USD_SELL_RATE, WELCOME_BONUS_KURUS, WELCOME_USD_MINOR, usdMinorToKurus } from "./catalog";
+import { formatRate, formatTL, formatUsd, holderLine } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
 import type { BinRow, Card, CardTypeId, DB, Order, Tx, User } from "./types";
 
@@ -613,6 +613,34 @@ function read(): DB {
     }
   }
   return normalize(parsed ?? createSeed());
+}
+
+export function creditHeleketPayment(input: { userId: string; orderId: string; cents: number }): "ok" | "var" | "tavan" | "yok" | "tutar" {
+  if (!/^clay-[a-f0-9]{16}$/.test(input.orderId)) return "tutar";
+  if (input.cents < MIN_USD_MINOR || input.cents > MAX_USD_MINOR) return "tutar";
+  const credit = usdMinorToKurus(input.cents);
+  const ref = `heleket:${input.orderId}`;
+  return mutate((db) => {
+    if (db.transactions.some((entry) => entry.ref === ref)) return "var" as const;
+    const row = db.users.find((item) => item.id === input.userId);
+    if (!row) return "yok" as const;
+    if (row.balance + credit > MAX_BALANCE_KURUS) return "tavan" as const;
+    row.balance += credit;
+    db.transactions.push({
+      id: `tx_${rid()}`,
+      userId: row.id,
+      cardId: null,
+      kind: "yukleme",
+      title: "Heleket yüklemesi",
+      note: `${formatUsd(input.cents)} × ${formatRate(USD_SELL_RATE)} = ${formatTL(credit)}. Heleket ödemesi, sabit kur ${USD_RATE_AS_OF}.`,
+      amount: credit,
+      usdMinor: input.cents,
+      status: "tamamlandi",
+      createdAt: new Date().toISOString(),
+      ref,
+    });
+    return "ok" as const;
+  });
 }
 
 export function mutate<T>(fn: (db: DB) => T): T {

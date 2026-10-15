@@ -143,7 +143,10 @@ export const KIND_LABEL: Record<TxKind, string> = {
 
 export const NOTICES: Record<string, string> = {
   hosgeldin: "Hoş geldin bakiyesi yazıldı. Tutar, doların sabit kur karşılığıdır.",
-  yuklendi: "Bakiye yazıldı. Tutar, doların sabit kur karşılığıdır.",
+  yuklendi: "Heleket ödemesi onaylandı. Tutar, doların sabit kur karşılığı olarak bakiyeye yazıldı.",
+  "e-heleket": "Heleket ödeme sayfası açılmadı.",
+  "e-anahtar": "Heleket anahtarı sunucuda boş. heleket.config.php doldurulmalı.",
+  "e-odeme": "Heleket ödemesi henüz tamamlanmadı.",
   basildi: "Kart oluşturuldu.",
   siparis: "Sipariş alındı. Kart kısa süre hazırlanır.",
   hazir: "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz.",

@@ -2,7 +2,9 @@
 
 CLAY, Facebook Ads, TikTok, Google Ads ve Ultima kartları için sanal kart panelidir. Tam ad **CLAY Sanal Kart Hizmetleri**.
 
-Tutar dolar olarak girilir. Bakiyede yalnız sabit kurun TL karşılığı durur. Kur 15 Eki 2026 için 1 USD = 49,3929 TL olarak sabittir.
+Tutar dolar olarak girilir. Bakiye yükleme Heleket faturası açar. Ödeme onaylanınca bakiyede yalnız sabit kurun TL karşılığı durur. Kur 15 Eki 2026 için 1 USD = 49,3929 TL olarak sabittir. Bu bakiye kart harcamasında kullanılır.
+
+Heleket anahtarları `heleket.config.php` içine yazılır. `merchant` Heleket ayarlarındaki UUID, `payment_key` ödeme API anahtarıdır. Ödeme anahtarı tarayıcıya gitmez. Dosya web’den kapalıdır. Anahtarlar boşsa yükleme sayfası fatura açmaz.
 
 ## Çalıştırma
 
@@ -17,7 +19,7 @@ Tarayıcıda [http://localhost:3000](http://localhost:3000) adresini aç.
 
 ## cPanel
 
-`clay-sanal-kart.zip` dosyasını cPanel Dosya Yöneticisinde `public_html` içine yükle ve Extract de. Zip’in kökünde `index.php` vardır; site alan adında açılır. `node_modules` kurmak gerekmez.
+`clay-sanal-kart.zip` dosyasını cPanel Dosya Yöneticisinde `public_html` içine yükle ve Extract de. Zip’in kökünde `index.php` vardır; site alan adında açılır. `node_modules` kurmak gerekmez. Extract’ten sonra `heleket.config.php` içine merchant UUID ve ödeme anahtarını yaz. Heleket geri bildirimi `https://alanadin/api/heleket.php` adresine düşer.
 
 Defter tarayıcıda durur. İlk açılışta hazır hesap vardır: `demo` / `demo123`, yönetici `admin` / `admin123`.
 

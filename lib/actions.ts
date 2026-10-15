@@ -14,6 +14,7 @@ import {
   MIN_LIMIT_KURUS,
   MIN_SPEND_KURUS,
   MIN_TOPUP_KURUS,
+  MIN_TRANSFER_KURUS,
   MIN_USD_MINOR,
   PLANS,
   USD_RATE_AS_OF,
@@ -21,6 +22,7 @@ import {
   isCardType,
   isMerchantForType,
   isPlan,
+  transferFee,
   usdMinorToKurus,
 } from "./catalog";
 import { formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
@@ -726,6 +728,78 @@ export async function renewAction(formData: FormData) {
       createdAt: new Date().toISOString(),
     });
     return "yenilendi" as const;
+  });
+  bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
+}
+
+function movable(card: Card) {
+  return card.status === "aktif" || card.status === "donduruldu";
+}
+
+export async function transferAction(formData: FormData) {
+  const user = await actor();
+  const id = String(formData.get("id") || "");
+  const hedef = String(formData.get("hedef") || "");
+  const amount = parseTryToKurus(String(formData.get("tutar") || ""));
+  if (hedef === "" || hedef === id) bounce("/panel/kartlar", "e-transfer-kart");
+  if (amount === null || amount < MIN_TRANSFER_KURUS) bounce("/panel/kartlar", "e-transfer");
+  const fee = transferFee(amount);
+  const credit = amount - fee;
+  if (fee < 1 || credit < 1) bounce("/panel/kartlar", "e-transfer");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id);
+    const source = db.cards.find((item) => item.id === id && item.userId === user.id);
+    const dest = db.cards.find((item) => item.id === hedef && item.userId === user.id);
+    if (!row || !source || !dest) return "e-yok" as const;
+    if (!movable(source) || !movable(dest)) return "e-durum" as const;
+    if (amount > source.limit - source.spent) return "e-transfer" as const;
+    if (dest.limit + credit > MAX_LIMIT_KURUS) return "e-transfer-tavan" as const;
+    source.limit -= amount;
+    dest.limit += credit;
+    const now = new Date().toISOString();
+    const feeText = formatTL(fee);
+    db.transactions.push(
+      {
+        id: `tx_${randomUUID()}`,
+        userId: row.id,
+        cardId: source.id,
+        kind: "transfer",
+        title: `Aktarım · ${dest.label}`,
+        note: `%2 komisyon ${feeText} kesildi. Karşı karta ${formatTL(credit)} yazıldı. Cüzdan değişmedi.`,
+        amount: -amount,
+        usdMinor: null,
+        status: "tamamlandi",
+        createdAt: now,
+      },
+      {
+        id: `tx_${randomUUID()}`,
+        userId: row.id,
+        cardId: dest.id,
+        kind: "transfer",
+        title: `Gelen aktarım · ${source.label}`,
+        note: `%2 komisyon sonrası ${formatTL(credit)} yazıldı. Cüzdan değişmedi.`,
+        amount: credit,
+        usdMinor: null,
+        status: "tamamlandi",
+        createdAt: now,
+      },
+    );
+    if (source.limit > 0 && source.spent / source.limit >= 0.5) {
+      const ref = `tavan50:${source.id}:${source.period}`;
+      if (!db.notices.some((note) => note.ref === ref)) {
+        db.notices.push({
+          id: `nt_${randomUUID()}`,
+          userId: row.id,
+          batch: randomUUID(),
+          title: "Tavan yarıda",
+          body: `${source.label} kartının tavanının yarısı kullanıldı.`,
+          createdAt: now,
+          readAt: null,
+          ref,
+        });
+      }
+    }
+    return "transfer" as const;
   });
   bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
 }

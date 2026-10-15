@@ -4,7 +4,7 @@ export type CardTypeId = "facebook_ads" | "tiktok" | "google_ads" | "ultima";
 
 export type CardStatus = "hazirlaniyor" | "aktif" | "donduruldu" | "kapali";
 
-export type TxKind = "yukleme" | "harcama" | "iade" | "basim" | "duzeltme" | "yenileme";
+export type TxKind = "yukleme" | "harcama" | "iade" | "basim" | "duzeltme" | "yenileme" | "transfer";
 
 export type TxStatus = "tamamlandi" | "reddedildi";
 

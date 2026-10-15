@@ -5,6 +5,7 @@ import { formatSigned, formatTL, formatUsd, formatWhen } from "@/lib/format";
 import type { Card, Tx } from "@/lib/types";
 import { OrderSlip } from "./order-slip";
 import { SubmitButton } from "./submit-button";
+import { TransferForm } from "./transfer-form";
 
 function heat(percent: number) {
   if (percent >= 100) return { bar: "linear-gradient(90deg,#ff6a3d,#ff2d3a)", ink: "#ff8b96" };
@@ -13,7 +14,15 @@ function heat(percent: number) {
   return { bar: "linear-gradient(90deg,#f0c98a,#8dffe4)", ink: "#ffffff" };
 }
 
-export function CardActions({ card, entries = [] }: { card: Card; entries?: Tx[] }) {
+export function CardActions({
+  card,
+  entries = [],
+  peers = [],
+}: {
+  card: Card;
+  entries?: Tx[];
+  peers?: { id: string; label: string }[];
+}) {
   const kalan = card.limit - card.spent;
   const percent = card.limit > 0 ? Math.min(100, Math.round((card.spent / card.limit) * 100)) : 0;
   const tone = heat(percent);
@@ -54,6 +63,9 @@ export function CardActions({ card, entries = [] }: { card: Card; entries?: Tx[]
         <button type="button" className="btn btn-ghost w-fit opacity-40" disabled>
           Bakiye yükle
         </button>
+      )}
+      {card.status !== "kapali" && peers.length > 0 && kalan > 0 && (
+        <TransferForm cardId={card.id} kalan={kalan} peers={peers} />
       )}
       {card.spent > 0 && (
         <form action={renewAction} className="grid gap-1">

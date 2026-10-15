@@ -19,6 +19,13 @@ export const USD_SELL_RATE = 49.3929;
 export const USD_RATE_AS_OF = "15 Eki 2026";
 export const MIN_USD_MINOR = 100;
 export const MAX_USD_MINOR = 500_000;
+/** Smallest ceiling move. Two percent of this is still a whole kuruş. */
+export const MIN_TRANSFER_KURUS = 100;
+export const TRANSFER_FEE_PERCENT = 2;
+
+export function transferFee(amount: number): number {
+  return Math.round((amount * TRANSFER_FEE_PERCENT) / 100);
+}
 
 export function usdMinorToKurus(minor: number): number {
   return Math.round(minor * USD_SELL_RATE);
@@ -113,6 +120,7 @@ export const KIND_LABEL: Record<TxKind, string> = {
   basim: "Basım",
   duzeltme: "Düzeltme",
   yenileme: "Tavan yenileme",
+  transfer: "Aktarım",
 };
 
 export const NOTICES: Record<string, string> = {
@@ -125,6 +133,7 @@ export const NOTICES: Record<string, string> = {
     "Sipariş alındı. Kart kısa süre hazırlanır. Basım ücreti simülasyondur, numara test verisidir.",
   hazir: "Kart hazır. Numara test verisidir ve gerçek üye işyerinde kullanılamaz.",
   yenilendi: "Tavan yenilendi. Harcama sayacı sıfırlandı. Cüzdan tutarı değişmedi.",
+  transfer: "Kalan tavan aktarıldı. %2 komisyon kesildi. Cüzdan tutarı değişmedi.",
   iade: "Simülasyon iadesi cüzdana ve tavana işlendi. Gerçek tahsilat yoktur.",
   ad: "Görünen ad güncellendi. Kartlardaki ad satırı buna çekildi.",
   adres: "Kart adresi güncellendi. Yalnızca bu hesabın kart detaylarında görünür.",
@@ -172,6 +181,9 @@ export const NOTICES: Record<string, string> = {
   "e-ad": "Görünen ad 2–40 karakter olmalı ve bir harfle başlamalı.",
   "e-adres": "Adres en fazla 120 karakter olabilir. Harf, rakam ve temel noktalama yeter.",
   "e-yenile": "Yenilenecek harcama yok. Tavan zaten boş.",
+  "e-transfer": "Aktarım en az 1 ₺ olmalı ve kartın kalan tavanını aşmamalı.",
+  "e-transfer-kart": "Aktarılacak başka bir açık kart seç.",
+  "e-transfer-tavan": "Karşı kartın tavanı bu aktarımı almıyor.",
   okundu: "Bildirim okundu sayıldı.",
 };
 

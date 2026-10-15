@@ -345,6 +345,7 @@ function applyLedger(db: DB) {
   );
   for (const entry of ordered) {
     if (entry.status !== "tamamlandi") continue;
+    if (entry.kind === "transfer") continue;
     const user = db.users.find((item) => item.id === entry.userId);
     if (!user) continue;
     user.balance += entry.amount;

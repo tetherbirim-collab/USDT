@@ -4,6 +4,7 @@ import { CardSecrets } from "@/components/card-secrets";
 import { Notice } from "@/components/notice";
 import { VirtualCard } from "@/components/virtual-card";
 import { getCurrentUser } from "@/lib/auth";
+import { formatTL } from "@/lib/format";
 import { listCards, listTransactions } from "@/lib/store";
 import { redirect } from "next/navigation";
 
@@ -54,7 +55,19 @@ export default async function CardsPage({
               ) : (
                 <CardSecrets card={card} address={user.address} />
               )}
-              <CardActions card={card} entries={txs.filter((entry) => entry.cardId === card.id).slice(0, 6)} />
+              <CardActions
+                card={card}
+                peers={cards
+                  .filter(
+                    (item) =>
+                      item.id !== card.id && (item.status === "aktif" || item.status === "donduruldu"),
+                  )
+                  .map((item) => ({
+                    id: item.id,
+                    label: `${item.label} · kalan ${formatTL(item.limit - item.spent)}`,
+                  }))}
+                entries={txs.filter((entry) => entry.cardId === card.id).slice(0, 6)}
+              />
             </article>
           ))}
         </div>

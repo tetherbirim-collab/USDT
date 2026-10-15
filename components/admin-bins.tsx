@@ -1,4 +1,4 @@
-import { adminBinAddAction, adminBinRemoveAction, adminBinSaveAction } from "@/lib/actions";
+import { adminBinAddAction, adminBinPasteAction, adminBinRemoveAction, adminBinSaveAction } from "@/lib/actions";
 import { CARD_TYPE_ORDER, CARD_TYPES } from "@/lib/catalog";
 import type { BinRow } from "@/lib/types";
 
@@ -7,8 +7,9 @@ export function AdminBins({ bins }: { bins: BinRow[] }) {
     <section id="binler" className="glass rounded-[28px] p-5">
       <h2 className="font-display text-2xl font-bold">BIN listeleri</h2>
       <p className="mt-1 max-w-2xl text-sm text-white/60">
-        Her kart türünün kendi listesi vardır ve boş başlar. Etiket ile BIN rakamlarını siz eklersiniz.
-        Burada gelişigüzel numara sorgulama yoktur.
+        Her türde ayrılmış test öneki 400000 hazır durur. Türün listesi tamamen silinirse bu satır
+        yeniden yazılır. Gerçek BIN tablosu burada yoktur. Kendi satırlarınızı tek tek veya satır satır
+        yapıştırarak eklersiniz. Numara sorgulama yoktur.
       </p>
       <div className="mt-4 grid gap-4">
         {CARD_TYPE_ORDER.map((type) => {
@@ -53,6 +54,19 @@ export function AdminBins({ bins }: { bins: BinRow[] }) {
                   <input className="field w-32 font-mono" name="rakam" inputMode="numeric" required pattern="\d{6,8}" placeholder="6–8 rakam" />
                 </label>
                 <button className="btn btn-ghost">Ekle</button>
+              </form>
+              <form action={adminBinPasteAction} className="mt-3 grid gap-2">
+                <input type="hidden" name="tur" value={type} />
+                <label className="grid gap-1 text-xs">
+                  Toplu yapıştır
+                  <textarea
+                    className="field min-h-24 font-mono"
+                    name="yigin"
+                    placeholder={"Liste adı 400000\nBaşka etiket|400001"}
+                  />
+                </label>
+                <p className="text-xs text-white/45">Her satır etiket ve 6–8 rakam. Aynı türde yinelenen rakam atlanır.</p>
+                <button className="btn btn-ghost w-fit">Satırları ekle</button>
               </form>
             </article>
           );

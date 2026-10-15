@@ -13,21 +13,25 @@ function one(value: string | string[] | undefined) {
 
 function batches(notices: InboxNote[], users: User[]) {
   const names = new Map(users.map((user) => [user.id, user.username]));
-  const seen = new Map<string, { batch: string; title: string; body: string; createdAt: string; who: string; count: number }>();
+  const seen = new Map<
+    string,
+    { batch: string; title: string; body: string; createdAt: string; who: string[]; read: number }
+  >();
   for (const note of [...notices].sort((a, b) => b.createdAt.localeCompare(a.createdAt))) {
     const row = seen.get(note.batch);
+    const name = names.get(note.userId) ?? "üye";
     if (!row) {
       seen.set(note.batch, {
         batch: note.batch,
         title: note.title,
         body: note.body,
         createdAt: note.createdAt,
-        who: names.get(note.userId) ?? "üye",
-        count: 1,
+        who: [name],
+        read: note.readAt ? 1 : 0,
       });
     } else {
-      row.count += 1;
-      row.who = `${row.count} üye`;
+      row.who.push(name);
+      if (note.readAt) row.read += 1;
     }
   }
   return [...seen.values()];
@@ -96,7 +100,7 @@ export default async function AdminPage({
               <p className="font-semibold">{item.title}</p>
               <p className="text-white/70">{item.body}</p>
               <p className="mt-1 text-xs text-white/45">
-                {formatWhen(item.createdAt)} · {item.who}
+                {formatWhen(item.createdAt)} · {item.who.join(", ")} · {item.read}/{item.who.length} okudu
               </p>
             </li>
           ))}

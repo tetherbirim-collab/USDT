@@ -1,5 +1,5 @@
 import { closeAction, freezeAction, spendAction } from "@/lib/actions";
-import { MERCHANTS } from "@/lib/catalog";
+import { merchantsFor } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
 import type { Card } from "@/lib/types";
 import { SubmitButton } from "./submit-button";
@@ -43,9 +43,9 @@ export function CardActions({ card }: { card: Card }) {
           <form action={spendAction} className="mt-3 grid gap-2">
             <input type="hidden" name="id" value={card.id} />
             <label className="grid gap-1 text-xs text-white/70">
-              Prova işletmesi
-              <select className="field" name="isletme" required defaultValue={MERCHANTS[0]}>
-                {MERCHANTS.map((merchant) => (
+              Bu türün prova işletmesi
+              <select className="field" name="isletme" required defaultValue={merchantsFor(card.type)[0]}>
+                {merchantsFor(card.type).map((merchant) => (
                   <option key={merchant}>{merchant}</option>
                 ))}
               </select>

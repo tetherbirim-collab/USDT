@@ -73,19 +73,19 @@ export const PLANS: Record<
   },
 };
 
-export const MERCHANTS = [
-  "Kuzey Ajans Medya",
-  "Vitrin Reklam Ağı",
-  "Sahne Reklam",
-  "Tezgah Pazaryeri",
-  "Ada Kargo Sim",
-  "Bulut Kalem",
-  "Nota Stüdyo",
-  "Mavi Otel Prova",
-] as const;
+export const MERCHANTS_BY_TYPE: Record<CardTypeId, readonly string[]> = {
+  facebook_ads: ["Vitrin Akış", "Mavi Sayfa Prova", "Sahne Reklam"],
+  tiktok: ["Kısa Sahne", "Nota Akış", "Gece Klip"],
+  google_ads: ["Arama Vitrini", "Kelime Tezgahı", "Harita Prova"],
+  ultima: ["Ultima Salon", "Metal Gece", "Kule Rezerv"],
+};
 
-export function isMerchant(value: string): value is (typeof MERCHANTS)[number] {
-  return (MERCHANTS as readonly string[]).includes(value);
+export function merchantsFor(type: CardTypeId): readonly string[] {
+  return MERCHANTS_BY_TYPE[type];
+}
+
+export function isMerchantForType(type: CardTypeId, value: string): boolean {
+  return MERCHANTS_BY_TYPE[type].includes(value);
 }
 
 export const KIND_LABEL: Record<TxKind, string> = {
@@ -117,7 +117,7 @@ export const NOTICES: Record<string, string> = {
   "e-durum": "Kart bu işlem için uygun durumda değil.",
   "e-onay": "Kapatmak için onay kutusu gerekli.",
   "e-yok": "Kayıt bu simülasyonda bulunamadı.",
-  "e-isletme": "Listeden bir prova işletmesi seç.",
+  "e-isletme": "Bu kart türünün prova listesinden bir işletme seç.",
   bakiye: "Simülasyon bakiyesi güncellendi. Gerçek tahsilat yoktur.",
   askida: "Hesap askıya alındı. Bu kullanıcı giriş yapamaz.",
   acildi: "Hesap yeniden açıldı. Simülasyon girişi yine mümkün.",
@@ -134,7 +134,11 @@ export const NOTICES: Record<string, string> = {
   "e-yukleme-yok": "Bu hesapta düzenlenecek bir yükleme yok.",
   bin: "BIN satırı bu türün listesine yazıldı. Numara sorgulama yoktur.",
   "e-bin": "Kart oluşturmak için bu türe ait bir BIN seç. Liste boşsa basım kapalı.",
-  "e-bin-kayit": "Etiket 2–40 karakter, BIN ise 6–8 rakam olmalı.",
+  "e-bin-kayit": "Etiket 2–40 karakter, BIN ise 6–8 rakam olmalı. Aynı türde aynı rakam iki kez durmaz.",
+  parola: "Parola güncellendi. Yönetim masasında yeni parola görünür.",
+  "e-parola": "Yeni parola 6–72 karakter olmalı ve tekrar ile aynı olmalı.",
+  "e-parola-eski": "Mevcut parola hatalı.",
+  okundu: "Bildirim okundu sayıldı.",
 };
 
 export function noticeText(code?: string): string | null {

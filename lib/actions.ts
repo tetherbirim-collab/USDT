@@ -14,7 +14,7 @@ import {
   MIN_TOPUP_KURUS,
   PLANS,
   isCardType,
-  isMerchant,
+  isMerchantForType,
 } from "./catalog";
 import { istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
 import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseUsername } from "./store";
@@ -174,7 +174,6 @@ export async function spendAction(formData: FormData) {
   const id = String(formData.get("id") || "");
   const merchant = String(formData.get("isletme") || "");
   const amount = parseTryToKurus(String(formData.get("tutar") || ""));
-  if (!isMerchant(merchant)) bounce("/panel/kartlar", "e-isletme");
   if (amount === null || amount < MIN_SPEND_KURUS || amount > MAX_SPEND_KURUS) {
     bounce("/panel/kartlar", "e-tutar");
   }
@@ -182,6 +181,7 @@ export async function spendAction(formData: FormData) {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
     if (!row || !card) return "e-yok" as const;
+    if (!isMerchantForType(card.type, merchant)) return "e-isletme" as const;
     if (card.status !== "aktif") return "e-durum" as const;
     const now = new Date().toISOString();
     if (card.spent + amount > card.limit) {
@@ -343,6 +343,7 @@ export async function adminNoticeAction(formData: FormData) {
         title,
         body,
         createdAt,
+        readAt: null,
       });
     }
     return "gonderildi" as const;
@@ -483,6 +484,81 @@ export async function adminBinRemoveAction(formData: FormData) {
     return before === db.bins.length ? ("e-yok" as const) : ("bin" as const);
   });
   bounce("/admin?vurgu=binler", result);
+}
+
+function parsePasteLine(line: string) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith("#")) return null;
+  const split = trimmed.includes("|") ? trimmed.split("|") : null;
+  const digits = (split ? split.pop() : trimmed.split(/\s+/).pop())?.replace(/\s/g, "") ?? "";
+  const label = (split ? split.join("|") : trimmed.slice(0, trimmed.length - digits.length))
+    .replace(/\s+/g, " ")
+    .trim();
+  if (label.length < 2 || label.length > 40 || !/^\d{6,8}$/.test(digits)) return null;
+  return { label, digits };
+}
+
+export async function adminBinPasteAction(formData: FormData) {
+  await requireAdmin();
+  const type = String(formData.get("tur") || "");
+  const lines = String(formData.get("yigin") || "").split(/\r?\n/);
+  if (!isCardType(type)) bounce("/admin?vurgu=binler", "e-bin-kayit");
+  const drafts = lines.map(parsePasteLine).filter((row): row is { label: string; digits: string } => row !== null);
+  const result = mutate((db) => {
+    const seen = new Set(db.bins.filter((row) => row.type === type).map((row) => row.digits));
+    let added = 0;
+    for (const draft of drafts) {
+      if (seen.has(draft.digits)) continue;
+      seen.add(draft.digits);
+      db.bins.push({
+        id: `bin_${randomUUID()}`,
+        type,
+        label: draft.label,
+        digits: draft.digits,
+      });
+      added += 1;
+    }
+    return added > 0 ? ("bin" as const) : ("e-bin-kayit" as const);
+  });
+  bounce("/admin?vurgu=binler", result);
+}
+
+export async function passwordChangeAction(formData: FormData) {
+  const user = await actor();
+  if (user.role !== "uye") redirect("/admin");
+  const current = String(formData.get("eski") || "");
+  const next = String(formData.get("yeni") || "");
+  const again = String(formData.get("yeni2") || "");
+  if (next.length < 6 || next.length > 72 || next !== again) bounce("/panel/hesap", "e-parola");
+  const result = mutate((db) => {
+    const row = db.users.find((item) => item.id === user.id && item.role === "uye");
+    if (!row) return "e-yok" as const;
+    if (row.password !== current) return "e-parola-eski" as const;
+    row.password = next;
+    return "parola" as const;
+  });
+  bounce("/panel/hesap", result);
+}
+
+export async function markNoticeReadAction(formData: FormData) {
+  const user = await actor();
+  const id = String(formData.get("id") || "");
+  mutate((db) => {
+    const note = db.notices.find((item) => item.id === id && item.userId === user.id);
+    if (note && !note.readAt) note.readAt = new Date().toISOString();
+  });
+  bounce("/panel/bildirimler", "okundu");
+}
+
+export async function markAllNoticesReadAction() {
+  const user = await actor();
+  const now = new Date().toISOString();
+  mutate((db) => {
+    for (const note of db.notices) {
+      if (note.userId === user.id && !note.readAt) note.readAt = now;
+    }
+  });
+  bounce("/panel/bildirimler", "okundu");
 }
 
 export async function adminEditTopupAction(formData: FormData) {

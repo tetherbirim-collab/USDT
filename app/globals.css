@@ -197,12 +197,23 @@ select.field option {
 
 .vcard .sheen {
   position: absolute;
-  inset: -45% auto -45% -70%;
-  width: 38%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.48), transparent);
-  transform: rotate(16deg);
-  animation: sheen 5s ease-in-out infinite;
+  inset: -50% auto -50% -80%;
+  z-index: 3;
+  width: 58%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+  transform: rotate(18deg);
+  animation: sheen 3.4s ease-in-out infinite;
   pointer-events: none;
+}
+
+.vcard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 36px rgba(255, 255, 255, 0.22);
 }
 
 .chip {
@@ -247,8 +258,8 @@ select.field option {
 }
 
 @keyframes sheen {
-  0% { transform: translateX(0) rotate(16deg); }
-  60%, 100% { transform: translateX(420%) rotate(16deg); }
+  0% { transform: translateX(0) rotate(18deg); }
+  55%, 100% { transform: translateX(380%) rotate(18deg); }
 }
 
 @keyframes floaty {

@@ -11,6 +11,7 @@ const LINKS = [
   ["/panel/islemler", "İşlemler"],
   ["/panel/bildirimler", "Bildirimler"],
   ["/panel/yukle", "Cüzdan"],
+  ["/panel/hesap", "Hesap"],
 ] as const;
 
 export function PanelFrame({
@@ -18,12 +19,14 @@ export function PanelFrame({
   username,
   balanceLabel,
   planName,
+  unread = 0,
   children,
 }: {
   name: string;
   username: string;
   balanceLabel: string;
   planName: string;
+  unread?: number;
   children: React.ReactNode;
 }) {
   const path = usePathname();
@@ -58,6 +61,13 @@ export function PanelFrame({
                 className={`rounded-full px-4 py-2 text-sm font-bold ${active ? "bg-gold text-[#24180a]" : "bg-white/5 text-white/80"}`}
               >
                 {label}
+                {href === "/panel/bildirimler" && unread > 0 && (
+                  <span
+                    className={`ml-2 inline-flex min-w-5 justify-center rounded-full px-1.5 text-xs ${active ? "bg-[#24180a] text-gold" : "bg-gold text-[#24180a]"}`}
+                  >
+                    {unread}
+                  </span>
+                )}
               </Link>
             );
           })}

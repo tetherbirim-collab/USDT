@@ -31,10 +31,10 @@ const SKINS: Record<CardTypeId, string> = {
 };
 
 const GLOW: Record<CardTypeId, string> = {
-  facebook_ads: "0 0 46px rgba(24,119,242,.55)",
-  tiktok: "0 0 28px rgba(37,244,238,.4), 0 0 42px rgba(254,44,85,.32)",
-  google_ads: "0 0 36px rgba(66,133,244,.35)",
-  ultima: "0 0 42px rgba(240,201,138,.42)",
+  facebook_ads: "0 0 22px rgba(126,182,255,.9), 0 0 64px rgba(24,119,242,.75)",
+  tiktok: "0 0 18px rgba(37,244,238,.85), 0 0 46px rgba(254,44,85,.62)",
+  google_ads: "0 0 18px rgba(66,133,244,.7), 0 0 42px rgba(251,188,5,.4), 0 0 70px rgba(52,168,83,.35)",
+  ultima: "0 0 20px rgba(255,236,196,.9), 0 0 58px rgba(240,201,138,.62)",
 };
 
 const STATUS_LABEL = {

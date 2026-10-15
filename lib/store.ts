@@ -1,10 +1,10 @@
 import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "fs";
 import path from "path";
-import { WELCOME_BONUS_KURUS } from "./catalog";
+import { CARD_TYPE_ORDER, TEST_BIN, WELCOME_BONUS_KURUS } from "./catalog";
 import { holderLine } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
-import type { Card, CardTypeId, DB, Tx, User } from "./types";
+import type { BinRow, Card, CardTypeId, DB, Tx, User } from "./types";
 
 const DATA_PATH = path.join(process.cwd(), "data", "sanalkart.json");
 
@@ -276,11 +276,32 @@ function createSeed(): DB {
     cards: [reklam, alisveris, abonelik, ultima],
     transactions,
     notices: [],
-    bins: [],
+    bins: testBins(),
     nextSerial: 100_000_005,
   };
   applyLedger(db);
   return db;
+}
+
+function testBins(): BinRow[] {
+  return CARD_TYPE_ORDER.map((type) => ({
+    id: `bin_${type}`,
+    type,
+    label: "Test öneki",
+    digits: TEST_BIN,
+  }));
+}
+
+function ensureTestBins(db: DB) {
+  for (const type of CARD_TYPE_ORDER) {
+    if (db.bins.some((row) => row.type === type)) continue;
+    db.bins.push({
+      id: `bin_${type}`,
+      type,
+      label: "Test öneki",
+      digits: TEST_BIN,
+    });
+  }
 }
 
 function applyLedger(db: DB) {
@@ -382,6 +403,15 @@ function normalize(db: DB): DB {
   const binCount = db.bins.length;
   db.bins = db.bins.filter((row) => kept.has(row.type));
   if (db.bins.length !== binCount) dirty = true;
+  const beforeBins = db.bins.length;
+  ensureTestBins(db);
+  if (db.bins.length !== beforeBins) dirty = true;
+  for (const note of db.notices) {
+    if (note.readAt === undefined || (note.readAt !== null && typeof note.readAt !== "string")) {
+      note.readAt = null;
+      dirty = true;
+    }
+  }
   for (const card of db.cards) {
     if (!/^\d{6,8}$/.test(card.bin ?? "")) {
       card.bin = card.pan.slice(0, 6);
@@ -505,6 +535,10 @@ export function listNotices(userId: string) {
   return read()
     .notices.filter((note) => note.userId === userId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function unreadNoticeCount(userId: string) {
+  return read().notices.filter((note) => note.userId === userId && !note.readAt).length;
 }
 
 export function listTransactions(userId: string): Tx[] {

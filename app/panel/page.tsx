@@ -45,7 +45,9 @@ export default async function PanelHome({
               <li key={note.id} className="rounded-2xl bg-black/25 px-3 py-3">
                 <p className="font-semibold">{note.title}</p>
                 <p className="text-sm text-white/70">{note.body}</p>
-                <p className="mt-1 text-xs text-white/45">{formatWhen(note.createdAt)}</p>
+                <p className="mt-1 text-xs text-white/45">
+                  {formatWhen(note.createdAt)} · {note.readAt ? "Okundu" : "Okunmadı"}
+                </p>
               </li>
             ))}
           </ul>

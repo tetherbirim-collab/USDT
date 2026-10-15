@@ -90,6 +90,8 @@ export type InboxNote = {
   title: string;
   body: string;
   createdAt: string;
+  /** Null until the member marks the note read. Opening the page does not set this. */
+  readAt: string | null;
 };
 
 export type DB = {

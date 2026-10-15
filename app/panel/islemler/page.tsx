@@ -1,7 +1,7 @@
 import { Notice } from "@/components/notice";
 import { getCurrentUser } from "@/lib/auth";
 import { KIND_LABEL } from "@/lib/catalog";
-import { formatSigned, formatWhen } from "@/lib/format";
+import { formatSigned, formatWhen, istanbulKey, parseTryToKurus } from "@/lib/format";
 import { listCards, listTransactions } from "@/lib/store";
 import type { TxKind } from "@/lib/types";
 import { redirect } from "next/navigation";
@@ -31,8 +31,14 @@ export default async function TransactionsPage({
   const tur = one(sp.tur) || "";
   const q = (one(sp.q) || "").trim();
   const kart = one(sp.kart) || "";
+  const bas = one(sp.bas) || "";
+  const bit = one(sp.bit) || "";
+  const enaz = one(sp.enaz) || "";
+  const encok = one(sp.encok) || "";
   const cards = listCards(user.id);
   const labels = new Map(cards.map((card) => [card.id, card.label]));
+  const minKurus = enaz ? parseTryToKurus(enaz) : null;
+  const maxKurus = encok ? parseTryToKurus(encok) : null;
 
   let rows = listTransactions(user.id);
   if (tur === "reddedilen") rows = rows.filter((entry) => entry.status === "reddedildi");
@@ -46,6 +52,10 @@ export default async function TransactionsPage({
       `${entry.title} ${entry.note}`.toLocaleLowerCase("tr-TR").includes(needle),
     );
   }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(bas)) rows = rows.filter((entry) => istanbulKey(entry.createdAt) >= bas);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(bit)) rows = rows.filter((entry) => istanbulKey(entry.createdAt) <= bit);
+  if (minKurus !== null) rows = rows.filter((entry) => Math.abs(entry.amount) >= minKurus);
+  if (maxKurus !== null) rows = rows.filter((entry) => Math.abs(entry.amount) <= maxKurus);
 
   return (
     <div className="grid gap-5">
@@ -61,6 +71,10 @@ export default async function TransactionsPage({
           if (id) params.set("tur", id);
           if (kart) params.set("kart", kart);
           if (q) params.set("q", q);
+          if (bas) params.set("bas", bas);
+          if (bit) params.set("bit", bit);
+          if (enaz) params.set("enaz", enaz);
+          if (encok) params.set("encok", encok);
           const href = params.size ? `/panel/islemler?${params}` : "/panel/islemler";
           const active = tur === id;
           return (
@@ -74,7 +88,7 @@ export default async function TransactionsPage({
           );
         })}
       </div>
-      <form className="glass grid gap-3 rounded-[24px] p-4 sm:grid-cols-[1fr_1fr_auto]" action="/panel/islemler">
+      <form className="glass grid gap-3 rounded-[24px] p-4 sm:grid-cols-2 lg:grid-cols-3" action="/panel/islemler">
         {tur && <input type="hidden" name="tur" value={tur} />}
         <label className="grid gap-1 text-sm">
           Kart
@@ -90,6 +104,22 @@ export default async function TransactionsPage({
         <label className="grid gap-1 text-sm">
           Ara
           <input className="field" name="q" defaultValue={q} placeholder="İşletme adı" />
+        </label>
+        <label className="grid gap-1 text-sm">
+          Başlangıç
+          <input className="field" type="date" name="bas" defaultValue={bas} />
+        </label>
+        <label className="grid gap-1 text-sm">
+          Bitiş
+          <input className="field" type="date" name="bit" defaultValue={bit} />
+        </label>
+        <label className="grid gap-1 text-sm">
+          En az (₺)
+          <input className="field" name="enaz" inputMode="decimal" defaultValue={enaz} placeholder="10" />
+        </label>
+        <label className="grid gap-1 text-sm">
+          En çok (₺)
+          <input className="field" name="encok" inputMode="decimal" defaultValue={encok} placeholder="500" />
         </label>
         <button className="btn btn-ghost self-end">Süz</button>
       </form>

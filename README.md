@@ -36,9 +36,9 @@ Yönetim masası da simülasyondur. Bakiye düzeltmesi, kart dondurma ve hesap a
 
 Askıya alınan hesap giriş yapamaz. Yönetici kendi hesabını askıya alamaz. Yönetici hesabı üye paneline girmez.
 
-Üye listesindeki kullanıcı adı, o hesabın kartlarını, harcama ve limit tutarlarını, işlem dökümünü ve son yükleme zamanını açar. Listede ve detayda hesap numarası ile güncel parola düz metin görünür. Yönetici bakiye, kart etiketi, limit, kart durumu, işlem tutarı ve son yükleme zamanını düzenleyebilir. Bildirimler bölümünden bir üyeye veya tüm üyelere başlık ve mesaj yazılır; mesaj üye panelindeki Bildirimler sayfasında görünür.
+Üye listesindeki kullanıcı adı, o hesabın kartlarını, harcama ve limit tutarlarını, işlem dökümünü ve son yükleme zamanını açar. Listede ve detayda hesap numarası ile güncel parola düz metin görünür. Üye parolasını Hesap sayfasından değiştirince yönetim masasında yeni değer görünür. Yönetici bakiye, kart etiketi, limit, kart durumu, işlem tutarı ve son yükleme zamanını düzenleyebilir. Bildirimler bölümünden bir üyeye veya tüm üyelere başlık ve mesaj yazılır. Üye panelinde okunmamış sayısı görünür; okundu saymak ayrıca bir düğmedir. Yönetici kimin aldığını ve kaçının okuduğunu görür.
 
-Her kart türünün BIN listesi boş başlar. Yönetici etiket ve 6–8 rakamlık BIN satırı ekler, düzeltir veya siler. Üye kart basarken yalnızca seçtiği türün listesini görür ve bir satır seçmeden kart oluşmaz. Gelişigüzel numara sorgulama yoktur.
+Her kart türünün listesinde etiket «Test öneki» ve rakam `400000` hazırdır. Yönetici satır ekler, düzeltir, siler veya etiket ile rakamı satır satır yapıştırır. Aynı türde aynı rakam iki kez durmaz. Üye kart basarken yalnızca seçtiği türün listesini görür ve bir satır seçmeden kart oluşmaz. Gelişigüzel numara sorgulama yoktur. Harcama provası yalnızca o kart türünün işletme listesinden yazılır.
 
 ## Kartlar hakkında
 

@@ -46,7 +46,9 @@ export function CardSecrets({
 }) {
   const [open, setOpen] = useState(true);
   const [copied, setCopied] = useState("");
-  const due = formatDay(plusDaysIso(card.createdAt, 30));
+  const dueIso = card.feeDueAt || plusDaysIso(card.createdAt, 30);
+  const due = formatDay(dueIso);
+  const late = Boolean(card.feeDueAt && Date.parse(card.feeDueAt) <= Date.now());
   const pan = formatPan(card.pan);
   const expiry = prettyExpiry(card.expiry);
   const line = address.trim();
@@ -85,7 +87,9 @@ export function CardSecrets({
           <div>
             <p className="text-xs font-bold tracking-[0.16em] text-white/45">SONRAKİ KART ÖDEMESİ</p>
             <p className="mt-1 font-display text-xl font-bold">{open ? due : "•• ••• ••••"}</p>
-            <p className="mt-1 text-xs text-white/45">Sonraki kart ödemesinin tarihi.</p>
+            <p className="mt-1 text-xs text-white/45">
+              {late ? "Bu ödeme bakiyeden düşmedi. Kart açık kaldı." : "Sonraki kart ödemesinin tarihi. Her 30 günde kart bedeli düşer."}
+            </p>
           </div>
           {open && <CopyButton copied={copied === "odeme"} onCopy={() => copy("odeme", due)} />}
         </div>

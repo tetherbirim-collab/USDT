@@ -3,7 +3,10 @@
  * Heleket invoice endpoint for the static site.
  * The browser asks for an invoice. Heleket posts status changes here.
  * The payment key stays in heleket.config.php and never goes to the browser.
+ * A paid webhook credits the shared ledger once.
  */
+
+require_once __DIR__ . "/clay-ledger.php";
 
 function heleket_config(): array
 {
@@ -260,7 +263,8 @@ function heleket_webhook(): void
         return;
     }
     $status = (string) ($decoded["status"] ?? $decoded["payment_status"] ?? "");
-    heleket_store(function (&$data) use ($orderId, $decoded, $status) {
+    $paidRow = null;
+    heleket_store(function (&$data) use ($orderId, $decoded, $status, &$paidRow) {
         $current = $data[$orderId] ?? [
             "order_id" => $orderId,
             "user_id" => (string) ($decoded["additional_data"] ?? ""),
@@ -276,8 +280,17 @@ function heleket_webhook(): void
             $current["uuid"] = (string) $decoded["uuid"];
         }
         $data[$orderId] = $current;
+        $paidRow = $current;
         return true;
     });
+    if (heleket_paid($status) && is_array($paidRow)) {
+        $cents = (int) round((float) ($paidRow["amount"] ?? "0") * 100);
+        $credited = clay_credit_heleket((string) ($paidRow["user_id"] ?? ""), $orderId, $cents);
+        if ($credited === "e-defter") {
+            heleket_json(500, ["error" => "defter"]);
+            return;
+        }
+    }
     heleket_json(200, ["ok" => true]);
 }
 

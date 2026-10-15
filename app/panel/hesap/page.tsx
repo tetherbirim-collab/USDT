@@ -58,7 +58,9 @@ export default function AccountPage() {
       <form action={planAction} className="glass grid max-w-xl gap-3 rounded-[28px] p-5">
         <p className="font-semibold">Plan</p>
         <p className="text-sm text-white/60">
-          Açık kart adedi planın kart hakkını aşamaz. Bronze 2, Silver 8, Gold 25. Her kart ayrıca 300₺.
+          Açık kart adedi planın kart hakkını aşamaz. Bronze 2, Silver 8, Gold 25. Her kart ayrıca 300₺. Plan
+          değişince seçilen planın ücreti bakiyeden düşer. Aynı planı yeniden kaydetmek ücret almaz. Yeni hesap
+          açmak plan ücreti kesmez.
         </p>
         {(Object.keys(PLANS) as PlanId[]).map((id) => (
           <label key={id} className={`plan-card plan-${PLANS[id].metal} !p-3`}>

@@ -59,13 +59,9 @@ export default function TopupPage() {
       try {
         const payment = await readHeleketPayment(orderId, userId);
         if (payment.status === "paid" || payment.status === "paid_over") {
-          const code = creditHeleketPayment({ userId, orderId, cents: payment.cents });
-          if (code === "ok") {
+          const code = await creditHeleketPayment({ userId, orderId, cents: payment.cents });
+          if (code === "ok" || code === "var") {
             window.location.assign("/panel/yukle/?bildirim=yuklendi");
-            return;
-          }
-          if (code === "var") {
-            setWaitText("");
             return;
           }
           setError(code === "tavan" ? explain("e-tavan") : explain("e-yok"));

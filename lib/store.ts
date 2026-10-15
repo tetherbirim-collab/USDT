@@ -1,7 +1,7 @@
 import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, TEST_BIN, USD_RATE_AS_OF, USD_SELL_RATE, WELCOME_BONUS_KURUS, WELCOME_USD_MINOR, defaultSettings, usdMinorToKurus } from "./catalog";
 import { formatRate, formatTL, formatUsd, holderLine } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
-import type { BinRow, Card, CardTypeId, DB, Order, Tx, User } from "./types";
+import type { BinRow, Card, CardTypeId, DB, Order, PublicUser, Tx, User } from "./types";
 
 const LEDGER_KEY = "clay-ledger-v1";
 
@@ -28,7 +28,20 @@ export function pushNotice(
 
 let cache: DB | null = null;
 let booted = false;
+let remoteMode = false;
+let remoteMe: PublicUser | null = null;
+let bootPromise: Promise<void> | null = null;
 const listeners = new Set<() => void>();
+
+const CARD_FEE_STEP_MS = 30 * 86_400_000;
+
+export function remoteSession(): { mode: boolean; me: PublicUser | null } {
+  return { mode: remoteMode, me: remoteMe };
+}
+
+export function usingRemoteLedger(): boolean {
+  return remoteMode;
+}
 
 function emit() {
   listeners.forEach((listener) => listener());
@@ -48,15 +61,81 @@ export function readSettings() {
 }
 
 export function bootLedger() {
-  if (booted) return;
-  booted = true;
-  read();
-  emit();
+  if (booted || bootPromise) return;
+  bootPromise = (async () => {
+    const remote = await probeRemote();
+    if (!remote) read();
+    booted = true;
+    emit();
+  })();
 }
 
 export function touchLedger() {
   if (!cache) return;
+  if (remoteMode) {
+    void remoteCall("state", {});
+    return;
+  }
   normalize(cache);
+}
+
+async function probeRemote(): Promise<boolean> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 4000);
+  try {
+    const response = await fetch("/api/ledger.php", {
+      method: "POST",
+      credentials: "same-origin",
+      signal: ctrl.signal,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Clay": "1",
+      },
+      body: JSON.stringify({ action: "state" }),
+    });
+    const text = await response.text();
+    const trimmed = text.trim();
+    if (!trimmed.startsWith("{")) return false;
+    const data = JSON.parse(trimmed) as { mode?: string; me?: PublicUser | null; db?: DB };
+    if (data.mode !== "php" || !data.db?.settings || !Array.isArray(data.db.bins)) return false;
+    cache = data.db;
+    remoteMode = true;
+    remoteMe = data.me ?? null;
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function remoteCall(
+  action: string,
+  fields: Record<string, string>,
+): Promise<{ code: string; id?: string } | null> {
+  if (!remoteMode) return null;
+  try {
+    const response = await fetch("/api/ledger.php", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Clay": "1",
+      },
+      body: JSON.stringify({ action, ...fields }),
+    });
+    const text = await response.text();
+    const data = JSON.parse(text) as { mode?: string; code?: string; me?: PublicUser | null; db?: DB; id?: string };
+    if (data.mode !== "php" || !data.db?.settings) return { code: "e-defter" };
+    cache = data.db;
+    remoteMe = data.me ?? null;
+    if (booted) emit();
+    return { code: String(data.code ?? ""), id: data.id };
+  } catch {
+    return { code: "e-defter" };
+  }
 }
 
 function tx(partial: Omit<Tx, "note"> & { note?: string }): Tx {
@@ -443,6 +522,74 @@ function usernameFromLegacy(user: LegacyUser): string {
   return local.slice(0, 24) || "uye";
 }
 
+function sweepCardFees(db: DB): boolean {
+  const now = Date.now();
+  const fee = db.settings.issueFeeKurus;
+  let dirty = false;
+  for (const card of db.cards) {
+    if (card.status === "kapali") continue;
+    const start = Date.parse(card.createdAt);
+    if (!Number.isFinite(start)) continue;
+    const user = db.users.find((item) => item.id === card.userId);
+    if (!user) continue;
+    let due = start + CARD_FEE_STEP_MS;
+    let guard = 0;
+    while (due <= now && guard < 36) {
+      guard += 1;
+      const ref = `kart-odeme:${card.id}:${due}`;
+      if (db.transactions.some((entry) => entry.ref === ref)) {
+        due += CARD_FEE_STEP_MS;
+        continue;
+      }
+      if (fee <= 0) {
+        due += CARD_FEE_STEP_MS;
+        continue;
+      }
+      if (user.balance < fee) {
+        const noticeRef = `kart-odeme-yok:${card.id}:${due}`;
+        if (!db.notices.some((note) => note.ref === noticeRef)) {
+          pushNotice(db, {
+            userId: user.id,
+            title: "Kart ödemesi bekliyor",
+            body: `${card.label} kartının ${formatTL(fee)} ödemesi için bakiye yetmedi. Kart açık kaldı.`,
+            ref: noticeRef,
+          });
+          dirty = true;
+        }
+        break;
+      }
+      user.balance -= fee;
+      db.transactions.push({
+        id: `tx_${rid()}`,
+        userId: user.id,
+        cardId: card.id,
+        kind: "duzeltme",
+        title: `Kart ödemesi · ${card.label}`,
+        note: "30 günlük kart bedeli.",
+        amount: -fee,
+        usdMinor: null,
+        status: "tamamlandi",
+        createdAt: new Date().toISOString(),
+        ref,
+      });
+      pushNotice(db, {
+        userId: user.id,
+        title: "Kart ödemesi düştü",
+        body: `${card.label} için ${formatTL(fee)} kart bedeli bakiyeden düştü. Kalan bakiye ${formatTL(user.balance)}.`,
+        ref: `note:${ref}`,
+      });
+      dirty = true;
+      due += CARD_FEE_STEP_MS;
+    }
+    const iso = new Date(due).toISOString();
+    if (card.feeDueAt !== iso) {
+      card.feeDueAt = iso;
+      dirty = true;
+    }
+  }
+  return dirty;
+}
+
 function normalize(db: DB): DB {
   let dirty = false;
   const rows = db.users as LegacyUser[];
@@ -657,6 +804,7 @@ function normalize(db: DB): DB {
     db.orders = ordersFromCards(db);
     dirty = true;
   }
+  if (sweepCardFees(db)) dirty = true;
   if (dirty) {
     assertDb(db);
     write(db);
@@ -682,7 +830,7 @@ function assertDb(db: DB) {
 
 function write(db: DB) {
   cache = structuredClone(db);
-  if (typeof window !== "undefined") localStorage.setItem(LEDGER_KEY, JSON.stringify(cache));
+  if (!remoteMode && typeof window !== "undefined") localStorage.setItem(LEDGER_KEY, JSON.stringify(cache));
   if (booted) emit();
 }
 
@@ -703,7 +851,17 @@ function read(): DB {
   return normalize(parsed ?? createSeed());
 }
 
-export function creditHeleketPayment(input: { userId: string; orderId: string; cents: number }): "ok" | "var" | "tavan" | "yok" | "tutar" {
+export async function creditHeleketPayment(input: {
+  userId: string;
+  orderId: string;
+  cents: number;
+}): Promise<"ok" | "var" | "tavan" | "yok" | "tutar"> {
+  if (remoteMode) {
+    const hit = await remoteCall("heleket", { orderId: input.orderId });
+    const code = hit?.code ?? "yok";
+    if (code === "ok" || code === "var" || code === "tavan" || code === "yok" || code === "tutar") return code;
+    return "yok";
+  }
   if (!/^clay-[a-f0-9]{16}$/.test(input.orderId)) return "tutar";
   if (input.cents < MIN_USD_MINOR || input.cents > MAX_USD_MINOR) return "tutar";
   const credit = usdMinorToKurus(input.cents);
@@ -738,6 +896,7 @@ export function creditHeleketPayment(input: { userId: string; orderId: string; c
 }
 
 export function mutate<T>(fn: (db: DB) => T): T {
+  if (remoteMode) throw new Error("uzak defter");
   const db = read();
   const result = fn(db);
   assertDb(db);
@@ -920,4 +1079,8 @@ export function issueCard(
     createdAt: now,
   });
   return card;
+}
+
+export function ledgerSeed(): DB {
+  return createSeed();
 }

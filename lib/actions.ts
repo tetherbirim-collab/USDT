@@ -22,7 +22,7 @@ import {
   usdMinorToKurus,
 } from "./catalog";
 import { formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
-import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, pushNotice, readSettings } from "./store";
+import { createUser, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, pushNotice, readSettings, remoteCall, usingRemoteLedger } from "./store";
 import type { DB, User, Card } from "./types";
 
 export type FormState = { error: string };
@@ -54,9 +54,25 @@ async function actor() {
   return user;
 }
 
+function pack(formData: FormData, names: string[]) {
+  const fields: Record<string, string> = {};
+  for (const name of names) fields[name] = String(formData.get(name) ?? "");
+  return fields;
+}
+
 export async function loginAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const username = parseUsername(String(formData.get("kullanici") || ""));
   const password = String(formData.get("parola") || "");
+  const remote = await remoteCall("login", { kullanici: String(formData.get("kullanici") || ""), parola: password });
+  if (remote) {
+    if (remote.code === "ok") {
+      const me = getCurrentUser();
+      if (me) setSession(me.id);
+      return go(deskPath(me?.role ?? "uye"));
+    }
+    if (remote.code === "e-askida") return { error: "Bu hesap askıya alındı. Giriş kapalı." };
+    return { error: "Kullanıcı adı veya parola hatalı." };
+  }
   const user = username ? findUserByUsername(username) : undefined;
   if (!user || user.password !== password) {
     return { error: "Kullanıcı adı veya parola hatalı." };
@@ -71,6 +87,17 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
 export async function registerAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const username = parseUsername(String(formData.get("kullanici") || ""));
   const password = String(formData.get("parola") || "");
+  const remote = await remoteCall("register", { kullanici: String(formData.get("kullanici") || ""), parola: password });
+  if (remote) {
+    if (remote.code === "ok") {
+      const me = getCurrentUser();
+      if (me) setSession(me.id);
+      return go("/panel?bildirim=hosgeldin");
+    }
+    if (remote.code === "e-kullanici") return { error: "Kullanıcı adı 2–24 karakter olmalı; yalnızca harf, rakam ve alt çizgi." };
+    if (remote.code === "e-parola") return { error: "Parola 6–72 karakter olmalı." };
+    return { error: "Bu kullanıcı adı zaten var." };
+  }
   if (!username) return { error: "Kullanıcı adı 2–24 karakter olmalı; yalnızca harf, rakam ve alt çizgi." };
   if (password.length < 6 || password.length > 72) return { error: "Parola 6–72 karakter olmalı." };
   if (findUserByUsername(username)) return { error: "Bu kullanıcı adı zaten var." };
@@ -81,6 +108,7 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
 }
 
 export async function logoutAction() {
+  if (usingRemoteLedger()) await remoteCall("logout", {});
   await clearSession();
   return go("/");
 }
@@ -128,6 +156,11 @@ export async function issueAction(formData: FormData) {
   const hesap = String(formData.get("hesap") || "");
   if (hesap !== user.id) return bounce("/panel/kartlar/yeni", "e-hesap");
   if (net < 1 || net > MAX_LIMIT_KURUS) return bounce("/panel/kartlar/yeni", "e-limit");
+  const remote = await remoteCall("issue", pack(formData, ["tur", "etiket", "limit", "bin", "hesap"]));
+  if (remote) {
+    if (remote.code !== "basildi" || !remote.id) return bounce("/panel/kartlar/yeni", remote.code);
+    return bounce(`/panel/kartlar?vurgu=${remote.id}`, "siparis");
+  }
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     if (!row) return { code: "e-yok" as const };
@@ -182,6 +215,8 @@ export async function fundCardAction(formData: FormData) {
   const commission = loadFeeAt(tuned.loadFeePercent, gross);
   const net = gross - commission;
   if (net < 1) return bounce("/panel/kartlar", "e-tutar");
+  const remote = await remoteCall("fund", pack(formData, ["id", "tutar"]));
+  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
@@ -218,6 +253,8 @@ export async function freezeAction(formData: FormData) {
   const user = await actor();
   const id = String(formData.get("id") || "");
   const mode = String(formData.get("mod") || "");
+  const remote = await remoteCall("freeze", pack(formData, ["id", "mod"]));
+  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
   const result = mutate((db) => {
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
     if (!card) return "e-yok" as const;
@@ -250,6 +287,8 @@ export async function freezeAction(formData: FormData) {
 export async function activateCardAction(formData: FormData) {
   const user = await actor();
   const id = String(formData.get("id") || "");
+  const remote = await remoteCall("activate", pack(formData, ["id"]));
+  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
@@ -290,6 +329,8 @@ export async function closeAction(formData: FormData) {
   const user = await actor();
   const id = String(formData.get("id") || "");
   if (String(formData.get("onay") || "") !== "on") return bounce("/panel/kartlar", "e-onay");
+  const remote = await remoteCall("close", pack(formData, ["id", "onay"]));
+  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
@@ -311,6 +352,8 @@ export async function closeAction(formData: FormData) {
 export async function cancelOrderAction(formData: FormData) {
   const user = await actor();
   const id = String(formData.get("id") || "");
+  const remote = await remoteCall("cancel", pack(formData, ["id"]));
+  if (remote) return bounce("/panel/siparisler", remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
@@ -340,15 +383,36 @@ export async function planAction(formData: FormData) {
   if (user.role !== "uye") return go("/bunugizliyapki");
   const plan = String(formData.get("plan") || "");
   if (!isPlan(plan)) return bounce("/panel/hesap", "e-plan");
+  const remote = await remoteCall("plan", { plan });
+  if (remote) return bounce("/panel/hesap", remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id && item.role === "uye");
     if (!row) return "e-yok" as const;
-    if (openCardCount(db, row.id) > db.settings.plans[plan].cardLimit) return "e-plan-dolu" as const;
+    if (row.plan === plan) return "plan-ayni" as const;
+    const priced = db.settings.plans[plan];
+    if (openCardCount(db, row.id) > priced.cardLimit) return "e-plan-dolu" as const;
+    const price = usdMinorToKurus(priced.priceUsdMinor);
+    if (price > row.balance) return "e-bakiye" as const;
+    if (price > 0) {
+      row.balance -= price;
+      db.transactions.push({
+        id: `tx_${rid()}`,
+        userId: row.id,
+        cardId: null,
+        kind: "duzeltme",
+        title: `Plan · ${priced.name}`,
+        note: "Plan ücreti bakiyeden düştü.",
+        amount: -price,
+        usdMinor: -priced.priceUsdMinor,
+        status: "tamamlandi",
+        createdAt: new Date().toISOString(),
+      });
+    }
     row.plan = plan;
     pushNotice(db, {
       userId: row.id,
       title: "Plan güncellendi",
-      body: `Vitrin planın ${db.settings.plans[plan].name} oldu.`,
+      body: `Vitrin planın ${priced.name} oldu. Plan ücreti ${formatTL(price)} bakiyeden düştü. Kalan bakiye ${formatTL(row.balance)}.`,
     });
     return "plan" as const;
   });
@@ -364,6 +428,11 @@ export async function spendAction(formData: FormData) {
     return bounce("/panel/kartlar", "e-tutar");
   }
   const amount = usdMinorToKurus(cents);
+  const remote = await remoteCall("spend", pack(formData, ["id", "isletme", "tutar"]));
+  if (remote) {
+    const target = remote.code === "reddedildi" ? "/panel/islemler" : "/panel/kartlar";
+    return bounce(`${target}?vurgu=${encodeURIComponent(id)}`, remote.code);
+  }
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
@@ -460,6 +529,8 @@ export async function adminBalanceAction(formData: FormData) {
   if (cents === null || cents < MIN_USD_MINOR || cents > MAX_USD_MINOR) return bounce("/bunugizliyapki/uyeler", "e-tutar");
   const signed = usdMinorToKurus(yon === "artir" ? cents : -cents);
   const signedCents = yon === "artir" ? cents : -cents;
+  const remote = await remoteCall("admin-balance", pack(formData, ["uye", "yon", "tutar"]));
+  if (remote) return bounce(`/bunugizliyapki/uyeler?vurgu=${encodeURIComponent(userId)}`, remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === userId);
     if (!row) return "e-yok" as const;
@@ -493,6 +564,8 @@ export async function adminCardAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") || "");
   const mode = String(formData.get("mod") || "");
+  const remote = await remoteCall("admin-card", pack(formData, ["id", "mod"]));
+  if (remote) return bounce(`/bunugizliyapki/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
   const result = mutate((db) => {
     const card = db.cards.find((item) => item.id === id);
     if (!card) return { code: "e-yok" as const, userId: "" };
@@ -528,6 +601,11 @@ export async function adminAccountAction(formData: FormData) {
   const mode = String(formData.get("mod") || "");
   const back = safeAdminReturn(formData, userId);
   if (userId === admin.id) return bounce(back, "e-kendin");
+  const remote = await remoteCall("admin-account", pack(formData, ["uye", "mod", "donus"]));
+  if (remote) {
+    const join = back.includes("?") ? "&" : "?";
+    return bounce(`${back}${join}vurgu=${encodeURIComponent(userId)}`, remote.code);
+  }
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === userId);
     if (!row) return "e-yok" as const;
@@ -570,6 +648,8 @@ export async function adminNoticeAction(formData: FormData) {
   if (title.length < 2 || title.length > 80 || body.length < 2 || body.length > 400) {
     return bounce("/bunugizliyapki/bildirimler", "e-mesaj");
   }
+  const remote = await remoteCall("admin-notice", pack(formData, ["baslik", "mesaj", "hedef"]));
+  if (remote) return bounce("/bunugizliyapki/bildirimler", remote.code);
   const result = mutate((db) => {
     const members = db.users.filter((user) => user.role === "uye");
     const targets = hedef === "tumu" ? members : members.filter((user) => user.id === hedef);
@@ -600,6 +680,8 @@ export async function ticketAction(formData: FormData) {
   if (subject.length < 2 || subject.length > 80 || body.length < 4 || body.length > 800) {
     return bounce("/panel/destek", "e-talep");
   }
+  const remote = await remoteCall("ticket", pack(formData, ["konu", "sikayet"]));
+  if (remote) return bounce("/panel/destek", remote.code || "talep");
   mutate((db) => {
     db.tickets.push({
       id: `tkt_${rid()}`,
@@ -625,6 +707,8 @@ export async function adminTicketReplyAction(formData: FormData) {
   const id = String(formData.get("id") || "");
   const reply = String(formData.get("yanit") || "").replace(/\s+/g, " ").trim();
   if (reply.length < 2 || reply.length > 400) return bounce("/bunugizliyapki/destek", "e-yanit");
+  const remote = await remoteCall("admin-ticket", pack(formData, ["id", "yanit"]));
+  if (remote) return bounce("/bunugizliyapki/destek", remote.code);
   const result = mutate((db) => {
     const ticket = db.tickets.find((item) => item.id === id);
     if (!ticket) return "e-yok" as const;
@@ -648,6 +732,8 @@ export async function adminSetBalanceAction(formData: FormData) {
   const back = safeAdminReturn(formData, userId);
   if (cents === null || cents > MAX_BALANCE_USD_MINOR) return bounce(back, "e-tutar");
   const next = usdMinorToKurus(cents);
+  const remote = await remoteCall("admin-set-balance", pack(formData, ["uye", "bakiye", "donus"]));
+  if (remote) return bounce(back, remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === userId);
     if (!row || row.role !== "uye") return "e-yonetici" as const;
@@ -693,6 +779,8 @@ export async function adminEditCardAction(formData: FormData) {
     return bounce(back, "e-durum");
   }
   const limit = usdMinorToKurus(limitCents);
+  const remote = await remoteCall("admin-edit-card", pack(formData, ["id", "etiket", "limit", "durum", "uye", "donus"]));
+  if (remote) return bounce(back, remote.code);
   const result = mutate((db) => {
     const card = db.cards.find((item) => item.id === id && item.userId === userId);
     if (!card) return "e-yok" as const;
@@ -735,6 +823,8 @@ export async function adminEditTxAction(formData: FormData) {
   const back = safeAdminReturn(formData, userId);
   if (cents === null || Math.abs(cents) > MAX_BALANCE_USD_MINOR) return bounce(back, "e-tutar");
   const amount = cents < 0 ? -usdMinorToKurus(-cents) : usdMinorToKurus(cents);
+  const remote = await remoteCall("admin-edit-tx", pack(formData, ["islem", "uye", "tutar", "donus"]));
+  if (remote) return bounce(back, remote.code);
   const result = mutate((db) => {
     const tx = db.transactions.find((item) => item.id === txId && item.userId === userId);
     const row = db.users.find((item) => item.id === userId);
@@ -774,6 +864,8 @@ export async function adminBinAddAction(formData: FormData) {
   const type = String(formData.get("tur") || "");
   const draft = parseBinDraft(formData);
   if (!isCardType(type) || !draft) return bounce("/bunugizliyapki/bin", "e-bin-kayit");
+  const remote = await remoteCall("admin-bin-add", pack(formData, ["tur", "etiket", "rakam"]));
+  if (remote) return bounce("/bunugizliyapki/bin", remote.code);
   const result = mutate((db) => {
     if (db.bins.some((item) => item.type === type && item.digits === draft.digits)) return "e-bin-kayit" as const;
     db.bins.push({
@@ -792,6 +884,8 @@ export async function adminBinSaveAction(formData: FormData) {
   const id = String(formData.get("id") || "");
   const draft = parseBinDraft(formData);
   if (!draft) return bounce("/bunugizliyapki/bin", "e-bin-kayit");
+  const remote = await remoteCall("admin-bin-save", pack(formData, ["id", "etiket", "rakam"]));
+  if (remote) return bounce("/bunugizliyapki/bin", remote.code);
   const result = mutate((db) => {
     const row = db.bins.find((item) => item.id === id);
     if (!row) return "e-yok" as const;
@@ -808,6 +902,8 @@ export async function adminBinSaveAction(formData: FormData) {
 export async function adminBinRemoveAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") || "");
+  const remote = await remoteCall("admin-bin-remove", pack(formData, ["id"]));
+  if (remote) return bounce("/bunugizliyapki/bin", remote.code);
   const result = mutate((db) => {
     const before = db.bins.length;
     db.bins = db.bins.filter((item) => item.id !== id);
@@ -834,6 +930,8 @@ export async function adminBinPasteAction(formData: FormData) {
   const lines = String(formData.get("yigin") || "").split(/\r?\n/);
   if (!isCardType(type)) return bounce("/bunugizliyapki/bin", "e-bin-kayit");
   const drafts = lines.map(parsePasteLine).filter((row): row is { label: string; digits: string } => row !== null);
+  const remote = await remoteCall("admin-bin-paste", pack(formData, ["tur", "yigin"]));
+  if (remote) return bounce("/bunugizliyapki/bin", remote.code);
   const result = mutate((db) => {
     const seen = new Set(db.bins.filter((row) => row.type === type).map((row) => row.digits));
     let added = 0;
@@ -859,6 +957,8 @@ export async function refundAction(formData: FormData) {
   const cents = parseTryToKurus(String(formData.get("tutar") || ""));
   if (cents === null || cents < 1 || cents > MAX_SPEND_USD_MINOR) return bounce("/panel/kartlar", "e-tutar");
   const amount = usdMinorToKurus(cents);
+  const remote = await remoteCall("refund", pack(formData, ["id", "tutar"]));
+  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
@@ -893,6 +993,8 @@ export async function refundAction(formData: FormData) {
 export async function renewAction(formData: FormData) {
   const user = await actor();
   const id = String(formData.get("id") || "");
+  const remote = await remoteCall("renew", pack(formData, ["id"]));
+  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
@@ -937,6 +1039,8 @@ export async function transferAction(formData: FormData) {
   const fee = transferFeeAt(readSettings().transferFeePercent, amount);
   const credit = amount - fee;
   if (fee < 1 || credit < 1) return bounce("/panel/kartlar", "e-transfer");
+  const remote = await remoteCall("transfer", pack(formData, ["id", "hedef", "tutar"]));
+  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}&karsi=${encodeURIComponent(hedef)}`, remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     const source = db.cards.find((item) => item.id === id && item.userId === user.id);
@@ -998,6 +1102,8 @@ export async function addressAction(formData: FormData) {
   if (user.role !== "uye") return go("/bunugizliyapki");
   const address = parseAddress(String(formData.get("adres") || ""));
   if (address === null) return bounce("/panel/hesap", "e-adres");
+  const remote = await remoteCall("address", pack(formData, ["adres"]));
+  if (remote) return bounce("/panel/hesap", remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id && item.role === "uye");
     if (!row) return "e-yok" as const;
@@ -1017,6 +1123,8 @@ export async function displayNameAction(formData: FormData) {
   if (user.role !== "uye") return go("/bunugizliyapki");
   const name = parseDisplayName(String(formData.get("ad") || ""));
   if (!name) return bounce("/panel/hesap", "e-ad");
+  const remote = await remoteCall("name", pack(formData, ["ad"]));
+  if (remote) return bounce("/panel/hesap", remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id && item.role === "uye");
     if (!row) return "e-yok" as const;
@@ -1037,6 +1145,8 @@ export async function adminPasswordAction(formData: FormData) {
   const next = String(formData.get("yeni") || "");
   const again = String(formData.get("yeni2") || "");
   if (next.length < 6 || next.length > 72 || next !== again) return bounce("/bunugizliyapki/hesap", "e-parola");
+  const remote = await remoteCall("admin-password", pack(formData, ["eski", "yeni", "yeni2"]));
+  if (remote) return bounce("/bunugizliyapki/hesap", remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id && item.role === "yonetici");
     if (!row) return "e-yok" as const;
@@ -1064,6 +1174,8 @@ export async function adminTelegramAction(formData: FormData) {
   const raw = String(formData.get("telegram") || "");
   const back = "/bunugizliyapki/telegram";
   if (wipe || raw.trim() === "") {
+    const remote = await remoteCall("admin-telegram", pack(formData, ["sil", "telegram"]));
+    if (remote) return bounce(back, remote.code || "telegram");
     mutate((db) => {
       db.settings.telegram = "";
     });
@@ -1071,6 +1183,8 @@ export async function adminTelegramAction(formData: FormData) {
   }
   const name = telegramName(raw);
   if (!name) return bounce(back, "e-telegram");
+  const remote = await remoteCall("admin-telegram", pack(formData, ["sil", "telegram"]));
+  if (remote) return bounce(back, remote.code || "telegram");
   mutate((db) => {
     db.settings.telegram = name;
   });
@@ -1086,6 +1200,8 @@ export async function adminFeesAction(formData: FormData) {
   if (!Number.isFinite(issue) || issue < 0 || issue > 100_000) return bounce(back, "e-ayar");
   if (!Number.isFinite(load) || load < 0 || load > 40) return bounce(back, "e-ayar");
   if (!Number.isFinite(transfer) || transfer < 0 || transfer > 40) return bounce(back, "e-ayar");
+  const remote = await remoteCall("admin-fees", pack(formData, ["bedel", "yukleme", "aktarim"]));
+  if (remote) return bounce(back, remote.code || "ucret");
   mutate((db) => {
     db.settings.issueFeeKurus = Math.round(issue * 100);
     db.settings.loadFeePercent = Math.round(load * 10) / 10;
@@ -1107,6 +1223,8 @@ export async function adminPlanSaveAction(formData: FormData) {
   if (!Number.isFinite(price) || price < 0 || price > 100_000) return bounce(back, "e-ayar");
   if (!Number.isInteger(limit) || limit < 1 || limit > 100) return bounce(back, "e-ayar");
   if (blurb.length < 2 || blurb.length > 180) return bounce(back, "e-ayar");
+  const remote = await remoteCall("admin-plan", pack(formData, ["plan", "ad", "fiyat", "adet", "yazi"]));
+  if (remote) return bounce(back, remote.code || "planlar");
   mutate((db) => {
     db.settings.plans[id] = {
       name,
@@ -1125,6 +1243,8 @@ export async function passwordChangeAction(formData: FormData) {
   const next = String(formData.get("yeni") || "");
   const again = String(formData.get("yeni2") || "");
   if (next.length < 6 || next.length > 72 || next !== again) return bounce("/panel/hesap", "e-parola");
+  const remote = await remoteCall("password", pack(formData, ["eski", "yeni", "yeni2"]));
+  if (remote) return bounce("/panel/hesap", remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id && item.role === "uye");
     if (!row) return "e-yok" as const;
@@ -1143,6 +1263,8 @@ export async function passwordChangeAction(formData: FormData) {
 export async function markNoticeReadAction(formData: FormData) {
   const user = await actor();
   const id = String(formData.get("id") || "");
+  const remote = await remoteCall("notice-read", pack(formData, ["id"]));
+  if (remote) return bounce("/panel/bildirimler", remote.code || "okundu");
   mutate((db) => {
     const note = db.notices.find((item) => item.id === id && item.userId === user.id);
     if (note && !note.readAt) note.readAt = new Date().toISOString();
@@ -1152,6 +1274,8 @@ export async function markNoticeReadAction(formData: FormData) {
 
 export async function markAllNoticesReadAction() {
   const user = await actor();
+  const remote = await remoteCall("notice-read-all", {});
+  if (remote) return bounce("/panel/bildirimler", remote.code || "okundu");
   const now = new Date().toISOString();
   mutate((db) => {
     for (const note of db.notices) {
@@ -1167,6 +1291,8 @@ export async function adminEditTopupAction(formData: FormData) {
   const iso = istanbulInputToIso(String(formData.get("zaman") || ""));
   const back = safeAdminReturn(formData, userId);
   if (!iso) return bounce(back, "e-zaman");
+  const remote = await remoteCall("admin-topup", pack(formData, ["uye", "zaman", "donus"]));
+  if (remote) return bounce(back, remote.code);
   const result = mutate((db) => {
     const loads = db.transactions
       .filter((item) => item.userId === userId && item.kind === "yukleme" && item.status === "tamamlandi")

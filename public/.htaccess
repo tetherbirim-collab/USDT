@@ -8,6 +8,14 @@ DirectoryIndex index.php index.html
   Require all denied
 </Files>
 
+<Files "clay-ledger.json">
+  Require all denied
+</Files>
+
+<Files "clay-seed.json">
+  Require all denied
+</Files>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteRule ^index\.php$ - [L]

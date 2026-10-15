@@ -61,6 +61,8 @@ export type Card = {
   /** Ceiling period. A halfway warning is sent once per period. */
   period: number;
   createdAt: string;
+  /** Next card-fee slot, or the unpaid one when the wallet was short. */
+  feeDueAt?: string | null;
 };
 
 export type BinRow = {

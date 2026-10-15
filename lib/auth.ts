@@ -1,4 +1,4 @@
-import { findUserById } from "./store";
+import { findUserById, remoteSession } from "./store";
 import type { PublicUser } from "./types";
 
 const SESSION = "clay-session";
@@ -47,6 +47,11 @@ export function deskPath(role: PublicUser["role"]): string {
 }
 
 export function getCurrentUser(): PublicUser | null {
+  const remote = remoteSession();
+  if (remote.mode) {
+    if (!remote.me || remote.me.status === "askida") return null;
+    return remote.me;
+  }
   const id = readSessionUserId();
   if (!id) return null;
   const user = findUserById(id);

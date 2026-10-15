@@ -1,13 +1,45 @@
 import Link from "next/link";
-import { CARD_TYPE_ORDER, CARD_TYPES, PLANS } from "@/lib/catalog";
+import { CARD_TYPES, CARD_TYPE_ORDER, PLANS } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
 import { makeCvv, makePan } from "@/lib/pan";
+import type { CardTypeId } from "@/lib/types";
 import { Mark, Wordmark } from "./mark";
 import { TiltCard } from "./tilt-card";
 import { VirtualCard } from "./virtual-card";
 
-const TICKER =
-  "SİMÜLASYON  ·  GERÇEK TAHSİLAT YOK  ·  TEST ÖNEKİ 400000  ·  ÜYE İŞYERİNDE GEÇMEZ  ·  KİMLİK BELGESİ YOK  ·  ";
+const LAUNCH: { type: CardTypeId; phrase: string }[] = [
+  { type: "facebook_ads", phrase: "KYC GEREKMEZ" },
+  { type: "tiktok", phrase: "ANONİM SANAL KART" },
+  { type: "google_ads", phrase: "OLUŞTUR VE HEMEN HARCA" },
+  { type: "ultima", phrase: "CLAY SANAL KART" },
+];
+
+function LaunchUnit() {
+  return (
+    <div className="launch-unit">
+      {LAUNCH.map((beat) => (
+        <span key={beat.type} className="launch-beat">
+          <span className={`launch-card launch-card-${beat.type}`} aria-hidden>
+            <span className="launch-chip" />
+            <span className="launch-brand">{CARD_TYPES[beat.type].name}</span>
+          </span>
+          <span className="launch-phrase">{beat.phrase}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function LaunchRail() {
+  return (
+    <div className="launchpad" aria-label="KYC gerekmez. Anonim sanal kart oluştur ve hemen harca.">
+      <div className="launch-track">
+        <LaunchUnit />
+        <LaunchUnit />
+      </div>
+    </div>
+  );
+}
 
 const STEPS = [
   {
@@ -35,7 +67,7 @@ const STEPS = [
 const FAQ = [
   {
     q: "Bu gerçek bir kart mı?",
-    a: "Hayır. CLAY kart basmaz, banka değildir ve bir ödeme kuruluşu değildir. Gördüğün numaralar ayrılmış test öneki ile üretilmiş sahte demo verisidir.",
+    a: "Hayır. CLAY kart basmaz, banka değildir ve bir ödeme kuruluşu değildir. Numaralar ayrılmış test öneki ile üretilir.",
   },
   {
     q: "Param çekilir mi?",
@@ -43,7 +75,7 @@ const FAQ = [
   },
   {
     q: "Numarayı bir sitede dener miyim?",
-    a: "Hayır. Numaralar demo verisidir ve gerçek üye işyerinde geçmez. Dışa aktarma veya “çalışan kart” paketi yoktur.",
+    a: "Hayır. Numaralar gerçek üye işyerinde geçmez. Dışa aktarma veya “çalışan kart” paketi yoktur.",
   },
 ];
 
@@ -99,12 +131,7 @@ export function Marketing({
         </div>
       </header>
 
-      <div className="marquee">
-        <div className="marquee-track text-xs tracking-[0.22em] text-gold">
-          <span>{TICKER.repeat(4)}</span>
-          <span>{TICKER.repeat(4)}</span>
-        </div>
-      </div>
+      <LaunchRail />
 
       <main>
         <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 lg:grid-cols-[1.05fr_.95fr] lg:py-24">
@@ -123,7 +150,7 @@ export function Marketing({
                 {loggedIn ? deskLabel : "Ücretsiz prova aç"}
               </Link>
               <Link href="/giris" className="btn btn-ghost">
-                Demo ile bak
+                Giriş yap
               </Link>
             </div>
             <dl className="mt-10 grid grid-cols-3 gap-3 text-sm">
@@ -144,7 +171,7 @@ export function Marketing({
               <VirtualCard card={sample} />
             </TiltCard>
             <p className="mt-4 text-center text-sm text-white/60">
-              Örnek görünüm. Numara demo verisidir ve gerçek üye işyerinde geçmez.
+              Örnek görünüm. Numara gerçek üye işyerinde geçmez.
             </p>
           </div>
         </section>
@@ -211,7 +238,7 @@ export function Marketing({
                   key={id}
                   className={`rounded-[24px] p-5 ${featured ? "bg-gradient-to-b from-[#3a2a14] to-[#14110c] ring-1 ring-gold" : "glass"}`}
                 >
-                  <p className="text-sm text-white/60">{featured ? "Demo hesap bu planda" : "Simülasyon planı"}</p>
+                  <p className="text-sm text-white/60">{featured ? "Öne çıkan plan" : "Vitrin planı"}</p>
                   <h3 className="font-display mt-2 text-2xl font-bold">{plan.name}</h3>
                   <p className="mt-3 font-display text-4xl font-extrabold text-gold">{plan.price}</p>
                   <p className="text-sm text-white/55">{plan.period}</p>
@@ -249,8 +276,8 @@ export function Marketing({
             </span>
           </div>
           <p className="max-w-xl text-sm text-white/55">
-            Banka değil. Kart kuruluşu değil. Simülasyon. Basılan numaralar demo verisidir ve
-            gerçek üye işyerinde kullanılamaz.
+            Banka değil. Kart kuruluşu değil. Basılan numaralar gerçek üye işyerinde
+            kullanılamaz.
           </p>
         </div>
       </footer>

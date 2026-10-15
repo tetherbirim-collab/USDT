@@ -19,14 +19,14 @@ Tarayıcıda [http://localhost:3000](http://localhost:3000) adresini aç.
 
 `clay-sanal-kart.zip` dosyasını cPanel Dosya Yöneticisinde `public_html` içine yükle ve Extract de. Zip’in kökünde `index.php` vardır; site alan adında açılır. `node_modules` kurmak gerekmez.
 
-Defter tarayıcıda durur. İlk açılışta demo hesap hazırdır: `demo` / `demo123`, yönetici `admin` / `admin123`.
+Defter tarayıcıda durur. İlk açılışta hazır hesap vardır: `demo` / `demo123`, yönetici `admin` / `admin123`.
 
-## Demo giriş
+## Hazır giriş
 
 - Kullanıcı adı: `demo`
 - Parola: `demo123`
 
-Demo hesapta bakiye, birkaç kart ve işlem dökümü hazır gelir. Yeni hesaplar görünen ad, kullanıcı adı, parola ve parola tekrar ile açılır. Görünen ad kartın üzerine yazılır; Hesap sayfasından değiştirilebilir. Kıvılcım planında 1.500 ₺ hoş geldin bakiyesi yazılır. Bu tutar da simülasyondur. Demo kullanıcı yönetim masasına giremez.
+Hazır hesapta bakiye, birkaç kart ve işlem dökümü hazır gelir. Yeni hesaplar görünen ad, kullanıcı adı, parola ve parola tekrar ile açılır. Görünen ad kartın üzerine yazılır; Hesap sayfasından değiştirilebilir. Kıvılcım planında 1.500 ₺ hoş geldin bakiyesi yazılır. Bu tutar da simülasyondur. Üye hesabı yönetim masasına giremez.
 
 İki hazır giriş vardır: üye `demo` / `demo123` ve yönetici `admin` / `admin123`.
 
@@ -48,6 +48,6 @@ Her kart türünün listesinde etiket «Test öneki» ve rakam `400000` hazırd�
 
 Türler: Facebook Ads, TikTok, Google Ads ve Ultima. Bunlar senaryo etiketidir; Google, Meta, TikTok veya başka bir kuruluşla iş ortaklığı yoktur. Her türün kendi simülasyon basım ücreti vardır.
 
-Basılan demo numaraları ayrılmış test öneki (`400000`) ile üretilir. Kartın ad yerinde o hesabın adı yazar. Harcama, basım ve yükleme yalnızca işlemi yapan kullanıcının bakiyesinden düşer. Bu numaralar gerçek ödeme aracı değildir; üye işyerinde kullanılamaz. Çalışan kart dışa aktarma yoktur.
+Basılan numaralar ayrılmış test öneki (`400000`) ile üretilir. Kartın ad yerinde o hesabın adı yazar. Harcama, basım ve yükleme yalnızca işlemi yapan kullanıcının bakiyesinden düşer. Bu numaralar gerçek ödeme aracı değildir; üye işyerinde kullanılamaz. Çalışan kart dışa aktarma yoktur.
 
 Vitrindeki fiyatlar örnektir, tahsilat yapılmaz.

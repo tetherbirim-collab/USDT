@@ -47,7 +47,7 @@ export function LoginForm() {
           setPassword("demo123");
         }}
       >
-        Demo bilgilerini doldur
+        Hazır hesabı doldur
       </button>
     </form>
   );

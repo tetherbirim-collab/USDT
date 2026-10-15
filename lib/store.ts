@@ -56,7 +56,7 @@ function createSeed(): DB {
     binLabel: "Test öneki",
     expiry: "08/28",
     cvv: makeCvv(100_000_001),
-    holder: holderLine("Demo Kullanıcı"),
+    holder: holderLine("Clay Üye"),
     status: "aktif",
     readyAt: null,
     period: 1,
@@ -74,7 +74,7 @@ function createSeed(): DB {
     binLabel: "Test öneki",
     expiry: "03/29",
     cvv: makeCvv(100_000_002),
-    holder: holderLine("Demo Kullanıcı"),
+    holder: holderLine("Clay Üye"),
     status: "aktif",
     readyAt: null,
     period: 1,
@@ -92,7 +92,7 @@ function createSeed(): DB {
     binLabel: "Test öneki",
     expiry: "11/27",
     cvv: makeCvv(100_000_003),
-    holder: holderLine("Demo Kullanıcı"),
+    holder: holderLine("Clay Üye"),
     status: "donduruldu",
     readyAt: null,
     period: 1,
@@ -101,7 +101,7 @@ function createSeed(): DB {
 
   const user: User = {
     id: demoId,
-    name: "Demo Kullanıcı",
+    name: "Clay Üye",
     username: "demo",
     password: "demo123",
     balance: 0,
@@ -304,7 +304,7 @@ function createSeed(): DB {
     binLabel: "Test öneki",
     expiry: "01/30",
     cvv: makeCvv(100_000_004),
-    holder: holderLine("Demo Kullanıcı"),
+    holder: holderLine("Clay Üye"),
     status: "aktif",
     readyAt: null,
     period: 1,
@@ -446,6 +446,15 @@ function normalize(db: DB): DB {
     if (user.username === "admin" && user.role !== "yonetici") {
       user.role = "yonetici";
       dirty = true;
+    }
+    if (user.username === "demo" && user.name === "Demo Kullanıcı") {
+      user.name = "Clay Üye";
+      dirty = true;
+      for (const card of db.cards) {
+        if (card.userId === user.id && card.holder === "DEMO KULLANICI") {
+          card.holder = holderLine("Clay Üye");
+        }
+      }
     }
     if (user.status !== "acik" && user.status !== "askida") {
       user.status = "acik";

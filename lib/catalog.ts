@@ -87,7 +87,7 @@ export const PLANS: Record<
     price: "149 ₺",
     period: "ay · tahsil edilmez",
     cardLimit: 8,
-    blurb: "Sekiz açık kart ve daha geniş prova alanı. Demo hesap bu vitrindedir.",
+    blurb: "Sekiz açık kart ve daha geniş prova alanı.",
   },
   galeri: {
     name: "Galeri",

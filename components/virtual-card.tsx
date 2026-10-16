@@ -128,23 +128,24 @@ export function VirtualCard({
   card: CardFace;
   size?: "md" | "sm";
 }) {
-  const tone = TONE[card.type];
+  const tone = TONE[card.type] ?? "dark";
   const light = tone === "light";
   const hide = Boolean(card.masked);
   const pan = card.panLine || (hide ? "•••• •••• •••• ••••" : formatPan(card.pan));
-  const network = networkOf(card.bin || card.panLine || card.pan) ?? NETWORK[card.type];
+  const network = networkOf(card.bin || card.panLine || card.pan) ?? NETWORK[card.type] ?? "visa";
   const ink = light ? "#202124" : "#fff";
   const mute = light ? "rgba(32,33,36,.62)" : "rgba(255,255,255,.72)";
-  const name = CARD_TYPES[card.type].name;
-  const holder = card.holder.trim() || "CLAY";
+  const name = CARD_TYPES[card.type]?.name ?? "Kart";
+  const holder = String(card.holder ?? "").trim() || "CLAY";
+  const seal = SEAL[card.status as keyof typeof SEAL];
 
   return (
     <article
       className={`vcard ${card.type === "ultima" ? "vcard-metal" : ""} ${light ? "vcard-light" : ""}`}
       style={{
-        background: SKINS[card.type],
+        background: SKINS[card.type] ?? SKINS.ultima,
         color: ink,
-        boxShadow: `0 22px 48px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.5), ${GLOW[card.type]}`,
+        boxShadow: `0 22px 48px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.5), ${GLOW[card.type] ?? GLOW.ultima}`,
       }}
       data-size={size}
       aria-label={`${name} kartı, ${holder}.`}
@@ -153,10 +154,10 @@ export function VirtualCard({
       <span className="sheen" />
       {card.status === "donduruldu" && <span className="vcard-veil vcard-veil-frost" />}
       {card.status === "kapali" && <span className="vcard-veil vcard-veil-shut" />}
-      {card.status !== "aktif" && (
+      {card.status !== "aktif" && seal && (
         <div className={`vcard-seal vcard-seal-${card.status}`}>
-          <span className="vcard-seal-kicker">{SEAL[card.status].kicker}</span>
-          <span className="vcard-seal-line">{SEAL[card.status].line}</span>
+          <span className="vcard-seal-kicker">{seal.kicker}</span>
+          <span className="vcard-seal-line">{seal.line}</span>
         </div>
       )}
       <header className="vcard-top">

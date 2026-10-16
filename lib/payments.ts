@@ -74,7 +74,7 @@ export function paymentHref(path: string, current: PaymentQuery, patch: Partial<
 export function payBucket(entry: Tx): PayBucket {
   if (entry.status === "reddedildi") return "reddedildi";
   if (entry.kind === "iade") return "iade";
-  if (entry.title.startsWith("Basım iadesi")) return "iptal";
+  if (typeof entry.title === "string" && entry.title.startsWith("Basım iadesi")) return "iptal";
   if (entry.kind === "harcama") return "basarili";
   return "diger";
 }
@@ -148,11 +148,11 @@ export function presentPayments(entries: Tx[], cards: Card[]): PaymentRow[] {
       day: formatDay(entry.createdAt),
       when: formatWhen(entry.createdAt),
       cardLabel: card?.label ?? "Cüzdan",
-      last4: card ? card.pan.slice(-4) : "",
+      last4: card && typeof card.pan === "string" ? card.pan.slice(-4) : "",
       network: card ? networkLabel(card) : "",
-      typeName: card ? CARD_TYPES[card.type].name : "Hesap",
-      title: entry.title,
-      detail: entry.note,
+      typeName: card ? (CARD_TYPES[card.type]?.name ?? "Kart") : "Hesap",
+      title: typeof entry.title === "string" ? entry.title : "",
+      detail: typeof entry.note === "string" ? entry.note : "",
       amountLabel: movementLabel(entry.amount, entry.usdMinor),
       incoming: entry.amount > 0 || (entry.amount === 0 && (entry.usdMinor ?? 0) > 0),
       rejected: entry.status === "reddedildi",

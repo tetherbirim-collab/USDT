@@ -17,6 +17,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
   }, [user]);
   const settings = useSiteSettings();
   if (!user || user.role !== "uye") return <Boot />;
+  const plan = settings.plans?.[user.plan] ?? settings.plans?.kivilcim;
   const ranked = listCards(user.id)
     .filter((card) => card.status === "aktif" || card.status === "donduruldu")
     .map((card) => ({ card, left: remainLeft(card.limit, card.spent) }))
@@ -29,8 +30,8 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
       username={user.username}
       balanceLabel={formatTL(user.balance)}
       planId={user.plan}
-      planName={settings.plans[user.plan].name}
-      planUntil={user.planUntil}
+      planName={plan?.name ?? "Plan"}
+      planUntil={user.planUntil || new Date().toISOString()}
       unread={unreadNoticeCount(user.id)}
     >
       {lead && (

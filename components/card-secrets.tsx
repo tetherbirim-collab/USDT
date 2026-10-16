@@ -46,14 +46,14 @@ export function CardSecrets({
 }) {
   const [open, setOpen] = useState(true);
   const [copied, setCopied] = useState("");
-  const dueIso = card.feeDueAt || plusDaysIso(card.createdAt, 30);
+  const dueIso = card.feeDueAt || plusDaysIso(String(card.createdAt ?? ""), 30);
   const due = formatDay(dueIso);
   const days = daysUntil(dueIso);
   const late = days < 0 || Boolean(card.feeDueAt && Date.parse(card.feeDueAt) <= Date.now());
   const leftLine = late ? "Ödeme günü geçti" : daysLeftLine(days);
   const pan = formatPan(card.pan);
-  const expiry = prettyExpiry(card.expiry);
-  const line = address.trim();
+  const expiry = prettyExpiry(String(card.expiry ?? ""));
+  const line = String(address ?? "").trim();
 
   async function copy(key: string, value: string) {
     if (!open || !value) return;
@@ -108,7 +108,7 @@ export function CardSecrets({
         <div className="mt-4 grid gap-3">
           <div className="rounded-2xl bg-black/25 px-3 py-3">
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-              <p className="font-mono text-base tracking-wide">{open ? pan : `•••• •••• •••• ${card.pan.slice(-4)}`}</p>
+              <p className="font-mono text-base tracking-wide">{open ? pan : `•••• •••• •••• ${String(card.pan ?? "").slice(-4)}`}</p>
               {open && <CopyButton copied={copied === "pan"} onCopy={() => copy("pan", pan)} />}
             </div>
           </div>

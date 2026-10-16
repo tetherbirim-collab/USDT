@@ -34,7 +34,7 @@ export default function PanelHome() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">CÜZDAN</p>
         <h1 className="font-display mt-3 text-4xl font-extrabold sm:text-6xl">{formatTL(user.balance)}</h1>
         <p className="mt-2 max-w-lg text-white/70">
-          Dolar bakiyesinin sabit kur karşılığı. {settings.plans[user.plan].name} planında {open}/{settings.plans[user.plan].cardLimit} açık kart var.
+          Dolar bakiyesinin sabit kur karşılığı. {settings.plans?.[user.plan]?.name ?? "Plan"} planında {open}/{settings.plans?.[user.plan]?.cardLimit ?? 0} açık kart var.
         </p>
         {walletMood?.line && tightest && (
           <p className={`remain-note mt-4 max-w-lg ${walletMood.urgent ? "remain-note-hot" : ""}`}>

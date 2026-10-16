@@ -16,6 +16,9 @@ export function SpendChart({
   const width = 720;
   const height = 268;
   const pad = { left: 78, right: 18, top: 28, bottom: 36 };
+  if (days.length === 0) {
+    return <p className="mt-4 text-sm text-white/55">Bu aralıkta harcama yok.</p>;
+  }
   const peak = Math.max(...days.map((day) => day.total), 0);
   const scale = peak || 1;
   const innerW = width - pad.left - pad.right;

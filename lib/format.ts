@@ -7,7 +7,8 @@ const money = new Intl.NumberFormat("tr-TR", {
 });
 
 export function formatTL(kurus: number): string {
-  return money.format(kurus / 100);
+  const value = typeof kurus === "number" ? kurus : Number(kurus);
+  return money.format((Number.isFinite(value) ? value : 0) / 100);
 }
 
 export function formatSigned(kurus: number): string {
@@ -42,6 +43,11 @@ export function kurusToInput(kurus: number): string {
   return `${sign}${Math.floor(abs / 100)},${frac}`;
 }
 
+function validDate(iso: string): Date | null {
+  const date = new Date(iso);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
 export function istanbulInputToIso(value: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
   const parsed = new Date(`${value}:00+03:00`);
@@ -50,6 +56,8 @@ export function istanbulInputToIso(value: string): string | null {
 }
 
 export function isoToIstanbulInput(iso: string): string {
+  const date = validDate(iso);
+  if (!date) return "";
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Istanbul",
     year: "numeric",
@@ -58,13 +66,13 @@ export function isoToIstanbulInput(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
-  }).formatToParts(new Date(iso));
+  }).formatToParts(date);
   const pick = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
   return `${pick("year")}-${pick("month")}-${pick("day")}T${pick("hour")}:${pick("minute")}`;
 }
 
 export function formatPan(pan: string): string {
-  return pan.replace(/(.{4})/g, "$1 ").trim();
+  return String(pan ?? "").replace(/(.{4})/g, "$1 ").trim();
 }
 
 const PLAN_PERIOD_MS = 30 * 86_400_000;
@@ -94,22 +102,25 @@ export function daysLeftLine(days: number): string {
 }
 
 export function formatDay(iso: string): string {
+  const date = validDate(iso);
+  if (!date) return "";
   return new Intl.DateTimeFormat("tr-TR", {
     timeZone: "Europe/Istanbul",
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(new Date(iso));
+  }).format(date);
 }
 
 export function plusDaysIso(iso: string, days: number): string {
-  const date = new Date(iso);
+  const date = validDate(iso) ?? new Date();
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString();
 }
 
 export function formatWhen(iso: string): string {
-  const d = new Date(iso);
+  const d = validDate(iso);
+  if (!d) return "";
   const date = new Intl.DateTimeFormat("tr-TR", {
     timeZone: "Europe/Istanbul",
     day: "numeric",
@@ -125,12 +136,14 @@ export function formatWhen(iso: string): string {
 }
 
 export function istanbulKey(iso: string): string {
+  const date = validDate(iso);
+  if (!date) return "1970-01-01";
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Istanbul",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date(iso));
+  }).format(date);
 }
 
 export function holderLine(name: string): string {

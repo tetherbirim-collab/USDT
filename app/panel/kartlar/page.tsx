@@ -123,7 +123,7 @@ export default function CardsPage() {
             )
               .filter((card) => {
                 if (!needle) return true;
-                return `${card.label} ${card.pan.slice(-4)} ${card.binLabel}`.toLowerCase().includes(needle);
+                return `${card.label ?? ""} ${String(card.pan ?? "").slice(-4)} ${card.binLabel ?? ""}`.toLowerCase().includes(needle);
               })
               .sort((a, b) => Number(Boolean(b.starred)) - Number(Boolean(a.starred)));
             if (rows.length === 0) return <p className="text-sm text-white/50">Bu sekmede kart yok.</p>;

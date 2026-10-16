@@ -42,7 +42,7 @@ export default function OrdersPage() {
                 <div>
                   <p className="font-display text-2xl font-bold">{order.label}</p>
                   <p className="text-sm text-white/65">
-                    {CARD_TYPES[order.type].name} · {LABEL[order.status]} · kullanılabilir bakiye {formatTL(order.limit)}
+                    {CARD_TYPES[order.type]?.name ?? "Kart"} · {LABEL[order.status] ?? order.status} · kullanılabilir bakiye {formatTL(order.limit)}
                   </p>
                   <p className="mt-1 font-mono text-xs text-white/45">Sipariş no {order.id}</p>
                   <p className="mt-1 text-sm text-white/70">Basım ücreti {formatTL(order.fee)}</p>

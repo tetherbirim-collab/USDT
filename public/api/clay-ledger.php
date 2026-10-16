@@ -649,6 +649,18 @@ function clay_normalize(array &$db): bool
             $db["users"][$i]["usdMinor"] = 0;
             $dirty = true;
         }
+        if (!in_array((string) ($db["users"][$i]["plan"] ?? ""), ["kivilcim", "atolye", "galeri"], true)) {
+            $db["users"][$i]["plan"] = "kivilcim";
+            $dirty = true;
+        }
+        if (!isset($db["users"][$i]["name"]) || !is_string($db["users"][$i]["name"]) || $db["users"][$i]["name"] === "") {
+            $db["users"][$i]["name"] = $username !== "" ? $username : "Üye";
+            $dirty = true;
+        }
+        if (!isset($db["users"][$i]["balance"]) || !is_numeric($db["users"][$i]["balance"])) {
+            $db["users"][$i]["balance"] = 0;
+            $dirty = true;
+        }
         unset($db["users"][$i]["email"], $db["users"][$i]["passwordHash"]);
     }
     if (!$hasAdmin) {
@@ -858,16 +870,25 @@ function clay_answer(string $raw): string
 
 function clay_public_user(array $user): array
 {
+    $plan = (string) ($user["plan"] ?? "");
+    if (!in_array($plan, ["kivilcim", "atolye", "galeri"], true)) {
+        $plan = "kivilcim";
+    }
+    $username = trim((string) ($user["username"] ?? ""));
+    $name = trim((string) ($user["name"] ?? ""));
+    if ($name === "") {
+        $name = $username !== "" ? $username : "Üye";
+    }
     $out = [
-        "id" => $user["id"],
-        "name" => $user["name"],
-        "username" => $user["username"],
-        "balance" => $user["balance"],
-        "usdMinor" => $user["usdMinor"],
-        "plan" => $user["plan"],
-        "role" => $user["role"],
-        "status" => $user["status"],
-        "address" => $user["address"] ?? "",
+        "id" => (string) ($user["id"] ?? ""),
+        "name" => $name,
+        "username" => $username,
+        "balance" => (int) ($user["balance"] ?? 0),
+        "usdMinor" => (int) ($user["usdMinor"] ?? 0),
+        "plan" => $plan,
+        "role" => ($user["role"] ?? "") === "yonetici" ? "yonetici" : "uye",
+        "status" => ($user["status"] ?? "") === "askida" ? "askida" : "acik",
+        "address" => (string) ($user["address"] ?? ""),
         "planUntil" => clay_plan_until($user),
     ];
     if (!empty($user["securityQuestion"])) {
@@ -878,6 +899,9 @@ function clay_public_user(array $user): array
 
 function clay_view(array $db, ?array $me): array
 {
+    if (isset($db["settings"]["copy"]) && is_array($db["settings"]["copy"]) && array_is_list($db["settings"]["copy"])) {
+        $db["settings"]["copy"] = new stdClass();
+    }
     $lists = ["users", "cards", "transactions", "notices", "tickets", "bins", "orders", "payouts"];
     foreach ($lists as $key) {
         $db[$key] = array_values($db[$key] ?? []);

@@ -15,9 +15,11 @@ export default function AccountPage() {
   const query = useQuery();
   const settings = useSiteSettings();
   if (!user || !query) return <Boot />;
-  const plan = settings.plans[user.plan];
-  const metal = PLANS[user.plan].metal;
-  const days = daysUntil(user.planUntil);
+  const planId = user.plan === "atolye" || user.plan === "galeri" ? user.plan : "kivilcim";
+  const plan = settings.plans?.[planId] ?? settings.plans?.kivilcim;
+  const planName = plan?.name ?? PLANS[planId].name;
+  const metal = PLANS[planId]?.metal ?? "bronze";
+  const days = daysUntil(user.planUntil || new Date().toISOString());
   const remain = days > 0 ? `Bitmesine ${daysLeftLine(days)}` : days === 0 ? "Paket bugün bitiyor" : "Paket günü geçti";
 
   return (
@@ -33,7 +35,7 @@ export default function AccountPage() {
         </p>
         <p className="account-line">
           <span aria-hidden>{EMOJI[metal]} </span>
-          Paketin {plan.name}. {remain}. Yenileme {formatDay(user.planUntil)}.
+          Paketin {planName}. {remain}. Yenileme {formatDay(user.planUntil)}.
         </p>
         <p className="account-id">Hesap no {user.id}</p>
       </section>
@@ -66,9 +68,9 @@ export default function AccountPage() {
         </div>
         <div className="plan-grid">
           {(Object.keys(PLANS) as PlanId[]).map((id) => {
-            const row = settings.plans[id];
-            const current = id === user.plan;
-            const higher = RANK[id] > RANK[user.plan];
+            const row = settings.plans?.[id] ?? PLANS[id];
+            const current = id === planId;
+            const higher = RANK[id] > RANK[planId];
             return (
               <form key={id} action={planAction} className={`plan-card plan-${PLANS[id].metal}`}>
                 <input type="hidden" name="plan" value={id} />

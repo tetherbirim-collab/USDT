@@ -19,11 +19,13 @@ export function TrustLine({ className = "" }: { className?: string }) {
 export function AnnouncementStrip() {
   const settings = useSiteSettings();
   const row = settings.announcement;
-  if (!row?.on || !row.title.trim()) return null;
+  const title = typeof row?.title === "string" ? row.title.trim() : "";
+  const body = typeof row?.body === "string" ? row.body.trim() : "";
+  if (!row?.on || !title) return null;
   return (
     <p className="mx-auto mt-4 max-w-6xl rounded-2xl border border-gold/40 bg-black/40 px-4 py-3 text-sm text-white">
-      <span className="font-bold text-gold">{row.title}</span>
-      {row.body.trim() ? <span className="text-white/80"> · {row.body}</span> : null}
+      <span className="font-bold text-gold">{title}</span>
+      {body ? <span className="text-white/80"> · {body}</span> : null}
     </p>
   );
 }

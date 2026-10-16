@@ -12,7 +12,7 @@ export default function NewCardPage() {
   const settings = useSiteSettings();
   if (!user || !query) return <Boot />;
   const open = listCards(user.id).filter((card) => card.status !== "kapali").length;
-  const slotsLeft = settings.plans[user.plan].cardLimit - open;
+  const slotsLeft = (settings.plans?.[user.plan]?.cardLimit ?? 0) - open;
 
   return (
     <div className="grid gap-5">

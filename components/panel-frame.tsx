@@ -91,9 +91,9 @@ export function PanelFrame({
   unread?: number;
   children: React.ReactNode;
 }) {
-  const path = usePathname().replace(/\/$/, "") || "/";
+  const path = (usePathname() || "/").replace(/\/$/, "") || "/";
   const [planOpen, setPlanOpen] = useState(false);
-  const metal = PLANS[planId].metal;
+  const metal = PLANS[planId]?.metal ?? "bronze";
   const emoji = PLAN_EMOJI[metal];
   const days = daysUntil(planUntil);
   const remain = days > 0 ? `Bitmesine ${daysLeftLine(days)}` : days === 0 ? "Paket bugün bitiyor" : "Paket günü geçti";

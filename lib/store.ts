@@ -76,7 +76,11 @@ export function touchLedger() {
     void remoteCall("state", {});
     return;
   }
-  normalize(cache);
+  try {
+    normalize(cache);
+  } catch {
+    /* A bad local card must not take the open panel down. */
+  }
 }
 
 async function probeRemote(): Promise<boolean> {
@@ -102,6 +106,7 @@ async function probeRemote(): Promise<boolean> {
     cache = data.db;
     remoteMode = true;
     remoteMe = data.me ?? null;
+    hardenRemote(cache, remoteMe);
     return true;
   } catch {
     return false;
@@ -129,13 +134,49 @@ export async function remoteCall(
     const text = await response.text();
     const data = JSON.parse(text) as { mode?: string; code?: string; me?: PublicUser | null; db?: DB; id?: string };
     if (data.mode !== "php" || !data.db?.settings) return { code: "e-defter" };
-    if (!Array.isArray(data.db.payouts)) data.db.payouts = [];
     cache = data.db;
     remoteMe = data.me ?? null;
+    hardenRemote(cache, remoteMe);
     if (booted) emit();
     return { code: String(data.code ?? ""), id: data.id };
   } catch {
     return { code: "e-defter" };
+  }
+}
+
+function hardenRemote(db: DB, me: PublicUser | null) {
+  if (!Array.isArray(db.payouts)) db.payouts = [];
+  if (!Array.isArray(db.cards)) db.cards = [];
+  if (!Array.isArray(db.transactions)) db.transactions = [];
+  if (!Array.isArray(db.notices)) db.notices = [];
+  if (!Array.isArray(db.users)) db.users = [];
+  const fresh = defaultSettings();
+  if (!db.settings?.plans) {
+    db.settings = fresh;
+  } else {
+    if (typeof db.settings.telegram !== "string") db.settings.telegram = "";
+    const announce = db.settings.announcement;
+    if (!announce || typeof announce.title !== "string" || typeof announce.body !== "string" || typeof announce.on !== "boolean") {
+      db.settings.announcement = fresh.announcement;
+    }
+    for (const id of ["kivilcim", "atolye", "galeri"] as const) {
+      const row = db.settings.plans[id];
+      if (!row || typeof row.name !== "string" || typeof row.cardLimit !== "number") db.settings.plans[id] = fresh.plans[id];
+    }
+    if (!db.settings.copy || typeof db.settings.copy !== "object" || Array.isArray(db.settings.copy)) db.settings.copy = {};
+    if (!db.settings.pst) db.settings.pst = fresh.pst;
+  }
+  if (!Array.isArray(db.tickets)) db.tickets = [];
+  if (!Array.isArray(db.orders)) db.orders = [];
+  if (!Array.isArray(db.bins)) db.bins = [];
+  if (!me) return;
+  if (me.plan !== "kivilcim" && me.plan !== "atolye" && me.plan !== "galeri") me.plan = "kivilcim";
+  if (typeof me.name !== "string" || me.name.length === 0) me.name = typeof me.username === "string" && me.username ? me.username : "Üye";
+  if (typeof me.username !== "string") me.username = "";
+  if (typeof me.address !== "string") me.address = "";
+  if (typeof me.balance !== "number" || !Number.isFinite(me.balance)) me.balance = 0;
+  if (typeof me.planUntil !== "string" || Number.isNaN(Date.parse(me.planUntil))) {
+    me.planUntil = new Date(Date.now() + 30 * 86_400_000).toISOString();
   }
 }
 
@@ -1043,42 +1084,50 @@ export function createUser(input: { username: string; password: string; name: st
   });
 }
 
+function asRows<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function stamp(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 export function listCards(userId: string): Card[] {
   const rank = { hazirlaniyor: 0, aktif: 1, donduruldu: 2, kapali: 3 };
-  return read()
-    .cards.filter((card) => card.userId === userId)
+  return asRows<Card>(read().cards)
+    .filter((card) => card && card.userId === userId)
     .sort(
       (a, b) =>
-        rank[a.status] - rank[b.status] || b.createdAt.localeCompare(a.createdAt),
+        (rank[a.status] ?? 9) - (rank[b.status] ?? 9) || stamp(b.createdAt).localeCompare(stamp(a.createdAt)),
     );
 }
 
 export function listTickets(userId?: string) {
-  const rows = read().tickets;
-  const mine = userId ? rows.filter((ticket) => ticket.userId === userId) : rows;
-  return [...mine].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const rows = asRows<DB["tickets"][number]>(read().tickets);
+  const mine = userId ? rows.filter((ticket) => ticket && ticket.userId === userId) : rows;
+  return [...mine].sort((a, b) => stamp(b.createdAt).localeCompare(stamp(a.createdAt)));
 }
 
 export function listNotices(userId: string) {
-  return read()
-    .notices.filter((note) => note.userId === userId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return asRows<DB["notices"][number]>(read().notices)
+    .filter((note) => note && note.userId === userId)
+    .sort((a, b) => stamp(b.createdAt).localeCompare(stamp(a.createdAt)));
 }
 
 export function unreadNoticeCount(userId: string) {
-  return read().notices.filter((note) => note.userId === userId && !note.readAt).length;
+  return asRows<DB["notices"][number]>(read().notices).filter((note) => note && note.userId === userId && !note.readAt).length;
 }
 
 export function listOrders(userId: string): Order[] {
-  return read()
-    .orders.filter((order) => order.userId === userId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return asRows<Order>(read().orders)
+    .filter((order) => order && order.userId === userId)
+    .sort((a, b) => stamp(b.createdAt).localeCompare(stamp(a.createdAt)));
 }
 
 export function listTransactions(userId: string): Tx[] {
-  return read()
-    .transactions.filter((entry) => entry.userId === userId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return asRows<Tx>(read().transactions)
+    .filter((entry) => entry && entry.userId === userId)
+    .sort((a, b) => stamp(b.createdAt).localeCompare(stamp(a.createdAt)));
 }
 
 export function openCardCount(db: DB, userId: string): number {

@@ -3,7 +3,7 @@
 import { useSiteSettings } from "@/lib/live";
 
 export function TelegramButton() {
-  const name = useSiteSettings().telegram.trim();
+  const name = String(useSiteSettings().telegram ?? "").trim();
   if (!name) return null;
   return (
     <a className="tg-fab" href={`https://t.me/${name}`} target="_blank" rel="noopener noreferrer" aria-label={`Telegram ${name}`}>

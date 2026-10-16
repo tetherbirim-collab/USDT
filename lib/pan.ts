@@ -36,7 +36,7 @@ export const BIN_PATTERN = /^\d{4,8}$/;
 
 /** Visa starts with 4. Mastercard starts with 5, or the 2-series. */
 export function networkOf(prefix: string): "visa" | "mastercard" | null {
-  const digits = prefix.replace(/\D/g, "");
+  const digits = String(prefix ?? "").replace(/\D/g, "");
   if (digits.startsWith("4")) return "visa";
   if (digits.startsWith("5") || digits.startsWith("2")) return "mastercard";
   return null;
@@ -44,7 +44,7 @@ export function networkOf(prefix: string): "visa" | "mastercard" | null {
 
 /** Purchase preview: keep the chosen BIN and fill the rest of the 16 digits with X. */
 export function previewPan(bin: string): string {
-  const digits = bin.replace(/\D/g, "").slice(0, 15);
+  const digits = String(bin ?? "").replace(/\D/g, "").slice(0, 15);
   const line = `${digits}${"X".repeat(16)}`.slice(0, 16);
   return line.replace(/(.{4})/g, "$1 ").trim();
 }

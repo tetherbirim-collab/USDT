@@ -12,7 +12,7 @@ export function AdminIssueForm({ userId, bins, back }: { userId: string; bins: B
     <form id="kart-ver" action={adminIssueAction} className="glass grid gap-3 rounded-[28px] p-5">
       <p className="text-xs font-bold tracking-[0.18em] text-gold">KART VER</p>
       <h2 className="font-display text-2xl font-bold">Bu üyeye kart bas</h2>
-      <p className="text-sm text-white/70">Kart bedeli ve yüklenecek tutar üyenin bakiyesinden düşer. Plan hakkı doluysa basım olmaz.</p>
+      <p className="text-sm text-white/70">Yalnız basım ücreti üyenin bakiyesinden düşer. Kartın kullanılabilir bakiyesi 0 başlar. Plan hakkı doluysa basım olmaz.</p>
       <input type="hidden" name="uye" value={userId} />
       <input type="hidden" name="donus" value={back} />
       <label className="grid gap-1 text-sm">
@@ -29,10 +29,7 @@ export function AdminIssueForm({ userId, bins, back }: { userId: string; bins: B
         Kart adı
         <input className="field" name="etiket" required minLength={2} maxLength={32} placeholder="Kampanya" />
       </label>
-      <label className="grid gap-1 text-sm">
-        Kullanılabilir bakiye (USD)
-        <input className="field" name="limit" inputMode="decimal" required placeholder="100" />
-      </label>
+      <p className="text-sm text-white/60">Kullanılabilir bakiye 0 ile başlar. Yükleme üye kartından, kendi hesabıyla yapılır.</p>
       <label className="grid gap-1 text-sm">
         BIN
         <select key={type} className="field" name="bin" required defaultValue={choices[0]?.id ?? ""}>

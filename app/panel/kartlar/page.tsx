@@ -55,7 +55,7 @@ export default function CardsPage() {
           <p className="text-xs font-bold tracking-[0.22em] text-gold">KARTLARIM</p>
           <h1 className="font-display text-4xl font-extrabold">Kartlarım</h1>
           <p className="mt-2 max-w-xl text-white/65">
-            Kart bas, kullanılabilir bakiye yaz, kartlar arası aktar. Harcama kendiliğinden işlem geçmişine düşer.
+            Kart basılınca kullanılabilir bakiye 0 başlar. Yükleme kendi hesabından yapılır. Harcama işlem geçmişine düşer.
           </p>
         </div>
         <Link href="/panel/kartlar/yeni" className="btn btn-gold">

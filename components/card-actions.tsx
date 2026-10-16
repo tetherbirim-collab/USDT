@@ -50,6 +50,8 @@ export function CardActions({
     return (
       <div className="mt-4 grid gap-3">
         <OrderSlip card={card} />
+        <p className="text-xs text-white/50">Kullanılabilir bakiye 0. Basım ücreti hesaptan düştü. Yükleme aşağıdan, kendi hesabından yapılır.</p>
+        <FundForm cardId={card.id} balance={balance} userId={card.userId} />
         <p className="text-xs text-white/50">Kart hazırlanıyor. Kapatmak için kartın sağ üstündeki menüyü aç.</p>
       </div>
     );
@@ -76,7 +78,7 @@ export function CardActions({
           Bakiye yükle
         </Link>
       )}
-      {card.status !== "kapali" && <FundForm cardId={card.id} balance={balance} />}
+      {card.status !== "kapali" && <FundForm cardId={card.id} balance={balance} userId={card.userId} />}
       {card.spent > 0 && (
         <form action={renewAction} className="grid gap-1">
           <input type="hidden" name="id" value={card.id} />

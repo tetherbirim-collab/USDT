@@ -2,16 +2,8 @@
 
 import { useState } from "react";
 import { issueAction } from "@/lib/actions";
-import {
-  CARD_TYPE_ORDER,
-  CARD_TYPES,
-  MAX_LIMIT_USD_MINOR,
-  MIN_LIMIT_USD_MINOR,
-  loadFeeAt,
-  usdMinorToKurus,
-} from "@/lib/catalog";
-import { percentText } from "@/components/fee-sheet";
-import { formatTL, holderLine, parseTryToKurus } from "@/lib/format";
+import { CARD_TYPE_ORDER, CARD_TYPES } from "@/lib/catalog";
+import { formatTL, holderLine } from "@/lib/format";
 import { useSiteSettings } from "@/lib/live";
 import { networkOf, previewPan } from "@/lib/pan";
 import type { BinRow, CardTypeId } from "@/lib/types";
@@ -31,30 +23,20 @@ export function IssueForm({
 }) {
   const [type, setType] = useState<CardTypeId>("facebook_ads");
   const [label, setLabel] = useState("");
-  const [limit, setLimit] = useState("100");
   const [binId, setBinId] = useState("");
   const [accountId, setAccountId] = useState("");
   const [localError, setLocalError] = useState("");
   const settings = useSiteSettings();
-  const gross = usdMinorToKurus(parseTryToKurus(limit) ?? 0);
-  const commission = gross > 0 ? loadFeeAt(settings.loadFeePercent, gross) : 0;
-  const net = Math.max(0, gross - commission);
-  const due = settings.issueFeeKurus + gross;
+  const due = settings.issueFeeKurus;
   const short = balance < due;
-  const blocked = short || slotsLeft <= 0 || accountId !== account.id;
   const choices = bins.filter((row) => row.type === type);
   const chosen = choices.find((row) => row.id === binId);
   const networkName = chosen ? (networkOf(chosen.digits) === "mastercard" ? "Mastercard" : networkOf(chosen.digits) === "visa" ? "Visa" : "Kart") : "";
 
   function readyToIssue() {
     const clean = label.trim();
-    const cents = parseTryToKurus(limit);
     if (clean.length < 2 || clean.length > 32) {
       setLocalError("Kart adı 2–32 karakter olmalı.");
-      return false;
-    }
-    if (cents === null || cents < MIN_LIMIT_USD_MINOR || cents > MAX_LIMIT_USD_MINOR) {
-      setLocalError("Kullanılabilir bakiye 10 ile 10.000 USD arasında olmalı.");
       return false;
     }
     if (accountId !== account.id) {
@@ -66,7 +48,7 @@ export function IssueForm({
       return false;
     }
     if (short) {
-      setLocalError("Hesap bu kart bedelini ve karta ayrılan tutarı karşılamıyor.");
+      setLocalError("Hesap basım ücretini karşılamıyor.");
       return false;
     }
     setLocalError("");
@@ -100,7 +82,7 @@ export function IssueForm({
                   <span className="mt-1 block text-sm text-gold">Ana bakiye {formatTL(balance)}</span>
                 </span>
               </label>
-              <p className="text-xs text-white/50">Kart bedeli ve karta ayrılan tutar bu hesaptan düşer. Ana bakiyeye Heleket ile yüklemede komisyon yoktur.</p>
+              <p className="text-xs text-white/50">Yalnız basım ücreti bu hesaptan düşer. Kullanılabilir bakiye 0 başlar. Yükleme sonra, kendi hesabından yapılır.</p>
             </fieldset>
             <fieldset className="grid gap-3">
               <legend className="mb-1 text-sm font-semibold">Tür</legend>
@@ -142,29 +124,20 @@ export function IssueForm({
               />
               <span className="text-white/50">Bu ad kartın üzerinde görünür.</span>
             </label>
-            <label className="grid gap-1 text-sm">
-              Karta ayrılacak tutar (USD)
-              <input
-                className="field"
-                name="limit"
-                inputMode="decimal"
-                value={limit}
-                onChange={(event) => setLimit(event.target.value)}
-                required
-              />
-              <span className="text-white/50">10–10.000 USD. Aşağıdaki tablo, göndermeden önce kesileni ve karta yazılanı gösterir.</span>
-            </label>
+            <p className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white/75">
+              Kullanılabilir bakiye 0 ile başlar. Hesaptan yalnız basım ücreti alınır. Karta para, kart oluştuktan sonra kendi hesabından yüklenir.
+            </p>
             {localError && <p className="banner-bad">{localError}</p>}
             {slotsLeft <= 0 && (
               <p className="banner-bad">Bu plandaki kart hakkı doldu. Daha fazla kart için planı yükselt.</p>
             )}
             {short && (
-              <p className="banner-bad">Hesap {formatTL(due)} için yetersiz. Önce ana bakiyeyi yükle.</p>
+              <p className="banner-bad">Hesap basım ücreti {formatTL(due)} için yetersiz. Önce ana bakiyeyi yükle.</p>
             )}
             <section className="fee-sheet" id="kesinti">
               <p className="fee-kicker">GÖNDERMEDEN ÖNCE</p>
               <h2 className="fee-title">Ne kesilir, ne kalır</h2>
-              <p className="fee-lede">Kartı oluşturunca hesaptan düşecek tutar ve karta yazılacak bakiye. Onaylamadan önce oku.</p>
+              <p className="fee-lede">Kullanılabilir bakiye 0 ile başlar. Hesaptan yalnız basım ücreti düşer. Onaylamadan önce oku.</p>
               <dl className="fee-rows">
                 <div className="fee-row">
                   <dt>
@@ -175,24 +148,10 @@ export function IssueForm({
                 </div>
                 <div className="fee-row">
                   <dt>
-                    <span className="fee-label">Karta ayrılan</span>
-                    <span className="fee-note">Bu tutar da ana bakiyeden düşer. 10 ile 10.000 USD arasında.</span>
-                  </dt>
-                  <dd className="fee-value">{formatTL(gross)}</dd>
-                </div>
-                <div className="fee-row">
-                  <dt>
-                    <span className="fee-label">Yükleme komisyonu {percentText(settings.loadFeePercent)}</span>
-                    <span className="fee-note">Ayrılan tutarın içinden kesilir.</span>
-                  </dt>
-                  <dd className="fee-value fee-cut">{formatTL(commission)}</dd>
-                </div>
-                <div className="fee-row">
-                  <dt>
                     <span className="fee-label">Karta yazılacak</span>
-                    <span className="fee-note">Komisyondan sonra kartta kalan kullanılabilir bakiye.</span>
+                    <span className="fee-note">Kullanılabilir bakiye 0 ile başlar. Yükleme sonra yapılır.</span>
                   </dt>
-                  <dd className="fee-value fee-keep">{formatTL(net)}</dd>
+                  <dd className="fee-value fee-keep">{formatTL(0)}</dd>
                 </div>
                 <div className="fee-row">
                   <dt>

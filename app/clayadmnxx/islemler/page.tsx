@@ -8,12 +8,14 @@ import { ADMIN_PATH } from "@/lib/auth";
 import { KIND_LABEL } from "@/lib/catalog";
 import { formatSigned, formatWhen } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
+import { payStatusLabel, payoutPhase } from "@/lib/payments";
 import { snapshot } from "@/lib/store";
 import type { TxKind } from "@/lib/types";
 
 const FILTERS = [
   ["", "Tümü"],
   ["yukleme", "Yüklemeler"],
+  ["cekim", "Çekimler"],
   ["transfer", "Aktarımlar"],
   ["basim", "Basımlar"],
   ["harcama", "Harcamalar"],
@@ -22,7 +24,7 @@ const FILTERS = [
 export default function AdminLedgerPage() {
   const query = useQuery();
   const asked = query?.get("tur") ?? "";
-  const [kind, setKind] = useState<"" | TxKind>("");
+  const [kind, setKind] = useState<"" | TxKind | "cekim">("");
   useEffect(() => {
     if (asked === "yukleme" || asked === "transfer" || asked === "basim" || asked === "harcama" || asked === "iade" || asked === "duzeltme" || asked === "yenileme") {
       setKind(asked);
@@ -31,7 +33,11 @@ export default function AdminLedgerPage() {
   if (!query) return <Boot />;
   const db = snapshot();
   const txs = [...db.transactions]
-    .filter((entry) => (kind ? entry.kind === kind : true))
+    .filter((entry) => {
+      if (kind === "cekim") return payoutPhase(entry) !== null;
+      if (kind) return entry.kind === kind;
+      return true;
+    })
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const orders = [...db.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const name = (id: string) => db.users.find((user) => user.id === id)?.username ?? "üye";
@@ -41,7 +47,7 @@ export default function AdminLedgerPage() {
       <div>
         <p className="text-xs font-bold tracking-[0.22em] text-gold">İŞLEMLER</p>
         <h1 className="font-display text-4xl font-extrabold">Tüm hareket</h1>
-        <p className="mt-2 max-w-2xl text-white/70">Yükleme, harcama, aktarım ve basım her üyeden buraya düşer. Sipariş fişi Clay numarası ve sahibiyle altta durur.</p>
+        <p className="mt-2 max-w-2xl text-white/70">Yükleme, harcama, aktarım, basım ve çekim her üyeden buraya düşer. Çekim satırı bekliyor, gitti veya iptal diye durur. Sipariş fişi altta kalır.</p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
       <div className="flex flex-wrap items-center gap-2">
@@ -66,6 +72,7 @@ export default function AdminLedgerPage() {
                 </Link>
                 {" · "}
                 {KIND_LABEL[entry.kind]} · {formatWhen(entry.createdAt)}
+                {payoutPhase(entry) ? ` · ${payStatusLabel(entry)}` : ""}
                 {entry.status === "reddedildi" ? " · Reddedildi" : ""}
               </p>
               {entry.note ? <p className="mt-1 text-white/70">{entry.note}</p> : null}

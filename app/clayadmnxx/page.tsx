@@ -90,7 +90,7 @@ export default function AdminHome() {
       <section id="kart-sec" className="glass grid gap-3 rounded-[28px] p-5 scroll-mt-24">
         <p className="text-xs font-bold tracking-[0.18em] text-gold">KART VER</p>
         <h2 className="font-display text-2xl font-bold">Üyeye kart bas</h2>
-        <p className="text-sm text-white/70">Form üyenin sayfasında. Kart bedeli ve limit o bakiyeden düşer. Plan hakkı doluysa basım olmaz.</p>
+        <p className="text-sm text-white/70">Form üyenin sayfasında. Yalnız basım ücreti o bakiyeden düşer. Kart 0 bakiye ile açılır. Plan hakkı doluysa basım olmaz.</p>
         {members.length === 0 ? (
           <p className="text-sm text-white/55">Henüz üye yok.</p>
         ) : (

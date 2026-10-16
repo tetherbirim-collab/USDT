@@ -71,8 +71,26 @@ export function paymentHref(path: string, current: PaymentQuery, patch: Partial<
   return text ? `${path}?${text}` : path;
 }
 
+export function payoutPhase(entry: Tx): "bekliyor" | "gitti" | "iptal" | null {
+  const note = typeof entry.note === "string" ? entry.note : "";
+  const title = typeof entry.title === "string" ? entry.title : "";
+  const ref = typeof entry.ref === "string" ? entry.ref : "";
+  if (ref.endsWith(":iptal") || title === "Çekim iadesi") return "iptal";
+  if (note.startsWith("Gitti.")) return "gitti";
+  if (note.startsWith("İptal.")) return "iptal";
+  if (note.startsWith("Bekliyor.") || title === "Çekim talebi") return "bekliyor";
+  return null;
+}
+
 export function payBucket(entry: Tx): PayBucket {
   if (entry.status === "reddedildi") return "reddedildi";
+  const phase = payoutPhase(entry);
+  if (phase === "bekliyor") return "beklemede";
+  if (phase === "iptal") {
+    const ref = typeof entry.ref === "string" ? entry.ref : "";
+    if (ref.endsWith(":iptal") || entry.title === "Çekim iadesi") return "iade";
+    return "iptal";
+  }
   if (entry.kind === "iade") return "iade";
   if (typeof entry.title === "string" && entry.title.startsWith("Basım iadesi")) return "iptal";
   if (entry.kind === "harcama") return "basarili";
@@ -89,6 +107,10 @@ export function payTone(bucket: PayBucket): PayTone {
 }
 
 export function payStatusLabel(entry: Tx): string {
+  const phase = payoutPhase(entry);
+  if (phase === "bekliyor") return "Bekliyor";
+  if (phase === "gitti") return "Gitti";
+  if (phase === "iptal") return "İptal";
   const bucket = payBucket(entry);
   return PAY_TILES.find((tile) => tile.id === bucket)?.label ?? KIND_LABEL[entry.kind];
 }
@@ -143,6 +165,8 @@ export function presentPayments(entries: Tx[], cards: Card[]): PaymentRow[] {
   return entries.map((entry) => {
     const card = entry.cardId ? byId.get(entry.cardId) : undefined;
     const bucket = payBucket(entry);
+    const phase = payoutPhase(entry);
+    const tone = phase === "gitti" ? "ok" : phase === "bekliyor" ? "hold" : payTone(bucket);
     return {
       id: entry.id,
       day: formatDay(entry.createdAt),
@@ -157,7 +181,7 @@ export function presentPayments(entries: Tx[], cards: Card[]): PaymentRow[] {
       incoming: entry.amount > 0 || (entry.amount === 0 && (entry.usdMinor ?? 0) > 0),
       rejected: entry.status === "reddedildi",
       status: payStatusLabel(entry),
-      tone: payTone(bucket),
+      tone,
     };
   });
 }

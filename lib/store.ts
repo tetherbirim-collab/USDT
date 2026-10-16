@@ -719,6 +719,124 @@ function dropImported(db: DB): boolean {
   return dirty;
 }
 
+function walletMask(wallet: string): string {
+  return wallet.length >= 8 ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : wallet;
+}
+
+function syncPayouts(db: DB): boolean {
+  if (!Array.isArray(db.payouts)) {
+    db.payouts = [];
+    return true;
+  }
+  let dirty = false;
+  const drop = new Set<string>();
+  for (const payout of db.payouts) {
+    if (!payout || typeof payout.id !== "string" || payout.id === "") continue;
+    const amount = Math.abs(payout.amount);
+    if (amount < 1) continue;
+    const usd = Math.abs(payout.usdMinor || 0);
+    const phase = payout.status === "gitti" || payout.status === "iptal" ? payout.status : "bekliyor";
+    const mask = walletMask(payout.wallet || "");
+    const note =
+      phase === "gitti"
+        ? `Gitti. Tutar gönderildi. Cüzdan ${mask}.`
+        : phase === "iptal"
+          ? `İptal. Talep durduruldu. Cüzdan ${mask}.`
+          : `Bekliyor. Tutar beklemeye alındı. Cüzdan ${mask}.`;
+    const matches = db.transactions.filter((entry) => entry.ref === payout.id);
+    if (matches.length === 0) {
+      db.transactions.push({
+        id: `tx_${rid()}`,
+        userId: payout.userId,
+        cardId: null,
+        kind: "transfer",
+        title: "Çekim talebi",
+        note,
+        amount: -amount,
+        usdMinor: usd > 0 ? -usd : null,
+        status: "tamamlandi",
+        createdAt: payout.createdAt || new Date().toISOString(),
+        ref: payout.id,
+      });
+      dirty = true;
+    } else {
+      const keep = matches[0];
+      for (const extra of matches.slice(1)) drop.add(extra.id);
+      if (keep.amount !== -amount) {
+        keep.amount = -amount;
+        dirty = true;
+      }
+      if (keep.title !== "Çekim talebi") {
+        keep.title = "Çekim talebi";
+        dirty = true;
+      }
+      if (keep.note !== note) {
+        keep.note = note;
+        dirty = true;
+      }
+      const wantUsd = usd > 0 ? -usd : null;
+      if ((keep.usdMinor ?? null) !== wantUsd) {
+        keep.usdMinor = wantUsd;
+        dirty = true;
+      }
+      if (keep.kind !== "transfer") {
+        keep.kind = "transfer";
+        dirty = true;
+      }
+      if (matches.length > 1) dirty = true;
+    }
+    const refundRef = `${payout.id}:iptal`;
+    const refunds = db.transactions.filter((entry) => entry.ref === refundRef);
+    if (phase === "iptal") {
+      const refundNote = "İptal. Tutar cüzdana döndü.";
+      if (refunds.length === 0) {
+        db.transactions.push({
+          id: `tx_${rid()}`,
+          userId: payout.userId,
+          cardId: null,
+          kind: "duzeltme",
+          title: "Çekim iadesi",
+          note: refundNote,
+          amount,
+          usdMinor: usd > 0 ? usd : null,
+          status: "tamamlandi",
+          createdAt: payout.settledAt || new Date().toISOString(),
+          ref: refundRef,
+        });
+        dirty = true;
+      } else {
+        const keep = refunds[0];
+        for (const extra of refunds.slice(1)) drop.add(extra.id);
+        if (keep.amount !== amount) {
+          keep.amount = amount;
+          dirty = true;
+        }
+        if (keep.title !== "Çekim iadesi") {
+          keep.title = "Çekim iadesi";
+          dirty = true;
+        }
+        if (keep.note !== refundNote) {
+          keep.note = refundNote;
+          dirty = true;
+        }
+        const wantUsd = usd > 0 ? usd : null;
+        if ((keep.usdMinor ?? null) !== wantUsd) {
+          keep.usdMinor = wantUsd;
+          dirty = true;
+        }
+        if (refunds.length > 1) dirty = true;
+      }
+    } else if (refunds.length > 0) {
+      for (const extra of refunds) drop.add(extra.id);
+      dirty = true;
+    }
+  }
+  if (drop.size > 0) {
+    db.transactions = db.transactions.filter((entry) => !drop.has(entry.id));
+  }
+  return dirty;
+}
+
 function normalize(db: DB): DB {
   if (!Array.isArray(db.payouts)) db.payouts = [];
   let dirty = dropImported(db);
@@ -961,6 +1079,7 @@ function normalize(db: DB): DB {
   if (fillOrderCodes(db)) dirty = true;
   if (sweepCardFees(db)) dirty = true;
   if (sweepAutoSpend(db)) dirty = true;
+  if (syncPayouts(db)) dirty = true;
   if (dirty) {
     assertDb(db);
     write(db);

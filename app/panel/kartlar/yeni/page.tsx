@@ -24,7 +24,7 @@ export default function NewCardPage() {
         </Link>
         <h1 className="font-display mt-3 text-4xl font-bold tracking-tight">Kart oluştur</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Göndermeden önce basım ücreti {formatTL(settings.issueFeeKurus)}, yükleme komisyonu {percentText(settings.loadFeePercent)} ve karta yazılacak tutar tabloda durur. 30 günlük kart bedeli oluşturma anında ikinci kez düşmez.
+          Kullanılabilir bakiye 0 ile başlar. Hesaptan yalnız basım ücreti {formatTL(settings.issueFeeKurus)} düşer. Yükleme komisyonu {percentText(settings.loadFeePercent)} kart oluştuktan sonra, kendi hesabından bakiye yüklerken kesilir.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />

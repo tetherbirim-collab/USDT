@@ -211,7 +211,7 @@ export const NOTICES: Record<string, string> = {
   "e-anahtar": "Heleket anahtarı sunucuda boş. heleket.config.php doldurulmalı.",
   "e-odeme": "Heleket ödemesi henüz tamamlanmadı.",
   basildi: "Kart oluşturuldu.",
-  siparis: "Kart bedeli 300₺ ve karta ayrılan tutar hesabından düştü. Karta yazılırken %7,3 komisyon kesildi.",
+  siparis: "Kart oluşturuldu. Kullanılabilir bakiye 0 ile başlar. Hesaptan yalnız basım ücreti düştü.",
   hazir: "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz.",
   yenilendi: "Kullanılabilir bakiye yenilendi. Harcama sayacı sıfırlandı. Cüzdan tutarı değişmedi.",
   transfer: "Kullanılabilir bakiye aktarıldı. Karşı karta %4 komisyon kesildi. Ana bakiye değişmedi.",

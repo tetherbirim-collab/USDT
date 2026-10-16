@@ -258,22 +258,13 @@ export async function issueAction(formData: FormData) {
   const user = await actor();
   const typeRaw = String(formData.get("tur") || "");
   const label = String(formData.get("etiket") || "").replace(/\s+/g, " ").trim();
-  const limitCents = parseTryToKurus(String(formData.get("limit") || ""));
   if (!isCardType(typeRaw)) return bounce("/panel/kartlar/yeni", "e-tur");
   if (label.length < 2 || label.length > 32) return bounce("/panel/kartlar/yeni", "e-etiket");
-  if (limitCents === null || limitCents < MIN_LIMIT_USD_MINOR || limitCents > MAX_LIMIT_USD_MINOR) {
-    return bounce("/panel/kartlar/yeni", "e-limit");
-  }
-  const gross = usdMinorToKurus(limitCents);
-  const tuned = readSettings();
-  const commission = loadFeeAt(tuned.loadFeePercent, gross);
-  const net = gross - commission;
   const type = typeRaw;
   const binId = String(formData.get("bin") || "");
   const hesap = String(formData.get("hesap") || "");
   if (hesap !== user.id) return bounce("/panel/kartlar/yeni", "e-hesap");
-  if (net < 1 || net > MAX_LIMIT_KURUS) return bounce("/panel/kartlar/yeni", "e-limit");
-  const remote = await remoteCall("issue", pack(formData, ["tur", "etiket", "limit", "bin", "hesap"]));
+  const remote = await remoteCall("issue", pack(formData, ["tur", "etiket", "bin", "hesap"]));
   if (remote) {
     if (remote.code !== "basildi" || !remote.id) return bounce("/panel/kartlar/yeni", remote.code);
     return bounce(`/panel/kartlar?vurgu=${remote.id}`, "siparis");
@@ -284,37 +275,22 @@ export async function issueAction(formData: FormData) {
     const chosen = db.bins.find((item) => item.id === binId && item.type === type);
     if (!chosen) return { code: "e-bin" as const };
     const fee = db.settings.issueFeeKurus;
-    const due = fee + gross;
-    if (row.balance < due) return { code: "e-bakiye" as const };
+    if (row.balance < fee) return { code: "e-bakiye" as const };
     const plan = db.settings.plans[row.plan];
     if (openCardCount(db, row.id) >= plan.cardLimit) return { code: "e-plan" as const };
     const card = issueCard(db, {
       userId: row.id,
       type,
       label,
-      limit: net,
+      limit: 0,
       fee,
       bin: chosen.digits,
       binLabel: chosen.label,
     });
-    row.balance -= gross;
-    const now = new Date().toISOString();
-    db.transactions.push({
-      id: `tx_${rid()}`,
-      userId: row.id,
-      cardId: card.id,
-      kind: "yukleme",
-      title: `Karta yükleme · ${card.label}`,
-      note: `Hesaptan ${formatTL(gross)} ayrıldı. %${String(db.settings.loadFeePercent).replace(".", ",")} komisyon ${formatTL(commission)}. Karta ${formatTL(net)} yazıldı. Ana bakiye yüklemesine bu kesinti uygulanmaz.`,
-      amount: -gross,
-      usdMinor: -limitCents,
-      status: "tamamlandi",
-      createdAt: now,
-    });
     pushNotice(db, {
       userId: row.id,
       title: "Kart bedeli düştü",
-      body: `${card.label} için hesabından ${formatTL(due)} düştü. Kart bedeli ${formatTL(fee)}. Karta ${formatTL(net)} yazıldı, komisyon ${formatTL(commission)}. Kalan bakiye ${formatTL(row.balance)}.`,
+      body: `${card.label} için hesabından yalnız basım ücreti ${formatTL(fee)} düştü. Kullanılabilir bakiye 0. Kalan bakiye ${formatTL(row.balance)}.`,
     });
     return { code: "basildi" as const, id: card.id };
   });
@@ -338,7 +314,7 @@ export async function fundCardAction(formData: FormData) {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
     if (!row || !card) return "e-yok" as const;
-    if (card.status === "kapali" || card.status === "hazirlaniyor") return "e-durum" as const;
+    if (card.status === "kapali") return "e-durum" as const;
     if (row.balance < gross) return "e-bakiye" as const;
     if (card.limit + net > MAX_LIMIT_KURUS) return "e-limit" as const;
     row.balance -= gross;
@@ -1469,43 +1445,24 @@ export async function adminIssueAction(formData: FormData) {
   const back = memberBack(formData, userId);
   const typeRaw = String(formData.get("tur") || "");
   const label = String(formData.get("etiket") || "").replace(/\s+/g, " ").trim();
-  const limitCents = parseTryToKurus(String(formData.get("limit") || ""));
   if (!isCardType(typeRaw)) return bounce(back, "e-tur");
   if (label.length < 2 || label.length > 32) return bounce(back, "e-etiket");
-  if (limitCents === null || limitCents < MIN_LIMIT_USD_MINOR || limitCents > MAX_LIMIT_USD_MINOR) return bounce(back, "e-limit");
-  const remote = await remoteCall("admin-issue", pack(formData, ["uye", "tur", "etiket", "limit", "bin", "donus"]));
+  const remote = await remoteCall("admin-issue", pack(formData, ["uye", "tur", "etiket", "bin", "donus"]));
   if (remote) {
     if (remote.code !== "basildi" || !remote.id) return bounce(back, remote.code);
     const join = back.includes("?") ? "&" : "?";
     return bounce(`${back}${join}vurgu=${encodeURIComponent(remote.id)}`, remote.code);
   }
-  const gross = usdMinorToKurus(limitCents);
-  const tuned = readSettings();
-  const commission = loadFeeAt(tuned.loadFeePercent, gross);
-  const net = gross - commission;
   const binId = String(formData.get("bin") || "");
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === userId && item.role === "uye");
     const chosen = db.bins.find((item) => item.id === binId && item.type === typeRaw);
     if (!row || !chosen) return { code: row ? ("e-bin" as const) : ("e-yok" as const), id: "" };
     const fee = db.settings.issueFeeKurus;
-    if (net < 1 || row.balance < fee + gross) return { code: "e-bakiye" as const, id: "" };
+    if (row.balance < fee) return { code: "e-bakiye" as const, id: "" };
     if (openCardCount(db, row.id) >= db.settings.plans[row.plan].cardLimit) return { code: "e-plan" as const, id: "" };
-    const card = issueCard(db, { userId: row.id, type: typeRaw, label, limit: net, fee, bin: chosen.digits, binLabel: chosen.label });
-    row.balance -= gross;
-    db.transactions.push({
-      id: `tx_${rid()}`,
-      userId: row.id,
-      cardId: card.id,
-      kind: "yukleme",
-      title: `Karta yükleme · ${card.label}`,
-      note: `Yönetici bastı. Hesaptan ${formatTL(gross)} ayrıldı. Komisyon ${formatTL(commission)}. Karta ${formatTL(net)} yazıldı.`,
-      amount: -gross,
-      usdMinor: -limitCents,
-      status: "tamamlandi",
-      createdAt: new Date().toISOString(),
-    });
-    pushNotice(db, { userId: row.id, title: "Kart hazırlanıyor", body: `${label} yönetim masasından basıldı.` });
+    const card = issueCard(db, { userId: row.id, type: typeRaw, label, limit: 0, fee, bin: chosen.digits, binLabel: chosen.label });
+    pushNotice(db, { userId: row.id, title: "Kart hazırlanıyor", body: `${label} yönetim masasından basıldı. Kullanılabilir bakiye 0. Basım ücreti ${formatTL(fee)}.` });
     return { code: "basildi" as const, id: card.id };
   });
   if (result.code !== "basildi") return bounce(back, result.code);
@@ -1755,7 +1712,7 @@ export async function withdrawAction(formData: FormData) {
       cardId: null,
       kind: "transfer",
       title: "Çekim talebi",
-      note: `Tutar beklemeye alındı. Cüzdan ${wallet.slice(0, 4)}…${wallet.slice(-4)}.`,
+      note: `Bekliyor. Tutar beklemeye alındı. Cüzdan ${wallet.slice(0, 4)}…${wallet.slice(-4)}.`,
       amount: -amount,
       usdMinor: usd > 0 ? -usd : null,
       status: "tamamlandi",
@@ -1779,26 +1736,43 @@ export async function settlePayoutAction(formData: FormData) {
     const row = db.payouts.find((item) => item.id === id && item.status === "bekliyor");
     const owner = row ? db.users.find((item) => item.id === row.userId) : undefined;
     if (!row || !owner) return "e-yok" as const;
+    const held = db.transactions.find((entry) => entry.ref === id);
+    const mask = row.wallet.length >= 8 ? `${row.wallet.slice(0, 4)}…${row.wallet.slice(-4)}` : row.wallet;
     if (decision === "iptal") {
       if (owner.balance + row.amount > MAX_BALANCE_KURUS) return "e-tavan" as const;
       owner.balance += row.amount;
       owner.usdMinor += row.usdMinor;
-      db.transactions.push({
-        id: `tx_${rid()}`,
-        userId: row.userId,
-        cardId: null,
-        kind: "duzeltme",
-        title: "Çekim iadesi",
-        note: "Talep iptal edildi. Tutar cüzdana döndü.",
-        amount: row.amount,
-        usdMinor: row.usdMinor > 0 ? row.usdMinor : null,
-        status: "tamamlandi",
-        createdAt: new Date().toISOString(),
-        ref: `${id}:iptal`,
-      });
+      if (held) {
+        held.amount = -Math.abs(row.amount);
+        held.title = "Çekim talebi";
+        held.note = `İptal. Talep durduruldu. Cüzdan ${mask}.`;
+        held.usdMinor = row.usdMinor > 0 ? -row.usdMinor : null;
+      }
+      const refundRef = `${id}:iptal`;
+      if (!db.transactions.some((entry) => entry.ref === refundRef)) {
+        db.transactions.push({
+          id: `tx_${rid()}`,
+          userId: row.userId,
+          cardId: null,
+          kind: "duzeltme",
+          title: "Çekim iadesi",
+          note: "İptal. Tutar cüzdana döndü.",
+          amount: Math.abs(row.amount),
+          usdMinor: row.usdMinor > 0 ? row.usdMinor : null,
+          status: "tamamlandi",
+          createdAt: new Date().toISOString(),
+          ref: refundRef,
+        });
+      }
       row.status = "iptal";
       pushNotice(db, { userId: row.userId, title: "Çekim iptal", body: `${formatTL(row.amount)} cüzdanına geri yazıldı.` });
     } else {
+      if (held) {
+        held.amount = -Math.abs(row.amount);
+        held.title = "Çekim talebi";
+        held.note = `Gitti. Tutar gönderildi. Cüzdan ${mask}.`;
+        held.usdMinor = row.usdMinor > 0 ? -row.usdMinor : null;
+      }
       row.status = "gitti";
       pushNotice(db, { userId: row.userId, title: "Çekim gönderildi", body: `${formatTL(row.amount)} çıktı.` });
     }

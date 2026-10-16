@@ -23,7 +23,7 @@ export default function NewCardPage() {
         </Link>
         <h1 className="font-display mt-3 text-4xl font-bold tracking-tight">Kart oluştur</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Hesaptan yalnız basım ücreti {formatTL(settings.issueFeeKurus)} düşer. Kripicard tutarı en az 10 USD olarak ayrıca yazılır ve yükleme komisyonu kesilmez. Anahtar yoksa kart numarası üretilmez.
+          Hesaptan kart açılışı {formatTL(settings.issueFeeKurus)} düşer. Kripicard tutarı en az 10 USD olarak ayrıca yazılır. Yüklemede %4,48 ve 1,12 USD işlem ücreti tutarın üzerine eklenir. Anahtar yoksa kart numarası üretilmez.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} text={query.get("metin") || undefined} />

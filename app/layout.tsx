@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     template: "%s · CLAY",
   },
   description:
-    "CLAY Sanal Kart Hizmetleri. Facebook Ads, TikTok, Google Ads ve Ultima kartları. Tutar dolar olarak girilir, bakiyede canlı kurun TL karşılığı durur.",
+    "CLAY sanal kart. Kartlar Kripicard ile açılır. Tutar ve bakiye ABD dolarıdır.",
   robots: { index: false, follow: false },
 };
 

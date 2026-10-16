@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CARD_TYPES, CARD_TYPE_ORDER, bindFx, fxAsOf, fxRate } from "@/lib/catalog";
+import { CARD_TYPES, CARD_TYPE_ORDER } from "@/lib/catalog";
 import { ChromePair, useChrome } from "@/components/chrome-controls";
 import { siteText, type CopyKey } from "@/lib/copy";
 import { uiText } from "@/lib/ui";
@@ -9,8 +9,7 @@ import { useSiteSettings } from "@/lib/live";
 import { AnnounceBar } from "./announce-bar";
 import { PlanGrid } from "./plan-grid";
 import { TrustLine } from "./trust-line";
-import { formatRate, formatTL, formatWhen } from "@/lib/format";
-import { makeCvv, makePan } from "@/lib/pan";
+import { formatTL } from "@/lib/format";
 import type { CardTypeId } from "@/lib/types";
 import { CoinYard } from "./coin-yard";
 import { Mark, Wordmark } from "./mark";
@@ -144,7 +143,6 @@ export function Marketing({
   deskLabel?: string;
 }) {
   const settings = useSiteSettings();
-  bindFx(settings.fx);
   const { lang } = useChrome();
   const line = (key: Parameters<typeof siteText>[1]) => siteText(settings, key, lang);
   const say = (key: Parameters<typeof uiText>[1]) => uiText(lang, key);
@@ -163,9 +161,9 @@ export function Marketing({
     type: "facebook_ads" as const,
     label: "Kampanya",
     holder: "CLAY",
-    pan: makePan(100_000_042),
-    expiry: "12/29",
-    cvv: makeCvv(100_000_042),
+    pan: "",
+    expiry: "",
+    cvv: "",
     status: "aktif" as const,
   };
 
@@ -235,9 +233,9 @@ export function Marketing({
             </div>
             <dl className="mt-10 grid grid-cols-3 gap-3 text-left text-sm">
               {[
-                [formatRate(fxRate()), fxAsOf() ? formatWhen(fxAsOf()) : "yedek kur"],
-                [String(CARD_TYPE_ORDER.length), "kart türü"],
-                ["30 USD", "hoş geldin"],
+                ["$750", "kart açılışı"],
+                ["$0.00", "başlangıç"],
+                ["USD", "tek para birimi"],
               ].map(([value, label]) => (
                 <div key={label} className="glass rounded-2xl px-3 py-3">
                   <dt className="font-display text-xl font-bold text-gold">{value}</dt>
@@ -260,7 +258,7 @@ export function Marketing({
             <p className="mt-3 text-white/70">{line("typesLede")}</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            {CARD_TYPE_ORDER.map((id, index) => (
+            {CARD_TYPE_ORDER.map((id) => (
               <article key={id} className="glass rounded-[24px] p-4">
                 <VirtualCard
                   size="sm"
@@ -268,9 +266,9 @@ export function Marketing({
                     type: id,
                     label: CARD_TYPES[id].pitch,
                     holder: "CLAY",
-                    pan: makePan(100_000_200 + index),
-                    expiry: "12/29",
-                    cvv: makeCvv(100_000_200 + index),
+                    pan: "",
+                    expiry: "",
+                    cvv: "",
                     status: "aktif",
                   }}
                 />

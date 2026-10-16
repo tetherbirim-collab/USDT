@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { fundCardAction } from "@/lib/actions";
-import { MAX_USD_MINOR, MIN_USD_MINOR, loadFeeAt, noticeText, usdMinorToKurus } from "@/lib/catalog";
+import { FUND_PROCESSING_USD_MINOR, MAX_USD_MINOR, MIN_USD_MINOR, loadFeeAt, noticeText, usdMinorToKurus } from "@/lib/catalog";
 import { formatTL, formatUsd, parseTryToKurus } from "@/lib/format";
 import { openHeleketPayment } from "@/lib/heleket";
 import { useSiteSettings } from "@/lib/live";
@@ -17,15 +17,16 @@ export function FundForm({ cardId, balance, userId, kripicard = false }: { cardI
   const settings = useSiteSettings();
   const cents = parseTryToKurus(raw);
   const gross = cents !== null ? usdMinorToKurus(cents) : 0;
-  const commission = !kripicard && gross > 0 ? loadFeeAt(settings.loadFeePercent, gross) : 0;
-  const net = Math.max(0, gross - commission);
+  const rateFee = gross > 0 ? loadFeeAt(settings.loadFeePercent, gross) : 0;
+  const processing = gross > 0 ? FUND_PROCESSING_USD_MINOR : 0;
+  const due = gross + rateFee + processing;
   const floor = kripicard ? 1000 : MIN_USD_MINOR;
   const percent = String(settings.loadFeePercent).replace(".", ",");
   const ready =
     cents !== null &&
     cents >= floor &&
     cents <= MAX_USD_MINOR &&
-    (method === "heleket" || (gross <= balance && net >= 1));
+    (method === "heleket" || (due <= balance && gross >= 1));
 
   async function payHeleket() {
     if (!ready || cents === null || pending) return;
@@ -56,7 +57,7 @@ export function FundForm({ cardId, balance, userId, kripicard = false }: { cardI
           <p className="text-xs font-bold tracking-[0.18em] text-gold">KARTA YÜKLE</p>
           <p className="font-display text-xl font-bold">Karta bakiye yükle</p>
         </div>
-        <span className="load-badge">{method === "hesap" ? `%${percent}` : "Komisyon yok"}</span>
+        <span className="load-badge">{method === "hesap" ? `%${percent} + $1,12` : "Komisyon yok"}</span>
       </div>
       <div className="load-lane" aria-hidden>
         <span className="load-pocket">
@@ -76,12 +77,12 @@ export function FundForm({ cardId, balance, userId, kripicard = false }: { cardI
         <label className={method === "hesap" ? "load-method load-method-on" : "load-method"}>
           <input type="radio" name="yontem" value="hesap" checked={method === "hesap"} onChange={() => setMethod("hesap")} />
           <span className="load-method-mark" aria-hidden>
-            ₺
+            $
           </span>
           <span>
             <span className="block text-sm font-semibold">Ana bakiye</span>
             <span className="block text-xs text-white/55">
-              {kripicard ? "Hesaptan düşer. Kripicard yüklemesinde komisyon yok. En az 10 USD." : `Hesaptan düşer. Göndermeden önce %${percent} kesilir.`}
+              {`Karta ${formatTL(gross)} yazılır. Üzerine %${percent} (${formatTL(rateFee)}) ve işlem ${formatTL(processing)} eklenir. Hesaptan ${formatTL(due)} düşer.`}
             </span>
           </span>
         </label>
@@ -117,22 +118,22 @@ export function FundForm({ cardId, balance, userId, kripicard = false }: { cardI
         <div className="grid gap-2">
           <p className="text-xs text-white/70">
             {kripicard
-              ? "Göndermeden önce: Kripicard yüklemesi en az 10 USD. Yerel yükleme komisyonu kesilmez. Tutar sağlayıcıya gider, hesaptan kur karşılığı düşer."
-              : `Göndermeden önce: ana bakiyeden ayrılan tutarın %${percent} kadarı yükleme komisyonu olarak kesilir. Kalan, kartın kullanılabilir bakiyesine yazılır.`}
+              ? `Göndermeden önce: Kripicard yüklemesi en az 10 USD. Karta yazılan tutarın üzerine %${percent} fonlama ve 1,12 USD işlem ücreti eklenir.`
+              : `Göndermeden önce: karta yazılan tutarın üzerine %${percent} fonlama ve 1,12 USD işlem ücreti eklenir.`}
           </p>
           {gross > 0 && (
             <div className="transfer-split">
               <span>
                 <small>Hesaptan</small>
-                {formatTL(gross)}
+                {formatTL(due)}
               </span>
               <span>
-                <small>Kesinti %{percent}</small>
-                {formatTL(commission)}
+                <small>Fonlama %{percent}</small>
+                {formatTL(rateFee)}
               </span>
               <span>
                 <small>Karta</small>
-                {formatTL(net)}
+                {formatTL(gross)}
               </span>
             </div>
           )}
@@ -144,7 +145,7 @@ export function FundForm({ cardId, balance, userId, kripicard = false }: { cardI
       )}
       {error && <p className="banner-bad">{error}</p>}
       {method === "hesap" ? (
-        <SubmitButton className="btn btn-gold w-fit">{ready ? `${formatTL(gross)} düşür` : "Hesaptan karta yükle"}</SubmitButton>
+        <SubmitButton className="btn btn-gold w-fit">{ready ? `${formatTL(due)} düşür` : "Hesaptan karta yükle"}</SubmitButton>
       ) : (
         <button className="btn btn-gold w-fit" type="submit" disabled={pending}>
           {pending ? "Ödeme sayfası açılıyor" : "Heleket ile yükle"}

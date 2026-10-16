@@ -3,7 +3,7 @@ import { formatTL } from "@/lib/format";
 function axisMoney(kurus: number): string {
   const lira = kurus / 100;
   if (Math.abs(lira) >= 1000) {
-    return `₺${new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 }).format(lira)}`;
+    return `$${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(lira)}`;
   }
   return formatTL(kurus);
 }

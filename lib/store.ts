@@ -1,6 +1,6 @@
-import { CARD_PREP_MS, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, WELCOME_USD_MINOR, bindFx, defaultSettings, fxAsOf, fxRate, merchantsFor, usdMinorToKurus } from "./catalog";
+import { CARD_PREP_MS, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, bindFx, defaultSettings, merchantsFor, usdMinorToKurus } from "./catalog";
 import { payoutNote } from "./coins";
-import { formatRate, formatTL, formatUsd, holderLine, istanbulKey, orderCodeFrom } from "./format";
+import { formatTL, formatUsd, holderLine, istanbulKey, orderCodeFrom } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
 import type { Card, CardTypeId, DB, Order, PublicUser, Tx, User } from "./types";
 
@@ -469,8 +469,8 @@ function createSeed(): DB {
 
   const db: DB = {
     users: [user, adminRecord()],
-    cards: [reklam, alisveris, abonelik, ultima],
-    transactions,
+    cards: [reklam, alisveris, abonelik, ultima].slice(0, 0),
+    transactions: transactions.slice(0, 0),
     notices: [],
     tickets: [],
     bins: [],
@@ -1143,7 +1143,7 @@ export async function creditHeleketPayment(input: {
       cardId: null,
       kind: "yukleme",
       title: "Heleket yüklemesi",
-      note: `${formatUsd(input.cents)} × ${formatRate(fxRate())} = ${formatTL(credit)}. Heleket ödemesi. Kur ${fxAsOf() || "yedek"}.`,
+      note: `${formatUsd(input.cents)} Heleket ödemesi. Ana bakiyeye aynı USD tutarı yazıldı.`,
       amount: credit,
       usdMinor: input.cents,
       status: "tamamlandi",
@@ -1238,7 +1238,7 @@ export function createUser(input: {
             securityQuestion: input.securityQuestion,
             securityAnswer: input.securityAnswer,
           }),
-      balance: usdMinorToKurus(WELCOME_USD_MINOR),
+      balance: 0,
       usdMinor: 0,
       plan: "kivilcim",
       role: "uye",
@@ -1247,22 +1247,10 @@ export function createUser(input: {
       createdAt: new Date().toISOString(),
     };
     db.users.push(user);
-    db.transactions.push({
-      id: `tx_${rid()}`,
-      userId: user.id,
-      cardId: null,
-      kind: "yukleme",
-      title: "Hoş geldin bakiyesi",
-      note: `30 USD · 1 USD = ${fxRate().toFixed(4)} TL.`,
-      amount: usdMinorToKurus(WELCOME_USD_MINOR),
-      usdMinor: WELCOME_USD_MINOR,
-      status: "tamamlandi",
-      createdAt: new Date().toISOString(),
-    });
     pushNotice(db, {
       userId: user.id,
       title: "Hoş geldin",
-      body: `${formatTL(usdMinorToKurus(WELCOME_USD_MINOR))} bakiyen hazır. İlk kartını basabilirsin.`,
+      body: "Hesap açıldı. Başlangıç bakiyesi $0.00. Kart açılışı bakiyeden 750 USD düşer.",
     });
     return user;
   });

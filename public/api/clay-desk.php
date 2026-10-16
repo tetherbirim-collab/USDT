@@ -71,7 +71,7 @@ function clay_tx_find(array $db, string $id): int
 
 function clay_parse_tl(string $text): ?int
 {
-    if (!preg_match("/₺\\s*(-?)([0-9.]+),([0-9]{2})/u", $text, $match)) {
+    if (!preg_match("/(?:₺|\\$)\\s*(-?)([0-9.]+),([0-9]{2})/u", $text, $match)) {
         return null;
     }
     $kurus = ((int) str_replace(".", "", $match[2])) * 100 + (int) $match[3];
@@ -152,7 +152,7 @@ function clay_tx_undo(array &$db, int $txIndex): string
     if ($kind === "yukleme" && $cardIndex >= 0 && $amount < 0) {
         $gross = abs($amount);
         $net = null;
-        if (preg_match("/Karta\\s+(₺\\s*-?[0-9.,]+)/u", (string) ($tx["note"] ?? ""), $match)) {
+        if (preg_match("/Karta\\s+((?:₺|\\$)\\s*-?[0-9.,]+)/u", (string) ($tx["note"] ?? ""), $match)) {
             $net = clay_parse_tl($match[1]);
         }
         if ($net === null || $net < 1 || $net > $gross) {

@@ -25,7 +25,7 @@ export default function AdminFeesPage() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">ÜCRETLER</p>
         <h1 className="font-display text-4xl font-extrabold">Ücretler</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Kart bedeli lira olarak yazılır. Yükleme ve aktarım yüzde olarak yazılır. Ana bakiyeye Heleket yüklemesinde bu kesintiler yoktur.
+          Kart bedeli ABD doları olarak yazılır. Yükleme ve aktarım yüzde olarak yazılır. Ana bakiyeye Heleket yüklemesinde bu kesintiler yoktur.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} text={query.get("metin") || undefined} />
@@ -36,7 +36,7 @@ export default function AdminFeesPage() {
       </form>
       <form action={adminFeesAction} className="glass grid gap-3 rounded-[28px] p-5">
         <label className="grid gap-1 text-sm">
-          Kart bedeli (₺)
+          Kart bedeli (USD)
           <input className="field" name="bedel" inputMode="decimal" required defaultValue={major(settings.issueFeeKurus)} />
         </label>
         <label className="grid gap-1 text-sm">

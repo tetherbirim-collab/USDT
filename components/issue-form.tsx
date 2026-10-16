@@ -196,12 +196,12 @@ export function IssueForm({
               <div>
                 <p className="text-xs font-bold tracking-[0.18em] text-gold">BIN SEÇ</p>
                 <p className="mt-2 text-sm text-white/65">
-                  Yönetim masasının bu türe eklediği satırlar. Satın alırken kalan haneler X durur. Örnek: 42330 seçilirse önizleme 4233 0XXX XXXX XXXX olur.
+                  Hizmet listesi, yönetimin yazdığı BIN satırlarıdır. Kripicard API sayısal BIN kataloğu yayımlamaz. Önizleme X ile durur; numara sağlayıcıdan gelmeden yazılmaz.
                 </p>
               </div>
               {choices.length === 0 ? (
                 <p className="rounded-2xl bg-black/30 px-3 py-3 text-sm text-white/75">
-                  Bu türün listesinde satır yok. Yönetim masası bir satır ekleyince burada görünür.
+                  Bu türde yayımlanmış BIN yok. Kripicard sayısal liste vermez. Yönetim bir BIN yazınca burada görünür.
                 </p>
               ) : (
                 <fieldset className="grid gap-2">
@@ -250,8 +250,8 @@ export function IssueForm({
         />
         <p className="mt-3 text-sm text-white/60">
           {chosen
-            ? `${networkName} işareti bu BIN’e göre durur. Satın alınca X’lerin yerine 16 hane yazılır.`
-            : "BIN seçilince önek kalır, kalan haneler X olur. Satın alınca numara açılır."}
+            ? `${networkName} işareti bu BIN’e göre durur. Numara Kripicard döndürürse açılır. Yerel numara üretilmez.`
+            : "BIN seçilince önizleme X ile durur. Numara sağlayıcıdan gelmeden yazılmaz."}
         </p>
       </div>
     </form>

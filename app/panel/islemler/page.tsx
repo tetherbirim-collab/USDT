@@ -59,7 +59,7 @@ function downloadCsv(userId: string, query: PaymentQuery) {
 function downloadXlsx(userId: string, query: PaymentQuery) {
   const cards = new Map(listCards(userId).map((card) => [card.id, card]));
   const rows = [
-    ["Tarih", "Kart", "Son dört", "Ödeme", "TL karşılığı", "Durum", "Not"],
+    ["Tarih", "Kart", "Son dört", "Ödeme", "USD", "Durum", "Not"],
     ...filterLedger(listTransactions(userId), query).map((entry) => {
       const card = entry.cardId ? cards.get(entry.cardId) : undefined;
       return [

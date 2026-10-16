@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { ClayLoadArt, CoinLogo, HeleketMark } from "@/components/pay-marks";
 import { Notice } from "@/components/notice";
-import { MAX_USD_MINOR, MIN_USD_MINOR, fxAsOf, fxRate, noticeText, usdMinorToKurus } from "@/lib/catalog";
+import { MAX_USD_MINOR, MIN_USD_MINOR, noticeText, usdMinorToKurus } from "@/lib/catalog";
 import { PAYOUT_COINS, payoutCoinName } from "@/lib/coins";
-import { formatRate, formatSigned, formatTL, formatUsd, formatWhen, parseTryToKurus } from "@/lib/format";
+import { formatSigned, formatTL, formatUsd, formatWhen, parseTryToKurus } from "@/lib/format";
 import { withdrawAction } from "@/lib/actions";
 import { openHeleketPayment, readHeleketPayment } from "@/lib/heleket";
 import { Boot, useQuery, useUser } from "@/lib/live";
@@ -137,7 +137,7 @@ export default function TopupPage() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">PARA YATIR/ÇEK</p>
         <h1 className="font-display text-4xl font-extrabold">Para Yatır/Çek</h1>
         <p className="mt-2 max-w-xl text-white/70">
-          Ana bakiyede {formatTL(user.balance)} durur. Crypto yüklemesine komisyon yok. 1 USD = {formatRate(fxRate())} TL · {fxAsOf() ? formatWhen(fxAsOf()) : "yedek kur"}.
+          Ana bakiyede {formatTL(user.balance)} durur. Heleket yüklemesi aynı USD tutarını yazar. Kur çevrimi yoktur.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
@@ -151,7 +151,7 @@ export default function TopupPage() {
         <div className="wallet-copy">
           <p className="text-xs font-bold tracking-[0.18em] text-gold">CRYPTO İLE YÜKLE</p>
           <h2 className="font-display mt-1 text-3xl font-extrabold">Heleket</h2>
-          <p className="mt-2 text-sm text-white/70">Komisyon yok. Yazdığın tutar ABD dolarıdır. Onaylanınca canlı kurun TL karşılığı ana bakiyeye yazılır.</p>
+          <p className="mt-2 text-sm text-white/70">Cüzdan yüklemesinde komisyon yok. Yazdığın tutar ABD dolarıdır ve onaylanınca aynı tutar bakiyeye yazılır.</p>
           <HeleketMark />
           <label className="money-field">
             <span className="money-kicker">Ödeme yapmak istediğin tutar (USD)</span>
@@ -170,9 +170,7 @@ export default function TopupPage() {
               <span className="money-code">USD</span>
             </span>
             <span className="money-hint">
-              {ready && cents !== null
-                ? `${formatUsd(cents)} = ${formatTL(usdMinorToKurus(cents))}`
-                : `1 USD = ${formatRate(fxRate())} TL · ${fxAsOf() ? formatWhen(fxAsOf()) : "yedek kur"}`}
+              {ready && cents !== null ? `${formatUsd(cents)} ana bakiyeye yazılır` : "Tutar ABD dolarıdır"}
             </span>
           </label>
           <button className="btn btn-gold w-fit" type="submit" disabled={pending}>
@@ -192,21 +190,21 @@ export default function TopupPage() {
             Tutar beklemeye alınır. Yönetim Heleket ile gönderir; anahtar yoksa talep bekler ve zincire çıkmaz. En az {formatTL(floor)}.
           </p>
           <label className="money-field">
-            <span className="money-kicker">Tutar (TL)</span>
+            <span className="money-kicker">Tutar (USD)</span>
             <span className="money-row">
               <span className="money-unit" aria-hidden>
-                ₺
+                $
               </span>
               <input
                 name="tutar"
                 inputMode="decimal"
-                placeholder="500"
-                aria-label="Çekmek istediğin tutar, Türk lirası"
+                placeholder="50"
+                aria-label="Çekmek istediğin tutar, ABD doları"
                 required
                 value={drawAmount}
                 onChange={(event) => setDrawAmount(event.target.value)}
               />
-              <span className="money-code">TL</span>
+              <span className="money-code">USD</span>
             </span>
             <span className="money-hint">
               {drawKurus !== null && drawKurus > 0 ? `Çekilecek ${formatTL(drawKurus)}` : `Ana bakiye ${formatTL(user.balance)}`}

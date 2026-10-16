@@ -28,7 +28,7 @@ import { COPY, COPY_KEYS } from "./copy";
 import { createUser, findUserById, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, pushNotice, readSettings, remoteCall, usingRemoteLedger } from "./store";
 import type { DB, User, Card } from "./types";
 
-export type FormState = { error: string };
+export type FormState = { error: string; legacy?: boolean };
 
 function rid() {
   return globalThis.crypto.randomUUID();
@@ -97,11 +97,12 @@ function passwordPair(password: string, again: string): string | null {
 export async function registerAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const username = parseUsername(String(formData.get("kullanici") || ""));
   const password = String(formData.get("parola") || "");
+  const again = String(formData.get("parola2") || "");
   const seed = foldSeed(String(formData.get("tohum") || ""));
   if (!username) return { error: "Kullanıcı adı 2–24 karakter olmalı. Yalnızca harf, rakam ve alt çizgi yaz." };
-  if (!/^\d{8}$/.test(password)) return { error: "Parola 8 haneli rakam olmalı." };
+  if (!/^\d{8}$/.test(password) || password !== again) return { error: "Parola 8 haneli rakam olmalı ve iki kutu aynı olmalı." };
   if (!seedPhraseOk(seed)) return { error: "Tohum 8 ile 16 kelime olmalı." };
-  const remote = await remoteCall("register", { kullanici: username, parola: password, tohum: seed });
+  const remote = await remoteCall("register", { kullanici: username, parola: password, parola2: again, tohum: seed });
   if (remote) {
     if (remote.code === "ok") {
       const me = getCurrentUser();
@@ -109,7 +110,7 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
       return go("/panel?bildirim=hosgeldin");
     }
     if (remote.code === "e-kullanici") return { error: "Kullanıcı adı 2–24 karakter olmalı. Yalnızca harf, rakam ve alt çizgi yaz." };
-    if (remote.code === "e-parola") return { error: "Parola 8 haneli rakam olmalı." };
+    if (remote.code === "e-parola") return { error: "Parola 8 haneli rakam olmalı ve iki kutu aynı olmalı." };
     if (remote.code === "e-tohum") return { error: "Tohum 8 ile 16 kelime olmalı." };
     if (remote.code === "e-var") return { error: "Bu kullanıcı adı zaten var. Sayfayı yenileyip yeniden dene." };
     return { error: "Kayıt yazılamadı. Sayfayı yenile." };
@@ -142,7 +143,7 @@ export async function seedLoginAction(_prev: FormState, formData: FormData): Pro
     if (remote.code === "e-askida") return { error: "Bu hesap askıya alındı. Giriş kapalı." };
     if (remote.code === "e-kullanici") return { error: "Kullanıcı adını yaz." };
     if (remote.code === "e-tohum") return { error: "Tohum 8 ile 16 kelime olmalı." };
-    if (remote.code === "e-tohum-yok") return { error: "Bu hesap tohumla açılmadı. Aşağıdan güvenlik sorusuyla yeni parola belirle." };
+    if (remote.code === "e-tohum-yok") return { error: "Bu hesapta tohum yok. Eski hesap formu açıldı.", legacy: true };
     return { error: "Kullanıcı adı veya tohum hatalı." };
   }
   const username = parseUsername(String(formData.get("kullanici") || ""));
@@ -154,7 +155,7 @@ export async function seedLoginAction(_prev: FormState, formData: FormData): Pro
   if (user.status === "askida") return { error: "Bu hesap askıya alındı. Giriş kapalı." };
   if (!user.seedHash || !user.seedSalt) {
     if (user.securityQuestion && user.securityAnswer) {
-      return { error: "Bu hesap tohumla açılmadı. Aşağıdan güvenlik sorusuyla yeni parola belirle." };
+      return { error: "Bu hesapta tohum yok. Eski hesap formu açıldı.", legacy: true };
     }
     return { error: "Kullanıcı adı veya tohum hatalı." };
   }

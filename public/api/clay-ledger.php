@@ -1429,7 +1429,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             "createdAt" => clay_now(),
         ];
         if (clay_in($in, "tohum") !== "") {
-            if (!preg_match("/^\\d{8}$/", $password)) {
+            if (!preg_match("/^\\d{8}$/", $password) || $password !== $again) {
                 return clay_fail("e-parola");
             }
             if ($seed === null) {

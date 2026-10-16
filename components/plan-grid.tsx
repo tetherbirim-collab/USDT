@@ -30,15 +30,20 @@ export function PlanGrid() {
           const featured = id === "atolye";
           return (
             <article key={id} className={`pkg-card${featured ? " pkg-card-on" : ""}`}>
-              <p className="pkg-kicker">{featured ? "ÖNE ÇIKAN" : "PAKET"}</p>
+              <div className="pkg-top">
+                <p className="pkg-kicker">{featured ? "Öne çıkan" : "Paket"}</p>
+                <p className="pkg-limit">{plan.cardLimit} kart</p>
+              </div>
               <h3 className="pkg-name">{PACKAGE_NAME[id]}</h3>
               <p className="pkg-metal">{plan.name}</p>
-              <p className="pkg-price">
-                {plan.priceUsdMinor / 100} <span>USD</span>
-              </p>
-              <p className="pkg-sub">{formatTL(usdMinorToKurus(plan.priceUsdMinor))} · ay</p>
+              <div className="pkg-price-block">
+                <p className="pkg-price">
+                  {plan.priceUsdMinor / 100} <span>USD</span>
+                </p>
+                <p className="pkg-sub">{formatTL(usdMinorToKurus(plan.priceUsdMinor))} · ay</p>
+              </div>
               <FeeRows lines={packageLines(settings, plan)} withNotes={false} />
-              <Link href="/kayit" className="btn btn-gold mt-5 w-full">
+              <Link href="/kayit" className="btn btn-gold pkg-cta w-full">
                 Hesap aç
               </Link>
             </article>

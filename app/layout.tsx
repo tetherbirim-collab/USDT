@@ -39,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         {children}
         <TelegramButton />
+        <link rel="stylesheet" href="/glass.css" />
         </ChromeProvider>
       </body>
     </html>

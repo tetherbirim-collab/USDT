@@ -10,6 +10,7 @@ import { TrustLine } from "./trust-line";
 import { formatTL } from "@/lib/format";
 import { makeCvv, makePan } from "@/lib/pan";
 import type { CardTypeId } from "@/lib/types";
+import { CoinYard } from "./coin-yard";
 import { Mark, Wordmark } from "./mark";
 import { TiltCard } from "./tilt-card";
 import { VirtualCard } from "./virtual-card";
@@ -198,6 +199,7 @@ export function Marketing({
       <AnnounceBar />
 
       <LaunchRail />
+      <CoinYard />
 
       <main>
         <section className="mx-auto max-w-6xl px-4 pb-8 pt-10">
@@ -205,10 +207,10 @@ export function Marketing({
             <div className="hero-mark">
               <img className="hero-still" src="/clay-hero.png" alt="" width={420} height={420} />
               <img className="hero-motion" src="/clay-hero.gif" alt="CLAY Virtual Card, sanal kart hizmeti" width={420} height={420} />
+              <p className="hero-word" aria-hidden>
+                CLAY
+              </p>
             </div>
-            <p className="hero-word" aria-hidden>
-              CLAY
-            </p>
             <EntranceDeck />
           </div>
           <div className="mx-auto mt-8 max-w-2xl text-center">

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CardActions } from "@/components/card-actions";
+import { CrestBanner } from "@/components/crest-banner";
 import { CardMenu } from "@/components/card-menu";
 import { CardSecrets } from "@/components/card-secrets";
 import { TransferForm } from "@/components/transfer-form";
@@ -61,14 +62,19 @@ export default function CardsPage() {
           Kart bas
         </Link>
       </div>
+      <CrestBanner />
       <div className="mission-pair">
         <article className="mission-card">
-          <p className="mission-kicker">Misyon</p>
-          <p className="mission-line">KYC’siz, anonim sanal kart. Reklamını bugün aç, harcamayı aynı masadan izle.</p>
+          <p className="mission-kicker">Misyonumuz</p>
+          <p className="mission-line">
+            Kimlik doğrulaması olmaksızın anonim bir sanal kart sunmak. Kart kripto ile fonlanır; bakiye ve kart üyede kalır. Reklam harcaması aynı masadan izlenir. Kayıt tutulmaz.
+          </p>
         </article>
         <article className="mission-card mission-card-quiet">
-          <p className="mission-kicker">Sözümüz</p>
-          <p className="mission-line">Bakiyen ve kartın sende kalır. Kayıt tutulmaz. Tamamen güvenli ve anonim.</p>
+          <p className="mission-kicker">Vizyonumuz</p>
+          <p className="mission-line">
+            Güvenli ve anonim bir kart hizmetini sürdürmek. Üye, kartını ve bakiyesini kendinde tutar. Katılım için banka hesabı bağlamak ya da kimlik belgesi sunmak gerekmez.
+          </p>
         </article>
       </div>
       {query.get("bildirim") === "transfer" && fromCard && toCard && sent && got ? (

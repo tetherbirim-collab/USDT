@@ -312,6 +312,11 @@ function clay_seed_phrase(string $raw): ?string
     return $value;
 }
 
+function clay_password_shape(string $password): bool
+{
+    return (bool) preg_match("/^[A-Za-z0-9]{6,72}$/", $password);
+}
+
 function clay_password_ok(array $user, string $password): bool
 {
     $hash = (string) ($user["passHash"] ?? "");
@@ -1807,7 +1812,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             "createdAt" => clay_now(),
         ];
         if (clay_in($in, "tohum") !== "") {
-            if (!preg_match("/^\\d{8}$/", $password) || $password !== $again) {
+            if (!clay_password_shape($password) || $password !== $again) {
                 return clay_fail("e-parola");
             }
             if ($seed === null) {
@@ -1820,7 +1825,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             $record["seedSalt"] = $seedSalt;
             $record["seedHash"] = clay_digest($seed, $seedSalt);
         } else {
-            if (strlen($password) < 6 || strlen($password) > 72 || $password !== $again) {
+            if (!clay_password_shape($password) || $password !== $again) {
                 return clay_fail("e-parola");
             }
             if (!isset(clay_questions()[$question])) {
@@ -1861,7 +1866,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if (!$username) {
             return clay_fail("e-kullanici");
         }
-        if (strlen($password) < 6 || strlen($password) > 72 || $password !== $again) {
+        if (!clay_password_shape($password) || $password !== $again) {
             return clay_fail("e-parola");
         }
         if (!isset(clay_questions()[$question])) {
@@ -2493,7 +2498,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
     if ($action === "password") {
         $next = clay_in($in, "yeni");
         $again = clay_in($in, "yeni2");
-        if (strlen($next) < 6 || strlen($next) > 72 || $next !== $again) {
+        if (!clay_password_shape($next) || $next !== $again) {
             return clay_fail("e-parola");
         }
         if (!clay_password_ok($db["users"][$userIndex], clay_in($in, "eski"))) {
@@ -2918,7 +2923,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
     if ($action === "admin-password") {
         $next = clay_in($in, "yeni");
         $again = clay_in($in, "yeni2");
-        if (strlen($next) < 6 || strlen($next) > 72 || $next !== $again) {
+        if (!clay_password_shape($next) || $next !== $again) {
             return clay_fail("e-parola");
         }
         if (!clay_password_ok($db["users"][$userIndex], clay_in($in, "eski"))) {

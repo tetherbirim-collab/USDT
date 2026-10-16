@@ -26,7 +26,7 @@ import { foldAnswer, formatTL, formatUsd, holderLine, istanbulInputToIso, parseS
 import { payoutCoin, payoutNote } from "./coins";
 import { digestSecret, foldSeed, passwordOk, randomSalt, seedOk, seedPhraseOk } from "./secrets";
 import { COPY, COPY_KEYS } from "./copy";
-import { createUser, findUserById, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, pushNotice, readSettings, remoteCall, usingRemoteLedger } from "./store";
+import { createUser, findUserById, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, passwordShapeOk, pushNotice, readSettings, remoteCall, usingRemoteLedger } from "./store";
 import type { DB, User, Card } from "./types";
 
 export type FormState = { error: string; legacy?: boolean };
@@ -92,10 +92,10 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
   return go(deskPath(user.role));
 }
 
+const PASSWORD_RULE = "Parola en az 6 karakter olmalı. Harf ve rakam yazılır. İki kutu aynı olmalı.";
+
 function passwordPair(password: string, again: string): string | null {
-  if (password.length < 6 || password.length > 72 || password !== again) {
-    return "Parola 6–72 karakter olmalı ve iki kutu aynı olmalı.";
-  }
+  if (!passwordShapeOk(password) || password !== again) return PASSWORD_RULE;
   return null;
 }
 
@@ -105,7 +105,8 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
   const again = String(formData.get("parola2") || "");
   const seed = foldSeed(String(formData.get("tohum") || ""));
   if (!username) return { error: "Kullanıcı adı 2–24 karakter olmalı. Yalnızca harf, rakam ve alt çizgi yaz." };
-  if (!/^\d{8}$/.test(password) || password !== again) return { error: "Parola 8 haneli rakam olmalı ve iki kutu aynı olmalı." };
+  const pair = passwordPair(password, again);
+  if (pair) return { error: pair };
   if (!seedPhraseOk(seed)) return { error: "Tohum 8 ile 16 kelime olmalı." };
   const remote = await remoteCall("register", { kullanici: username, parola: password, parola2: again, tohum: seed });
   if (remote) {
@@ -115,7 +116,7 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
       return go("/panel?bildirim=hosgeldin");
     }
     if (remote.code === "e-kullanici") return { error: "Kullanıcı adı 2–24 karakter olmalı. Yalnızca harf, rakam ve alt çizgi yaz." };
-    if (remote.code === "e-parola") return { error: "Parola 8 haneli rakam olmalı ve iki kutu aynı olmalı." };
+    if (remote.code === "e-parola") return { error: PASSWORD_RULE };
     if (remote.code === "e-tohum") return { error: "Tohum 8 ile 16 kelime olmalı." };
     if (remote.code === "e-var") return { error: "Bu kullanıcı adı zaten var. Sayfayı yenileyip yeniden dene." };
     return { error: "Kayıt yazılamadı. Sayfayı yenile." };
@@ -184,7 +185,7 @@ export async function resetPasswordAction(_prev: FormState, formData: FormData):
       return go("/panel?bildirim=sifre");
     }
     if (remote.code === "e-kullanici") return { error: "Kullanıcı adını yaz. 2–24 karakter, harf, rakam ve alt çizgi." };
-    if (remote.code === "e-parola") return { error: pair || "Parola 6–72 karakter olmalı ve iki kutu aynı olmalı." };
+    if (remote.code === "e-parola") return { error: PASSWORD_RULE };
     if (remote.code === "e-soru") return { error: "Güvenlik sorusunu listeden seç." };
     if (remote.code === "e-cevap") return { error: "Güvenlik yanıtını yaz." };
     if (remote.code === "e-sorusuz") return { error: "Bu hesapta güvenlik sorusu yok. Giriş yapıp Hesap sayfasından kaydet." };
@@ -1270,7 +1271,7 @@ export async function adminPasswordAction(formData: FormData) {
   const current = String(formData.get("eski") || "");
   const next = String(formData.get("yeni") || "");
   const again = String(formData.get("yeni2") || "");
-  if (next.length < 6 || next.length > 72 || next !== again) return bounce("/clayadm!nxx/hesap", "e-parola");
+  if (!passwordShapeOk(next) || next !== again) return bounce("/clayadm!nxx/hesap", "e-parola");
   const remote = await remoteCall("admin-password", pack(formData, ["eski", "yeni", "yeni2"]));
   if (remote) return bounce("/clayadm!nxx/hesap", remote.code);
   const known = findUserById(user.id);
@@ -1369,7 +1370,7 @@ export async function passwordChangeAction(formData: FormData) {
   const current = String(formData.get("eski") || "");
   const next = String(formData.get("yeni") || "");
   const again = String(formData.get("yeni2") || "");
-  if (next.length < 6 || next.length > 72 || next !== again) return bounce("/panel/hesap", "e-parola");
+  if (!passwordShapeOk(next) || next !== again) return bounce("/panel/hesap", "e-parola");
   const remote = await remoteCall("password", pack(formData, ["eski", "yeni", "yeni2"]));
   if (remote) return bounce("/panel/hesap", remote.code);
   const known = findUserById(user.id);

@@ -91,7 +91,7 @@ export const COPY: Record<CopyKey, { group: string; label: string; fallback: str
   step1Text: {
     group: "Ana sayfa",
     label: "Adım 1 yazı",
-    fallback: "Kullanıcı adını ve 8 haneli parolanı iki kez yazarsın. Tohum bir kez verilir. Kimlik belgesi istenmez.",
+    fallback: "Kullanıcı adını ve parolanı iki kez yazarsın. Parola en az 6 karakterdir, harf ve rakam yazılır. Tohum bir kez verilir. Kimlik belgesi istenmez.",
     max: 180,
   },
   step2Title: { group: "Ana sayfa", label: "Adım 2 başlık", fallback: "Bakiye yükle", max: 40 },

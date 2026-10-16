@@ -137,13 +137,12 @@ export function RegisterForm() {
           className="auth-field"
           name="parola"
           type="password"
-          inputMode="numeric"
           autoComplete="new-password"
-          placeholder="8 rakam"
+          placeholder="En az 6 karakter, harf ve rakam"
           required
-          minLength={8}
-          maxLength={8}
-          pattern="[0-9]{8}"
+          minLength={6}
+          maxLength={72}
+          pattern="[A-Za-z0-9]{6,72}"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />
@@ -154,13 +153,12 @@ export function RegisterForm() {
           className="auth-field"
           name="parola2"
           type="password"
-          inputMode="numeric"
           autoComplete="new-password"
-          placeholder="8 rakam"
+          placeholder="En az 6 karakter, harf ve rakam"
           required
-          minLength={8}
-          maxLength={8}
-          pattern="[0-9]{8}"
+          minLength={6}
+          maxLength={72}
+          pattern="[A-Za-z0-9]{6,72}"
         />
       </label>
       <div className="seed-block">
@@ -271,11 +269,11 @@ export function ResetForm({ username = "" }: { username?: string }) {
       <QuestionFields />
       <label className="auth-label">
         Yeni parola
-        <input className="auth-field" name="parola" type="password" autoComplete="new-password" required minLength={6} maxLength={72} />
+        <input className="auth-field" name="parola" type="password" autoComplete="new-password" placeholder="En az 6 karakter, harf ve rakam" required minLength={6} maxLength={72} pattern="[A-Za-z0-9]{6,72}" />
       </label>
       <label className="auth-label">
         Yeni parolayı yeniden yaz
-        <input className="auth-field" name="parola2" type="password" autoComplete="new-password" required minLength={6} maxLength={72} />
+        <input className="auth-field" name="parola2" type="password" autoComplete="new-password" placeholder="En az 6 karakter, harf ve rakam" required minLength={6} maxLength={72} pattern="[A-Za-z0-9]{6,72}" />
       </label>
       {state.error && <p className="banner-bad">{state.error}</p>}
       <button className="auth-primary mt-1" type="submit" disabled={pending}>

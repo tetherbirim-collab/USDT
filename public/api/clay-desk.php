@@ -275,12 +275,7 @@ function clay_desk_act(array &$db, ?array $me, string $action, array $in): ?arra
         if ($index < 0 || ($db["users"][$index]["role"] ?? "") !== "uye") {
             return clay_fail("e-yok");
         }
-        $seeded = (string) ($db["users"][$index]["seedHash"] ?? "") !== "";
-        if ($seeded) {
-            if (!preg_match("/^\\d{8}$/", $password) || $password !== $again) {
-                return clay_fail("e-parola");
-            }
-        } elseif (strlen($password) < 6 || strlen($password) > 72 || $password !== $again) {
+        if (!clay_password_shape($password) || $password !== $again) {
             return clay_fail("e-parola");
         }
         $salt = bin2hex(random_bytes(16));

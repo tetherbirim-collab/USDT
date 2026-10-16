@@ -315,7 +315,7 @@ export const NOTICES: Record<string, string> = {
   telegram: "Telegram kaydı güncellendi. Sağ alttaki düğme bu hesaba gider.",
   "e-telegram": "Telegram adı 5–32 karakter olmalı ve bir harfle başlamalı.",
   "e-ayar": "Bu ayar izin verilen aralığın dışında.",
-  "e-parola": "Parola 6–72 karakter olmalı ve iki kutu aynı olmalı.",
+  "e-parola": "Parola en az 6 karakter olmalı. Harf ve rakam yazılır. İki kutu aynı olmalı.",
   "e-soru": "Güvenlik sorusunu listeden seç.",
   "e-cevap": "Güvenlik yanıtı en az 2 karakter olmalı.",
   "e-eslesmedi": "Kullanıcı adı, soru veya yanıt hatalı.",

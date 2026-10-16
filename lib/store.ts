@@ -1186,6 +1186,11 @@ export function parseUsername(raw: string): string | null {
   return username;
 }
 
+/** Signup and password changes. Letters and digits, at least 6. Existing logins are not re-shaped. */
+export function passwordShapeOk(password: string): boolean {
+  return /^[A-Za-z0-9]{6,72}$/.test(password);
+}
+
 export function parseAddress(raw: string): string | null {
   const address = raw.replace(/\s+/g, " ").trim();
   if (address.length === 0) return "";

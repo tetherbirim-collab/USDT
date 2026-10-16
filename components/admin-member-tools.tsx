@@ -5,19 +5,19 @@ import { adminAssignPlanAction, adminCardAction, adminCloseCardAction, adminIssu
 import { CARD_TYPE_ORDER, CARD_TYPES } from "@/lib/catalog";
 import type { BinRow, Card, CardStatus, PlanId } from "@/lib/types";
 
-export function AdminPasswordForm({ userId, seeded }: { userId: string; seeded: boolean }) {
+export function AdminPasswordForm({ userId }: { userId: string; seeded?: boolean }) {
   const [state, action] = useActionState(adminMemberPasswordAction, { error: "", once: "" });
   return (
     <form action={action} className="glass grid gap-3 rounded-[28px] p-5">
       <p className="text-xs font-bold tracking-[0.18em] text-gold">PAROLA</p>
       <h2 className="font-display text-2xl font-bold">Parola yaz</h2>
       <p className="text-sm text-white/70">
-        {seeded ? "Bu hesap 8 haneli rakam kullanır. Parola deftere düz yazılmaz. Kaydedince burada bir kez görünür." : "Yeni parola 6–72 karakter. Düz metin olarak saklanmaz."}
+        Yeni parola en az 6 karakter. Harf ve rakam yazılır. Deftere düz yazılmaz. Kaydedince burada bir kez görünür.
       </p>
       <input type="hidden" name="uye" value={userId} />
       <label className="grid gap-1 text-sm">
         Yeni parola
-        <input className="field" name="parola" type="text" required minLength={seeded ? 8 : 6} maxLength={seeded ? 8 : 72} autoComplete="off" />
+        <input className="field" name="parola" type="text" required minLength={6} maxLength={72} pattern="[A-Za-z0-9]{6,72}" autoComplete="off" />
       </label>
       <label className="grid gap-1 text-sm">
         Yeniden

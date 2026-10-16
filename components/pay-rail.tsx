@@ -1,3 +1,6 @@
+"use client";
+
+import { useLayoutEffect, useRef } from "react";
 import { CARD_TYPES } from "@/lib/catalog";
 import type { CardFace, CardTypeId } from "@/lib/types";
 import { VirtualCard } from "./virtual-card";
@@ -13,6 +16,26 @@ const SLIDES: { type: CardTypeId; label: string; caption: string; tail: string; 
   { type: "facebook_ads", label: "Kampanya", caption: "Kampanya kartı", tail: "5520", bin: "530000" },
 ];
 
+const CODE = [
+  "function issue(bytes32 kind, uint256 limit) {",
+  '    require(limit > 0, "LIMIT");',
+  "    Card storage row = desk[id];",
+  "    row.kind = kind;",
+  '    row.holder = "CLAY";',
+  "    row.limit = limit;",
+  "    emit Issued(id, kind);",
+  "    return id;",
+  "}",
+  "function fund(uint256 usd) {",
+  '    require(usd > 0, "ZERO");',
+  "    balance += quote(usd);",
+  "    emit Funded(usd, balance);",
+  "}",
+  "function mask(bytes16 pan) view returns (string) {",
+  '    return "•••• •••• ••••";',
+  "}",
+];
+
 function face(slide: (typeof SLIDES)[number]): CardFace {
   return {
     type: slide.type,
@@ -26,6 +49,12 @@ function face(slide: (typeof SLIDES)[number]): CardFace {
     status: "aktif",
     hideCvv: true,
   };
+}
+
+function codeBlock(index: number): string {
+  const lines: string[] = [];
+  for (let row = 0; row < 28; row += 1) lines.push(CODE[(index + row) % CODE.length]);
+  return `${lines.join("\n")}\n${lines.join("\n")}`;
 }
 
 function Mark({ kind }: { kind: "usdt" | "btc" | "xmr" | "eth" | "ltc" }) {
@@ -87,9 +116,16 @@ const LOGOS = [
 function MarqueeSet({ copy }: { copy: "a" | "b" }) {
   return (
     <ul className="clay-marquee-set" aria-hidden={copy === "b" ? true : undefined}>
-      {SLIDES.map((slide) => (
+      {SLIDES.map((slide, index) => (
         <li key={`${copy}-${slide.type}-${slide.tail}`} className="clay-marquee-item">
-          <VirtualCard card={face(slide)} />
+          <div className="code-card">
+            <div className="code-card-ascii" aria-hidden>
+              <pre>{codeBlock(index + (copy === "b" ? 3 : 0))}</pre>
+            </div>
+            <div className="code-card-face">
+              <VirtualCard card={face(slide)} />
+            </div>
+          </div>
           <p className="clay-marquee-caption">
             <span>{CARD_TYPES[slide.type].name}</span>
             <span>{slide.caption}</span>
@@ -101,10 +137,66 @@ function MarqueeSet({ copy }: { copy: "a" | "b" }) {
 }
 
 export function PayRail() {
+  const stageRef = useRef<HTMLDivElement>(null);
+  const lineRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    const line = lineRef.current;
+    if (!stage || !line) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return;
+
+    let frame = 0;
+    let last = performance.now();
+    let pos = 0;
+    let paused = false;
+    const speed = 72;
+
+    const onEnter = () => {
+      paused = true;
+    };
+    const onLeave = () => {
+      paused = false;
+    };
+    stage.addEventListener("pointerenter", onEnter);
+    stage.addEventListener("pointerleave", onLeave);
+
+    const tick = (now: number) => {
+      const set = line.querySelector<HTMLElement>(".clay-marquee-set");
+      const loop = set?.offsetWidth ?? 0;
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      if (!paused && loop > 0) {
+        pos += speed * dt;
+        if (pos >= loop) pos -= loop;
+        line.style.transform = `translate3d(${pos - loop}px,0,0)`;
+      }
+      const box = stage.getBoundingClientRect();
+      const midL = box.left + box.width / 2;
+      line.querySelectorAll<HTMLElement>(".code-card").forEach((card) => {
+        const ascii = card.querySelector<HTMLElement>(".code-card-ascii");
+        if (!ascii) return;
+        const rect = card.getBoundingClientRect();
+        if (rect.width < 1) return;
+        const clip = Math.max(0, Math.min(1, (midL - rect.left) / rect.width));
+        ascii.style.setProperty("--clip-left", `${(clip * 100).toFixed(2)}%`);
+      });
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+      stage.removeEventListener("pointerenter", onEnter);
+      stage.removeEventListener("pointerleave", onLeave);
+    };
+  }, []);
+
   return (
     <section className="pay-rail" aria-label="CLAY sanal kartlar. Facebook Ads, TikTok, Google Ads ve Ultima kayar.">
-      <div className="pay-rail-stage">
-        <div className="clay-marquee-track">
+      <div className="pay-rail-stage" ref={stageRef}>
+        <div className="pay-rail-scan" aria-hidden />
+        <div className="clay-marquee-track" ref={lineRef}>
           <MarqueeSet copy="a" />
           <MarqueeSet copy="b" />
         </div>

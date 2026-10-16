@@ -110,8 +110,8 @@ export default function AccountPage() {
         <h2 className="account-sheet-title font-display text-2xl font-bold">Parola</h2>
         <p className="text-sm text-white/60">
           {user.hasSeed
-            ? "Yeni parola en az 6 karakter. Düz metin olarak saklanmaz."
-            : "Yeni parola en az 6 karakter. Yönetici masasında düz metin olarak durur."}
+            ? "Yeni parola en az 6 karakter. Harf ve rakam yazılır. Düz metin olarak saklanmaz."
+            : "Yeni parola en az 6 karakter. Harf ve rakam yazılır. Yönetici masasında düz metin olarak durur."}
         </p>
         <label className="grid gap-1 text-sm">
           Mevcut parola
@@ -119,11 +119,11 @@ export default function AccountPage() {
         </label>
         <label className="grid gap-1 text-sm">
           Yeni parola
-          <input className="field" name="yeni" type="password" required minLength={6} maxLength={72} autoComplete="new-password" />
+          <input className="field" name="yeni" type="password" required minLength={6} maxLength={72} pattern="[A-Za-z0-9]{6,72}" autoComplete="new-password" />
         </label>
         <label className="grid gap-1 text-sm">
           Yeni parola tekrar
-          <input className="field" name="yeni2" type="password" required minLength={6} maxLength={72} autoComplete="new-password" />
+          <input className="field" name="yeni2" type="password" required minLength={6} maxLength={72} pattern="[A-Za-z0-9]{6,72}" autoComplete="new-password" />
         </label>
         <button className="btn btn-gold w-fit">Parolayı güncelle</button>
       </form>

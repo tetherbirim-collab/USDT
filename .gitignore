@@ -2,9 +2,8 @@ node_modules
 .next
 out
 .vercel
-data/*.json
-public/api/heleket-payments.json
-public/api/clay-ledger.json
+api/clay-ledger.json
+api/heleket-payments.json
+*.lock
 *.log
 .DS_Store
-tsconfig.tsbuildinfo

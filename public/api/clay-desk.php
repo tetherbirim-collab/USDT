@@ -32,7 +32,7 @@ function clay_purge_closed_card(array &$db, string $cardId): bool
     return true;
 }
 
-function clay_shut_card(array &$db, int $userIndex, int $cardIndex, string $mode): string
+function clay_shut_card(array &$db, int $userIndex, int $cardIndex, string $mode)
 {
     $status = (string) ($db["cards"][$cardIndex]["status"] ?? "");
     if ($mode === "cancel" && $status !== "hazirlaniyor") {
@@ -40,6 +40,27 @@ function clay_shut_card(array &$db, int $userIndex, int $cardIndex, string $mode
     }
     if ($mode === "close" && ($status === "kapali" || $status === "hazirlaniyor")) {
         return "durum";
+    }
+    $card = $db["cards"][$cardIndex];
+    $fee = 0;
+    foreach ($db["transactions"] as $entry) {
+        if (($entry["cardId"] ?? null) === ($card["id"] ?? null) && ($entry["kind"] ?? "") === "basim" && ($entry["status"] ?? "") === "tamamlandi" && ($entry["amount"] ?? 0) < 0) {
+            $fee = -((int) $entry["amount"]);
+            break;
+        }
+    }
+    foreach ($db["transactions"] as $entry) {
+        if (($entry["cardId"] ?? null) === ($card["id"] ?? null) && str_starts_with((string) ($entry["title"] ?? ""), "Basım iadesi")) {
+            $fee = 0;
+            break;
+        }
+    }
+    if ($fee > 0 && (int) $db["users"][$userIndex]["balance"] + $fee > clay_max_balance()) {
+        return "tavan";
+    }
+    $gate = clay_issuer_close($card);
+    if ($gate) {
+        return $gate;
     }
     $refund = clay_refund_fee($db, $userIndex, $db["cards"][$cardIndex]);
     if ($refund === "tavan") {
@@ -372,6 +393,12 @@ function clay_desk_act(array &$db, ?array $me, string $action, array $in): ?arra
             }
             $mode = $status === "hazirlaniyor" ? "cancel" : "close";
             $code = clay_shut_card($db, $userIndex, $i, $mode);
+            if (is_array($code)) {
+                if ($count > 0) {
+                    $code["save"] = true;
+                }
+                return $code;
+            }
             if ($code === "tavan") {
                 return clay_fail("e-tavan");
             }
@@ -414,28 +441,40 @@ function clay_desk_act(array &$db, ?array $me, string $action, array $in): ?arra
                 continue;
             }
             if ($mode === "dondur" && ($db["cards"][$cardIndex]["status"] ?? "") === "aktif") {
-                $gate = clay_issuer_act($db["cards"][$cardIndex], "freeze");
-                if ($gate) {
-                    if ($count > 0) {
-                        $gate["save"] = true;
-                    }
-                    return $gate;
-                }
                 $db["cards"][$cardIndex]["status"] = "donduruldu";
                 clay_notice($db, (string) $db["cards"][$cardIndex]["userId"], "Kart donduruldu", $db["cards"][$cardIndex]["label"] . " donduruldu. Harcama kapalı.");
                 $count++;
                 continue;
             }
             if ($mode === "kapat" && in_array($db["cards"][$cardIndex]["status"] ?? "", ["aktif", "donduruldu"], true)) {
-                if (clay_shut_card($db, $userIndex, $cardIndex, "close") === "tavan") {
+                $code = clay_shut_card($db, $userIndex, $cardIndex, "close");
+                if (is_array($code)) {
+                    if ($count > 0) {
+                        $code["save"] = true;
+                    }
+                    return $code;
+                }
+                if ($code === "tavan") {
                     return clay_fail("e-tavan");
                 }
-                $count++;
+                if ($code === "ok") {
+                    $count++;
+                }
                 continue;
             }
             if ($mode === "iptal" && ($db["cards"][$cardIndex]["status"] ?? "") === "hazirlaniyor") {
-                if (clay_shut_card($db, $userIndex, $cardIndex, "cancel") === "tavan") {
+                $code = clay_shut_card($db, $userIndex, $cardIndex, "cancel");
+                if (is_array($code)) {
+                    if ($count > 0) {
+                        $code["save"] = true;
+                    }
+                    return $code;
+                }
+                if ($code === "tavan") {
                     return clay_fail("e-tavan");
+                }
+                if ($code !== "ok") {
+                    continue;
                 }
                 clay_notice($db, (string) $db["cards"][$cardIndex]["userId"], "Sipariş iptal edildi", $db["cards"][$cardIndex]["label"] . " siparişi iptal edildi. Basım ücreti bakiyeye döndü.");
                 $count++;
@@ -465,6 +504,9 @@ function clay_desk_act(array &$db, ?array $me, string $action, array $in): ?arra
             return clay_fail("e-yok");
         }
         $code = clay_shut_card($db, $userIndex, $cardIndex, "cancel");
+        if (is_array($code)) {
+            return $code;
+        }
         if ($code === "tavan") {
             return clay_fail("e-tavan");
         }

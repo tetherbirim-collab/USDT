@@ -1254,6 +1254,24 @@ function clay_normalize(array &$db): bool
         }
     }
     $db["bins"] = array_values($db["bins"]);
+    foreach (["facebook_ads", "tiktok", "google_ads", "ultima"] as $type) {
+        $found = false;
+        foreach ($db["bins"] as $row) {
+            if (($row["type"] ?? "") === $type && (string) ($row["digits"] ?? "") === "537872") {
+                $found = true;
+                break;
+            }
+        }
+        if (!$found) {
+            $db["bins"][] = [
+                "id" => "bin_537872_" . $type,
+                "type" => $type,
+                "label" => "537872",
+                "digits" => "537872",
+            ];
+            $dirty = true;
+        }
+    }
     foreach ($db["transactions"] as $i => $entry) {
         if (!array_key_exists("usdMinor", $entry)) {
             $db["transactions"][$i]["usdMinor"] = null;
@@ -1696,13 +1714,13 @@ function clay_issuer_id(array $card): string
     return $id;
 }
 
-function clay_issuer_act(array $card, string $action): ?array
+function clay_issuer_close(array $card): ?array
 {
     $id = clay_issuer_id($card);
     if ($id === "") {
         return null;
     }
-    $result = kripicard_freeze($id, $action);
+    $result = kripicard_delete($id);
     if (!$result["ok"]) {
         $code = kripicard_key() === "" ? "e-kripicard-anahtar" : "e-kripicard";
         return clay_fail($code, (string) ($result["message"] ?? ""));
@@ -1729,7 +1747,8 @@ function clay_issue_kripicard(array &$db, int $userIndex, string $type, string $
         return clay_fail("e-bakiye");
     }
     $charged = $fee > 0 && $balance >= $fee ? $fee : 0;
-    $created = kripicard_create($cents / 100, $digits, (string) ($db["users"][$userIndex]["name"] ?? ""));
+    $username = (string) ($db["users"][$userIndex]["username"] ?? "");
+    $created = kripicard_create($cents / 100, $digits, $username, kripicard_email($username));
     if (!$created["ok"]) {
         $code = kripicard_key() === "" ? "e-kripicard-anahtar" : "e-kripicard";
         return clay_fail($code, (string) ($created["message"] ?? ""));
@@ -1742,6 +1761,9 @@ function clay_issue_kripicard(array &$db, int $userIndex, string $type, string $
         $limit = 0;
     }
     $pan = (string) ($created["pan"] ?? "");
+    if ($pan === "" && preg_match("/^\\d{4}$/", (string) ($created["last_4"] ?? ""))) {
+        $pan = (string) $created["last_4"];
+    }
     $db["users"][$userIndex]["balance"] = $balance - $charged;
     $orderCode = clay_order_code($db, $cardId);
     $db["cards"][] = [
@@ -2267,10 +2289,6 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             if ($db["cards"][$cardIndex]["status"] !== "aktif") {
                 return clay_fail("e-durum");
             }
-            $gate = clay_issuer_act($db["cards"][$cardIndex], "freeze");
-            if ($gate) {
-                return $gate;
-            }
             $db["cards"][$cardIndex]["status"] = "donduruldu";
             clay_notice($db, $me["id"], "Kart donduruldu", $db["cards"][$cardIndex]["label"] . " donduruldu. Harcama kapalı. Kartı aktif et dersen yeniden açılır.");
             return clay_ok("donduruldu");
@@ -2278,10 +2296,6 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if ($mode === "coz") {
             if ($db["cards"][$cardIndex]["status"] !== "donduruldu") {
                 return clay_fail("e-durum");
-            }
-            $gate = clay_issuer_act($db["cards"][$cardIndex], "unfreeze");
-            if ($gate) {
-                return $gate;
             }
             $db["cards"][$cardIndex]["status"] = "aktif";
             clay_notice($db, $me["id"], "Kart aktif", $db["cards"][$cardIndex]["label"] . " yeniden açık. Harcama devam edebilir.");
@@ -2305,12 +2319,6 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         }
         if ($db["users"][$userIndex]["balance"] < $fee) {
             return clay_fail("e-bakiye");
-        }
-        if ($status === "donduruldu") {
-            $gate = clay_issuer_act($db["cards"][$cardIndex], "unfreeze");
-            if ($gate) {
-                return $gate;
-            }
         }
         $db["users"][$userIndex]["balance"] -= $fee;
         $db["cards"][$cardIndex]["status"] = "aktif";
@@ -2347,19 +2355,17 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if ($action === "cancel" && $status !== "hazirlaniyor") {
             return clay_fail("e-durum");
         }
-        $refund = clay_refund_fee($db, $userIndex, $db["cards"][$cardIndex]);
-        if ($refund === "tavan") {
+        $code = clay_shut_card($db, $userIndex, $cardIndex, $action === "cancel" ? "cancel" : "close");
+        if (is_array($code)) {
+            return $code;
+        }
+        if ($code === "tavan") {
             return clay_fail("e-tavan");
         }
-        $db["cards"][$cardIndex]["status"] = "kapali";
-        $db["cards"][$cardIndex]["readyAt"] = null;
+        if ($code !== "ok") {
+            return clay_fail("e-durum");
+        }
         if ($action === "cancel") {
-            foreach ($db["orders"] as $n => $order) {
-                if (($order["cardId"] ?? "") === $db["cards"][$cardIndex]["id"]) {
-                    $db["orders"][$n]["status"] = "iptal";
-                    $db["orders"][$n]["readyAt"] = null;
-                }
-            }
             clay_notice($db, $me["id"], "Sipariş iptal edildi", $db["cards"][$cardIndex]["label"] . " siparişi iptal edildi. Basım ücreti bakiyeye döndü.");
             return clay_ok("iptal");
         }
@@ -2787,10 +2793,6 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             if ($db["cards"][$cardIndex]["status"] !== "aktif") {
                 return clay_fail("e-durum");
             }
-            $gate = clay_issuer_act($db["cards"][$cardIndex], "freeze");
-            if ($gate) {
-                return $gate;
-            }
             $db["cards"][$cardIndex]["status"] = "donduruldu";
             clay_notice($db, $db["cards"][$cardIndex]["userId"], "Kart donduruldu", $db["cards"][$cardIndex]["label"] . " donduruldu. Harcama kapalı. Kartı aktif et dersen yeniden açılır.");
             return clay_ok("donduruldu");
@@ -2798,10 +2800,6 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if ($mode === "coz") {
             if ($db["cards"][$cardIndex]["status"] !== "donduruldu") {
                 return clay_fail("e-durum");
-            }
-            $gate = clay_issuer_act($db["cards"][$cardIndex], "unfreeze");
-            if ($gate) {
-                return $gate;
             }
             $db["cards"][$cardIndex]["status"] = "aktif";
             clay_notice($db, $db["cards"][$cardIndex]["userId"], "Kart aktif", $db["cards"][$cardIndex]["label"] . " yeniden açık. Harcama devam edebilir.");
@@ -2947,13 +2945,8 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             return clay_fail("e-limit");
         }
         $was = $db["cards"][$cardIndex]["status"];
-        if ($was !== "donduruldu" && $status === "donduruldu") {
-            $gate = clay_issuer_act($db["cards"][$cardIndex], "freeze");
-            if ($gate) {
-                return $gate;
-            }
-        } elseif ($was === "donduruldu" && $status === "aktif") {
-            $gate = clay_issuer_act($db["cards"][$cardIndex], "unfreeze");
+        if ($was !== "kapali" && $status === "kapali") {
+            $gate = clay_issuer_close($db["cards"][$cardIndex]);
             if ($gate) {
                 return $gate;
             }
@@ -3263,12 +3256,16 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if ($owner < 0 || $status === "kapali" || $status === "hazirlaniyor") {
             return clay_fail("e-durum");
         }
-        $refund = clay_refund_fee($db, $owner, $db["cards"][$cardIndex]);
-        if ($refund === "tavan") {
+        $code = clay_shut_card($db, $owner, $cardIndex, "close");
+        if (is_array($code)) {
+            return $code;
+        }
+        if ($code === "tavan") {
             return clay_fail("e-tavan");
         }
-        $db["cards"][$cardIndex]["status"] = "kapali";
-        $db["cards"][$cardIndex]["readyAt"] = null;
+        if ($code !== "ok") {
+            return clay_fail("e-durum");
+        }
         clay_notice($db, $db["cards"][$cardIndex]["userId"], "Kart kapatıldı", $db["cards"][$cardIndex]["label"] . " yönetim masasında kapatıldı. Basım ücreti bakiyeye geri yazıldı.");
         return clay_ok("kapatildi");
     }

@@ -1,6 +1,8 @@
 import type { CardTypeId, PlanId, SiteSettings, TxKind } from "./types";
 
 export const TEST_BIN = "";
+/** Owner-supplied Kripicard service BIN. The only BIN this site ships. */
+export const SERVICE_BIN = "537872";
 /** How long a new card stays on the order slip before it becomes active. */
 export const CARD_PREP_MS = 15_000;
 

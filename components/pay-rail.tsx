@@ -6,14 +6,14 @@ import type { CardFace, CardTypeId } from "@/lib/types";
 import { VirtualCard } from "./virtual-card";
 
 const SLIDES: { type: CardTypeId; label: string; caption: string; tail: string; bin: string }[] = [
-  { type: "tiktok", label: "Nota akışı", caption: "Nota akış kartı", tail: "6184", bin: "540000" },
-  { type: "google_ads", label: "Kelime vitrini", caption: "Kelime vitrin kartı", tail: "8033", bin: "422222" },
-  { type: "ultima", label: "Gece salonu", caption: "Gece salon kartı", tail: "9166", bin: "433333" },
-  { type: "facebook_ads", label: "Akış kartı", caption: "Akış reklam kartı", tail: "1842", bin: "510000" },
-  { type: "tiktok", label: "Kısa video", caption: "Kısa video kartı", tail: "2907", bin: "520000" },
-  { type: "google_ads", label: "Arama kartı", caption: "Arama reklam kartı", tail: "4418", bin: "400000" },
-  { type: "ultima", label: "Metal kart", caption: "Metal salon kartı", tail: "7731", bin: "411111" },
-  { type: "facebook_ads", label: "Kampanya", caption: "Kampanya kartı", tail: "5520", bin: "530000" },
+  { type: "tiktok", label: "Nota akışı", caption: "Nota akış kartı", tail: "6184", bin: "537872" },
+  { type: "google_ads", label: "Kelime vitrini", caption: "Kelime vitrin kartı", tail: "8033", bin: "537872" },
+  { type: "ultima", label: "Gece salonu", caption: "Gece salon kartı", tail: "9166", bin: "537872" },
+  { type: "facebook_ads", label: "Akış kartı", caption: "Akış reklam kartı", tail: "1842", bin: "537872" },
+  { type: "tiktok", label: "Kısa video", caption: "Kısa video kartı", tail: "2907", bin: "537872" },
+  { type: "google_ads", label: "Arama kartı", caption: "Arama reklam kartı", tail: "4418", bin: "537872" },
+  { type: "ultima", label: "Metal kart", caption: "Metal salon kartı", tail: "7731", bin: "537872" },
+  { type: "facebook_ads", label: "Kampanya", caption: "Kampanya kartı", tail: "5520", bin: "537872" },
 ];
 
 const CODE = [

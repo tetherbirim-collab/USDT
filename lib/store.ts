@@ -1,4 +1,4 @@
-import { CARD_PREP_MS, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, bindFx, defaultSettings, merchantsFor, usdMinorToKurus } from "./catalog";
+import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, SERVICE_BIN, bindFx, defaultSettings, merchantsFor, usdMinorToKurus } from "./catalog";
 import { payoutNote } from "./coins";
 import { formatTL, formatUsd, holderLine, istanbulKey, orderCodeFrom } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
@@ -473,7 +473,12 @@ function createSeed(): DB {
     transactions: transactions.slice(0, 0),
     notices: [],
     tickets: [],
-    bins: [],
+    bins: CARD_TYPE_ORDER.map((type) => ({
+      id: `bin_${SERVICE_BIN}_${type}`,
+      type,
+      label: SERVICE_BIN,
+      digits: SERVICE_BIN,
+    })),
     orders: [],
     payouts: [],
     settings: defaultSettings(),
@@ -999,8 +1004,14 @@ function normalize(db: DB): DB {
   db.cards = db.cards.filter((card) => kept.has(card.type));
   if (db.cards.length !== cardCount) dirty = true;
   const binCount = db.bins.length;
-  db.bins = db.bins.filter((row) => kept.has(row.type));
+  db.bins = db.bins.filter((row) => kept.has(row.type) && row.digits !== "400000" && row.digits !== "411111");
   if (db.bins.length !== binCount) dirty = true;
+  for (const type of CARD_TYPE_ORDER) {
+    if (!db.bins.some((row) => row.type === type && row.digits === SERVICE_BIN)) {
+      db.bins.push({ id: `bin_${SERVICE_BIN}_${type}`, type, label: SERVICE_BIN, digits: SERVICE_BIN });
+      dirty = true;
+    }
+  }
   for (const note of db.notices) {
     if (note.readAt === undefined || (note.readAt !== null && typeof note.readAt !== "string")) {
       note.readAt = null;

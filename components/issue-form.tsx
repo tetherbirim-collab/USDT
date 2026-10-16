@@ -196,12 +196,12 @@ export function IssueForm({
               <div>
                 <p className="text-xs font-bold tracking-[0.18em] text-gold">BIN SEÇ</p>
                 <p className="mt-2 text-sm text-white/65">
-                  Hizmet listesi, yönetimin yazdığı BIN satırlarıdır. Kripicard API sayısal BIN kataloğu yayımlamaz. Önizleme X ile durur; numara sağlayıcıdan gelmeden yazılmaz.
+                  Hizmet BIN’i 537872. Önizleme X ile durur; numara sağlayıcıdan gelmeden yazılmaz.
                 </p>
               </div>
               {choices.length === 0 ? (
                 <p className="rounded-2xl bg-black/30 px-3 py-3 text-sm text-white/75">
-                  Bu türde yayımlanmış BIN yok. Kripicard sayısal liste vermez. Yönetim bir BIN yazınca burada görünür.
+                  Bu türde 537872 satırı yok. Yönetim BIN listesine yazınca burada görünür.
                 </p>
               ) : (
                 <fieldset className="grid gap-2">

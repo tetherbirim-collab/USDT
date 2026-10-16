@@ -7,9 +7,9 @@ export function AdminBins({ bins }: { bins: BinRow[] }) {
     <section id="binler" className="glass rounded-[28px] p-5">
       <h2 className="font-display text-2xl font-bold">BIN listeleri</h2>
       <p className="mt-1 max-w-2xl text-sm text-white/60">
-        Eklediğin satırlar müşterinin kart basarken gördüğü BIN seçenekleridir. 4 ile başlayan satır Visa,
-        5 veya 2 ile başlayan satır Mastercard işareti taşır. Türün listesi tamamen silinirse standart
-        satır 400000 yeniden yazılır.
+        Eklediğin satırlar müşterinin kart basarken gördüğü BIN seçenekleridir. Hizmet BIN’i 537872’dir.
+        4 ile başlayan satır Visa, 5 veya 2 ile başlayan satır Mastercard işareti taşır. Bir türde 537872
+        yoksa o satır yeniden yazılır.
       </p>
       <div className="mt-4 grid gap-4">
         {CARD_TYPE_ORDER.map((type) => {
@@ -19,8 +19,7 @@ export function AdminBins({ bins }: { bins: BinRow[] }) {
               <h3 className="font-display text-xl font-bold">{CARD_TYPES[type].name}</h3>
               {rows.length === 0 ? (
                 <p className="mt-2 text-sm text-white/55">
-                  Bu türde satır kalmamış. Yeni satır eklenince liste yeniden açılır. Tür boş kalırsa Standart
-                  400000 kendiliğinden geri gelir.
+                  Bu türde 537872 satırı yok. Sayfa açılınca hizmet BIN’i yeniden yazılır.
                 </p>
               ) : (
                 <ul className="mt-3 grid gap-2">
@@ -54,7 +53,7 @@ export function AdminBins({ bins }: { bins: BinRow[] }) {
                 </label>
                 <label className="grid gap-1 text-xs">
                   BIN rakamları
-                  <input className="field w-36 font-mono" name="rakam" inputMode="numeric" required pattern="\d{4,8}" placeholder="42330" />
+                  <input className="field w-36 font-mono" name="rakam" inputMode="numeric" required pattern="\d{4,8}" placeholder="537872" />
                 </label>
                 <button className="btn btn-ghost">Ekle</button>
               </form>
@@ -65,10 +64,10 @@ export function AdminBins({ bins }: { bins: BinRow[] }) {
                   <textarea
                     className="field min-h-24 font-mono"
                     name="yigin"
-                    placeholder={"Liste adı 400000\nBaşka etiket|400001"}
+                    placeholder={"537872 537872"}
                   />
                 </label>
-                <p className="text-xs text-white/45">Her satır etiket ve 4–8 rakam. Örnek: Örnek önek 42330. Aynı türde yinelenen rakam atlanır.</p>
+                <p className="text-xs text-white/45">Her satır etiket ve 4–8 rakam. Hizmet BIN’i 537872. Aynı türde yinelenen rakam atlanır.</p>
                 <button className="btn btn-ghost w-fit">Satırları ekle</button>
               </form>
             </article>

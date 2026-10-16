@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { fundCardAction } from "@/lib/actions";
 import { MAX_USD_MINOR, MIN_USD_MINOR, loadFeeAt, noticeText, usdMinorToKurus } from "@/lib/catalog";
-import { formatTL, parseTryToKurus } from "@/lib/format";
+import { formatTL, formatUsd, parseTryToKurus } from "@/lib/format";
 import { openHeleketPayment } from "@/lib/heleket";
 import { useSiteSettings } from "@/lib/live";
+import { HeleketMark } from "./pay-marks";
 import { SubmitButton } from "./submit-button";
 
 export function FundForm({ cardId, balance, userId }: { cardId: string; balance: number; userId: string }) {
@@ -41,7 +42,7 @@ export function FundForm({ cardId, balance, userId }: { cardId: string; balance:
   return (
     <form
       action={method === "hesap" ? fundCardAction : undefined}
-      className="grid gap-2 rounded-[22px] border border-gold/25 bg-black/25 p-3"
+      className="load-desk"
       onSubmit={(event) => {
         if (method !== "heleket") return;
         event.preventDefault();
@@ -49,40 +50,65 @@ export function FundForm({ cardId, balance, userId }: { cardId: string; balance:
       }}
     >
       <input type="hidden" name="id" value={cardId} />
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold">Karta bakiye yükle</p>
-        <span className="text-[11px] font-bold tracking-[0.16em] text-gold">
-          {method === "hesap" ? `%${percent}` : "Komisyon yok"}
+      <div className="load-desk-head">
+        <div>
+          <p className="text-xs font-bold tracking-[0.18em] text-gold">KARTA YÜKLE</p>
+          <p className="font-display text-xl font-bold">Karta bakiye yükle</p>
+        </div>
+        <span className="load-badge">{method === "hesap" ? `%${percent}` : "Komisyon yok"}</span>
+      </div>
+      <div className="load-lane" aria-hidden>
+        <span className="load-pocket">
+          <small>Hesap</small>
+          {formatTL(balance)}
+        </span>
+        <span className="load-track">
+          <span className="load-bead" />
+        </span>
+        <span className="load-pocket load-pocket-card">
+          <small>Kart</small>
+          CLAY
         </span>
       </div>
-      <fieldset className="grid gap-2">
-        <legend className="text-xs font-bold tracking-[0.16em] text-gold">ÖDEME YÖNTEMİ</legend>
-        <label className={`flex cursor-pointer items-start gap-2 rounded-2xl border px-3 py-2 ${method === "hesap" ? "border-gold bg-white/10" : "border-white/10"}`}>
+      <fieldset className="load-methods">
+        <legend className="money-kicker">Ödeme yöntemi</legend>
+        <label className={method === "hesap" ? "load-method load-method-on" : "load-method"}>
           <input type="radio" name="yontem" value="hesap" checked={method === "hesap"} onChange={() => setMethod("hesap")} />
+          <span className="load-method-mark" aria-hidden>
+            ₺
+          </span>
           <span>
             <span className="block text-sm font-semibold">Ana bakiye</span>
-            <span className="block text-xs text-white/55">Hesaptan düşer. Göndermeden önce %{percent} yükleme komisyonu kesilir.</span>
+            <span className="block text-xs text-white/55">Hesaptan düşer. Göndermeden önce %{percent} kesilir.</span>
           </span>
         </label>
-        <label className={`flex cursor-pointer items-start gap-2 rounded-2xl border px-3 py-2 ${method === "heleket" ? "border-gold bg-white/10" : "border-white/10"}`}>
+        <label className={method === "heleket" ? "load-method load-method-on" : "load-method"}>
           <input type="radio" name="yontem" value="heleket" checked={method === "heleket"} onChange={() => setMethod("heleket")} />
+          <HeleketMark />
           <span>
             <span className="block text-sm font-semibold">Heleket</span>
             <span className="block text-xs text-white/55">Kripto ile ana bakiyeye yazar. Bu yüklemede komisyon yoktur.</span>
           </span>
         </label>
       </fieldset>
-      <label className="grid gap-1 text-xs text-white/70">
-        Tutar (USD)
-        <input
-          className="field"
-          name="tutar"
-          inputMode="decimal"
-          placeholder="20"
-          value={raw}
-          onChange={(event) => setRaw(event.target.value)}
-          required
-        />
+      <label className="money-field">
+        <span className="money-kicker">Tutar (USD)</span>
+        <span className="money-row">
+          <span className="money-unit" aria-hidden>
+            $
+          </span>
+          <input
+            name="tutar"
+            inputMode="decimal"
+            placeholder="20"
+            aria-label="Karta yüklemek istediğin tutar, ABD doları"
+            value={raw}
+            onChange={(event) => setRaw(event.target.value)}
+            required
+          />
+          <span className="money-code">USD</span>
+        </span>
+        <span className="money-hint">{cents !== null && cents > 0 ? formatUsd(cents) : "ABD doları"}</span>
       </label>
       {method === "hesap" ? (
         <div className="grid gap-2">
@@ -96,7 +122,7 @@ export function FundForm({ cardId, balance, userId }: { cardId: string; balance:
                 {formatTL(gross)}
               </span>
               <span>
-                <small>Komisyon %{percent}</small>
+                <small>Kesinti %{percent}</small>
                 {formatTL(commission)}
               </span>
               <span>
@@ -105,7 +131,6 @@ export function FundForm({ cardId, balance, userId }: { cardId: string; balance:
               </span>
             </div>
           )}
-          <p className="text-xs text-white/45">Ana bakiye {formatTL(balance)}.</p>
         </div>
       ) : (
         <p className="text-xs text-white/70">

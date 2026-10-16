@@ -23,6 +23,7 @@ import {
   usdMinorToKurus,
 } from "./catalog";
 import { foldAnswer, formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
+import { payoutCoin, payoutNote } from "./coins";
 import { digestSecret, foldSeed, passwordOk, randomSalt, seedOk, seedPhraseOk } from "./secrets";
 import { COPY, COPY_KEYS } from "./copy";
 import { createUser, findUserById, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, pushNotice, readSettings, remoteCall, usingRemoteLedger } from "./store";
@@ -498,9 +499,9 @@ export async function planAction(formData: FormData) {
   const user = await actor();
   if (user.role !== "uye") return go("/clayadm!nxx");
   const plan = String(formData.get("plan") || "");
-  if (!isPlan(plan)) return bounce("/panel/hesap", "e-plan");
+  if (!isPlan(plan)) return bounce("/panel/yukselt", "e-plan");
   const remote = await remoteCall("plan", { plan });
-  if (remote) return bounce("/panel/hesap", remote.code);
+  if (remote) return bounce("/panel/yukselt", remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id && item.role === "uye");
     if (!row) return "e-yok" as const;
@@ -533,7 +534,7 @@ export async function planAction(formData: FormData) {
     });
     return "plan" as const;
   });
-  return bounce("/panel/hesap", result);
+  return bounce("/panel/yukselt", result);
 }
 
 export async function spendAction(formData: FormData) {
@@ -1682,10 +1683,12 @@ export async function withdrawAction(formData: FormData) {
   if (user.role !== "uye") return go("/panel/yukle");
   const amount = parseTryToKurus(String(formData.get("tutar") || ""));
   const wallet = String(formData.get("cuzdan") || "").trim();
+  const coin = payoutCoin(String(formData.get("coin") || ""));
   const floor = usdMinorToKurus(1000);
   if (amount === null || amount < floor) return bounce("/panel/yukle", "e-tutar");
-  if (!/^[A-Za-z0-9:._@-]{8,80}$/.test(wallet)) return bounce("/panel/yukle", "e-cuzdan");
-  const remote = await remoteCall("cek", pack(formData, ["tutar", "cuzdan"]));
+  if (!coin) return bounce("/panel/yukle", "e-coin");
+  if (!/^[A-Za-z0-9:._@-]{8,106}$/.test(wallet)) return bounce("/panel/yukle", "e-cuzdan");
+  const remote = await remoteCall("cek", pack(formData, ["tutar", "cuzdan", "coin"]));
   if (remote) return bounce("/panel/yukle", remote.code);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
@@ -1696,12 +1699,14 @@ export async function withdrawAction(formData: FormData) {
     else usd = 0;
     row.balance -= amount;
     const id = `pay_${rid()}`;
+    const mask = `${wallet.slice(0, 4)}…${wallet.slice(-4)}`;
     db.payouts.push({
       id,
       userId: row.id,
       amount,
       usdMinor: usd,
       wallet,
+      coin,
       status: "bekliyor",
       createdAt: new Date().toISOString(),
       settledAt: null,
@@ -1712,7 +1717,7 @@ export async function withdrawAction(formData: FormData) {
       cardId: null,
       kind: "transfer",
       title: "Çekim talebi",
-      note: `Bekliyor. Tutar beklemeye alındı. Cüzdan ${wallet.slice(0, 4)}…${wallet.slice(-4)}.`,
+      note: payoutNote("bekliyor", mask, coin),
       amount: -amount,
       usdMinor: usd > 0 ? -usd : null,
       status: "tamamlandi",
@@ -1745,7 +1750,7 @@ export async function settlePayoutAction(formData: FormData) {
       if (held) {
         held.amount = -Math.abs(row.amount);
         held.title = "Çekim talebi";
-        held.note = `İptal. Talep durduruldu. Cüzdan ${mask}.`;
+        held.note = payoutNote("iptal", mask, row.coin);
         held.usdMinor = row.usdMinor > 0 ? -row.usdMinor : null;
       }
       const refundRef = `${id}:iptal`;
@@ -1770,7 +1775,7 @@ export async function settlePayoutAction(formData: FormData) {
       if (held) {
         held.amount = -Math.abs(row.amount);
         held.title = "Çekim talebi";
-        held.note = `Gitti. Tutar gönderildi. Cüzdan ${mask}.`;
+        held.note = payoutNote("gitti", mask, row.coin);
         held.usdMinor = row.usdMinor > 0 ? -row.usdMinor : null;
       }
       row.status = "gitti";

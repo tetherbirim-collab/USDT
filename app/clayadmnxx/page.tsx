@@ -136,7 +136,10 @@ export default function AdminHome() {
         {waiting.map((row) => (
           <article key={row.id} className="glass rounded-[24px] px-4 py-3 text-sm">
             <p className="font-semibold">{formatTL(row.amount)}</p>
-            <p className="text-white/70">{row.wallet}</p>
+            <p className="text-white/70">
+              {row.wallet}
+              {row.coin ? ` · ${row.coin === "xmr" ? "XMR" : row.coin.toUpperCase()}` : ""}
+            </p>
             <p className="mt-1 text-xs text-white/50">
               <Link href={`${ADMIN_PATH}/kullanici?id=${row.userId}`} className="font-semibold text-gold">
                 {name(row.userId)}

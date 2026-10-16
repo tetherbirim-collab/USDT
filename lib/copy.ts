@@ -52,6 +52,7 @@ export type CopyKey =
   | "panelOdeme"
   | "panelCuzdan"
   | "panelDestek"
+  | "panelYukselt"
   | "panelHesap"
   | "supportTitle"
   | "supportLede";
@@ -149,6 +150,7 @@ export const COPY: Record<CopyKey, { group: string; label: string; fallback: str
   panelOdeme: { group: "Panel", label: "Menü · ödemeler", fallback: "Ödemeler", max: 24 },
   panelCuzdan: { group: "Panel", label: "Menü · cüzdan", fallback: "Cüzdan", max: 24 },
   panelDestek: { group: "Panel", label: "Menü · destek", fallback: "Destek", max: 24 },
+  panelYukselt: { group: "Panel", label: "Menü · plan", fallback: "Planı yükselt", max: 24 },
   panelHesap: { group: "Panel", label: "Menü · hesap", fallback: "Hesap", max: 24 },
   supportTitle: { group: "Panel", label: "Destek başlığı", fallback: "Yeni talep", max: 40 },
   supportLede: {
@@ -208,6 +210,7 @@ export const COPY_EN: Record<CopyKey, string> = {
   panelOdeme: "Payments",
   panelCuzdan: "Wallet",
   panelDestek: "Support",
+  panelYukselt: "Upgrade plan",
   panelHesap: "Account",
   supportTitle: "New request",
   supportLede: "Write your complaint. The request lands on the admin desk. The reply shows on the bell and in this list.",

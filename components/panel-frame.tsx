@@ -26,6 +26,7 @@ const LINKS = [
   ["/panel/islemler", "panelOdeme"],
   ["/panel/yukle", "panelCuzdan"],
   ["/panel/destek", "panelDestek"],
+  ["/panel/yukselt", "panelYukselt"],
   ["/panel/hesap", "panelHesap"],
 ] as const;
 
@@ -144,6 +145,9 @@ export function PanelFrame({
             {planName}
             <span className="mt-1 block font-display text-lg font-bold">{remain}</span>
             <span className="mt-1 block text-sm text-white/60">{formatDay(planUntil)} tarihinde yenilenir.</span>
+            <Link href="/panel/yukselt" className="mt-2 inline-block text-sm font-bold text-gold">
+              Planı yükselt
+            </Link>
           </p>
         )}
         <nav className="mt-4 hidden flex-wrap gap-2 sm:flex">

@@ -16,7 +16,7 @@ export function SubmitButton({
   return (
     <>
       {pending && (
-        <div className="fixed inset-0 z-[80] bg-[#07060b]">
+        <div className="theme-veil fixed inset-0 z-[80]">
           <Boot />
         </div>
       )}

@@ -29,7 +29,7 @@ export default function PanelHome() {
   return (
     <div className="grid gap-6">
       <Notice code={query?.get("bildirim") || undefined} />
-      <section className="relative overflow-hidden rounded-[32px] border border-gold/30 bg-gradient-to-br from-[#2a2114] via-[#14121c] to-[#0c1c1a] p-6 sm:p-8">
+      <section className="wallet-hero relative overflow-hidden rounded-[32px] p-6 sm:p-8">
         <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(240,201,138,.45),transparent_68%)]" />
         <p className="text-xs font-bold tracking-[0.22em] text-gold">CÜZDAN</p>
         <h1 className="font-display mt-3 text-4xl font-extrabold sm:text-6xl">{formatTL(user.balance)}</h1>

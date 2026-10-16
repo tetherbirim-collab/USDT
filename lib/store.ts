@@ -1,4 +1,5 @@
 import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, TEST_BIN, USD_RATE_AS_OF, USD_SELL_RATE, WELCOME_BONUS_KURUS, WELCOME_USD_MINOR, defaultSettings, merchantsFor, usdMinorToKurus } from "./catalog";
+import { payoutNote } from "./coins";
 import { formatRate, formatTL, formatUsd, holderLine, istanbulKey, orderCodeFrom } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
 import type { BinRow, Card, CardTypeId, DB, Order, PublicUser, Tx, User } from "./types";
@@ -737,12 +738,7 @@ function syncPayouts(db: DB): boolean {
     const usd = Math.abs(payout.usdMinor || 0);
     const phase = payout.status === "gitti" || payout.status === "iptal" ? payout.status : "bekliyor";
     const mask = walletMask(payout.wallet || "");
-    const note =
-      phase === "gitti"
-        ? `Gitti. Tutar gönderildi. Cüzdan ${mask}.`
-        : phase === "iptal"
-          ? `İptal. Talep durduruldu. Cüzdan ${mask}.`
-          : `Bekliyor. Tutar beklemeye alındı. Cüzdan ${mask}.`;
+    const note = payoutNote(phase, mask, payout.coin);
     const matches = db.transactions.filter((entry) => entry.ref === payout.id);
     if (matches.length === 0) {
       db.transactions.push({

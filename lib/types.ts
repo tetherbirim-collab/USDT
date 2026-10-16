@@ -174,12 +174,16 @@ export type Announcement = {
 
 export type PayoutStatus = "bekliyor" | "gitti" | "iptal";
 
+export type PayoutCoin = "btc" | "usdt" | "xmr";
+
 export type Payout = {
   id: string;
   userId: string;
   amount: number;
   usdMinor: number;
   wallet: string;
+  /** Coin the wallet address belongs to. Older rows may omit it. */
+  coin?: PayoutCoin;
   status: PayoutStatus;
   createdAt: string;
   settledAt: string | null;

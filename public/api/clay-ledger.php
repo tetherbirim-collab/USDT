@@ -711,6 +711,42 @@ function clay_drop_imported(array &$db): bool
     return $dirty;
 }
 
+function clay_payout_coin($value): string
+{
+    $coin = strtolower(trim((string) $value));
+    if ($coin === "btc" || $coin === "usdt" || $coin === "xmr") {
+        return $coin;
+    }
+    return "";
+}
+
+function clay_payout_tag(string $coin): string
+{
+    if ($coin === "btc") {
+        return "BTC";
+    }
+    if ($coin === "usdt") {
+        return "USDT";
+    }
+    if ($coin === "xmr") {
+        return "XMR";
+    }
+    return "";
+}
+
+function clay_payout_note(string $status, string $mask, string $coin): string
+{
+    $tag = clay_payout_tag($coin);
+    $bit = $tag !== "" ? " " . $tag . "." : "";
+    if ($status === "gitti") {
+        return "Gitti. Tutar gönderildi." . $bit . " Cüzdan " . $mask . ".";
+    }
+    if ($status === "iptal") {
+        return "İptal. Talep durduruldu." . $bit . " Cüzdan " . $mask . ".";
+    }
+    return "Bekliyor. Tutar beklemeye alındı." . $bit . " Cüzdan " . $mask . ".";
+}
+
 function clay_sync_payouts(array &$db): bool
 {
     $dirty = false;
@@ -735,11 +771,7 @@ function clay_sync_payouts(array &$db): bool
         }
         $wallet = (string) ($payout["wallet"] ?? "");
         $mask = strlen($wallet) >= 8 ? substr($wallet, 0, 4) . "…" . substr($wallet, -4) : $wallet;
-        $note = $status === "gitti"
-            ? "Gitti. Tutar gönderildi. Cüzdan " . $mask . "."
-            : ($status === "iptal"
-                ? "İptal. Talep durduruldu. Cüzdan " . $mask . "."
-                : "Bekliyor. Tutar beklemeye alındı. Cüzdan " . $mask . ".");
+        $note = clay_payout_note($status, $mask, clay_payout_coin($payout["coin"] ?? ""));
         $matches = [];
         foreach ($db["transactions"] as $i => $entry) {
             if (($entry["ref"] ?? "") === $id) {
@@ -3112,11 +3144,15 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
     if ($action === "cek") {
         $amount = clay_cents(clay_in($in, "tutar"));
         $wallet = trim(clay_in($in, "cuzdan"));
+        $coin = clay_payout_coin(clay_in($in, "coin"));
         $floor = clay_kurus(1000);
         if ($amount === null || $amount < $floor) {
             return clay_fail("e-tutar");
         }
-        if (!preg_match("/^[A-Za-z0-9:._@\\-]{8,80}$/", $wallet)) {
+        if ($coin === "") {
+            return clay_fail("e-coin");
+        }
+        if (!preg_match("/^[A-Za-z0-9:._@\\-]{8,106}$/", $wallet)) {
             return clay_fail("e-cuzdan");
         }
         $userIndex = clay_user_index($db, $me["id"]);
@@ -3134,12 +3170,14 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         }
         $db["users"][$userIndex]["balance"] -= $amount;
         $id = "pay_" . clay_rid();
+        $mask = substr($wallet, 0, 4) . "…" . substr($wallet, -4);
         $db["payouts"][] = [
             "id" => $id,
             "userId" => $me["id"],
             "amount" => $amount,
             "usdMinor" => $usd,
             "wallet" => $wallet,
+            "coin" => $coin,
             "status" => "bekliyor",
             "createdAt" => clay_now(),
             "settledAt" => null,
@@ -3150,7 +3188,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             "cardId" => null,
             "kind" => "transfer",
             "title" => "Çekim talebi",
-            "note" => "Bekliyor. Tutar beklemeye alındı. Cüzdan " . substr($wallet, 0, 4) . "…" . substr($wallet, -4) . ".",
+            "note" => clay_payout_note("bekliyor", $mask, $coin),
             "amount" => -$amount,
             "usdMinor" => $usd > 0 ? -$usd : null,
             "status" => "tamamlandi",
@@ -3196,7 +3234,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
                 if (($entry["ref"] ?? "") === $id) {
                     $db["transactions"][$n]["amount"] = -abs($amount);
                     $db["transactions"][$n]["title"] = "Çekim talebi";
-                    $db["transactions"][$n]["note"] = "İptal. Talep durduruldu. Cüzdan " . $mask . ".";
+                    $db["transactions"][$n]["note"] = clay_payout_note("iptal", $mask, clay_payout_coin($row["coin"] ?? ""));
                     $db["transactions"][$n]["usdMinor"] = $usd > 0 ? -$usd : null;
                 }
             }
@@ -3234,7 +3272,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
                 if (($entry["ref"] ?? "") === $id) {
                     $db["transactions"][$n]["amount"] = -$sent;
                     $db["transactions"][$n]["title"] = "Çekim talebi";
-                    $db["transactions"][$n]["note"] = "Gitti. Tutar gönderildi. Cüzdan " . $mask . ".";
+                    $db["transactions"][$n]["note"] = clay_payout_note("gitti", $mask, clay_payout_coin($row["coin"] ?? ""));
                     $db["transactions"][$n]["usdMinor"] = $usdOut > 0 ? -$usdOut : null;
                 }
             }

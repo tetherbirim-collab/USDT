@@ -39,7 +39,7 @@ export function LoginForm() {
   return (
     <form action={action} className="grid gap-3">
       {pending && (
-        <div className="fixed inset-0 z-[80] bg-[#07060b]">
+        <div className="theme-veil fixed inset-0 z-[80]">
           <Boot />
         </div>
       )}
@@ -113,7 +113,7 @@ export function RegisterForm() {
   return (
     <form action={action} className="grid gap-3">
       {pending && (
-        <div className="fixed inset-0 z-[80] bg-[#07060b]">
+        <div className="theme-veil fixed inset-0 z-[80]">
           <Boot />
         </div>
       )}
@@ -214,7 +214,7 @@ export function SeedLoginForm() {
     <>
       <form action={action} className="grid gap-3">
         {pending && (
-          <div className="fixed inset-0 z-[80] bg-[#07060b]">
+          <div className="theme-veil fixed inset-0 z-[80]">
             <Boot />
           </div>
         )}
@@ -259,7 +259,7 @@ export function ResetForm({ username = "" }: { username?: string }) {
   return (
     <form action={action} className="grid gap-3">
       {pending && (
-        <div className="fixed inset-0 z-[80] bg-[#07060b]">
+        <div className="theme-veil fixed inset-0 z-[80]">
           <Boot />
         </div>
       )}

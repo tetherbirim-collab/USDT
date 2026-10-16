@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ClayLoadArt, CoinLogo, HeleketMark } from "@/components/pay-marks";
 import { Notice } from "@/components/notice";
 import { MAX_USD_MINOR, MIN_USD_MINOR, USD_RATE_AS_OF, USD_SELL_RATE, noticeText, usdMinorToKurus } from "@/lib/catalog";
+import { PAYOUT_COINS, payoutCoinName } from "@/lib/coins";
 import { formatRate, formatSigned, formatTL, formatUsd, formatWhen, parseTryToKurus } from "@/lib/format";
 import { withdrawAction } from "@/lib/actions";
 import { openHeleketPayment, readHeleketPayment } from "@/lib/heleket";
 import { Boot, useQuery, useUser } from "@/lib/live";
 import { creditHeleketPayment, listTransactions, snapshot } from "@/lib/store";
+import type { PayoutCoin } from "@/lib/types";
 
 function explain(error: string): string {
   return noticeText(error.startsWith("e-") ? error : `e-${error}`) || "Heleket ödeme sayfası açılmadı.";
@@ -43,6 +46,9 @@ export default function TopupPage() {
   const [pending, setPending] = useState(false);
   const [waitText, setWaitText] = useState("");
   const [error, setError] = useState("");
+  const [drawAmount, setDrawAmount] = useState("");
+  const [drawAddress, setDrawAddress] = useState("");
+  const [coin, setCoin] = useState<PayoutCoin>("usdt");
   const userId = user?.id ?? "";
 
   useEffect(() => {
@@ -116,6 +122,13 @@ export default function TopupPage() {
   const cents = parseTryToKurus(custom);
   const ready = cents !== null && cents >= MIN_USD_MINOR && cents <= MAX_USD_MINOR;
   const loaded = query.get("bildirim") === "yuklendi";
+  const picked = PAYOUT_COINS.find((row) => row.id === coin) ?? PAYOUT_COINS[1];
+  const drawKurus = parseTryToKurus(drawAmount);
+  const floor = usdMinorToKurus(1000);
+  const asks = snapshot()
+    .payouts.filter((row) => row.userId === user.id)
+    .slice()
+    .reverse();
 
   return (
     <div className="grid gap-5">
@@ -129,71 +142,151 @@ export default function TopupPage() {
       </div>
       <Notice code={query.get("bildirim") || undefined} />
       <form
-        className="glass grid max-w-xl gap-4 rounded-[28px] p-5"
+        className="wallet-stage glass"
         onSubmit={(event) => {
           event.preventDefault();
           if (cents !== null) void pay(cents);
         }}
       >
-        <div>
+        <div className="wallet-copy">
           <p className="text-xs font-bold tracking-[0.18em] text-gold">CRYPTO İLE YÜKLE</p>
-          <h2 className="font-display mt-1 text-2xl font-bold">Heleket</h2>
+          <h2 className="font-display mt-1 text-3xl font-extrabold">Heleket</h2>
+          <p className="mt-2 text-sm text-white/70">Komisyon yok. Yazdığın tutar ABD dolarıdır. Onaylanınca sabit kurun TL karşılığı ana bakiyeye yazılır.</p>
+          <HeleketMark />
+          <label className="money-field">
+            <span className="money-kicker">Ödeme yapmak istediğin tutar (USD)</span>
+            <span className="money-row">
+              <span className="money-unit" aria-hidden>
+                $
+              </span>
+              <input
+                name="tutar"
+                inputMode="decimal"
+                placeholder="50"
+                aria-label="Ödeme yapmak istediğin tutar, ABD doları"
+                value={custom}
+                onChange={(event) => setCustom(event.target.value)}
+              />
+              <span className="money-code">USD</span>
+            </span>
+            <span className="money-hint">
+              {ready && cents !== null
+                ? `${formatUsd(cents)} = ${formatTL(usdMinorToKurus(cents))}`
+                : `1 USD = ${formatRate(USD_SELL_RATE)} TL · 1–5.000 USD`}
+            </span>
+          </label>
+          <button className="btn btn-gold w-fit" type="submit" disabled={pending}>
+            {pending ? "Ödeme sayfası açılıyor" : "Ödeme sayfasına git"}
+          </button>
+          <p className="text-sm text-white/55">Onaydan sonra bu bakiye kart harcamasında kullanılır. Heleket yüklemesinde kesinti yoktur.</p>
+          {waitText && <p className="text-sm text-gold">{waitText}</p>}
+          {error && <p className="banner-bad">{error}</p>}
         </div>
-        <label className="grid gap-1 text-sm">
-          Ödeme yapmak istediğin tutar (USD)
-          <input
-            className="field"
-            name="tutar"
-            inputMode="decimal"
-            placeholder="50"
-            value={custom}
-            onChange={(event) => setCustom(event.target.value)}
-          />
-        </label>
-        {ready && cents !== null && (
-          <p className="text-sm font-semibold text-gold">
-            {formatUsd(cents)} karşılığı {formatTL(usdMinorToKurus(cents))}
-          </p>
-        )}
-        <button className="btn btn-gold w-fit" type="submit" disabled={pending}>
-          {pending ? "Ödeme sayfası açılıyor" : "Ödeme sayfasına git"}
-        </button>
-        <p className="text-sm text-white/55">1–5.000 USD. Onaydan sonra bu bakiye kart harcamasında kullanılır.</p>
-        {waitText && <p className="text-sm text-gold">{waitText}</p>}
-        {error && <p className="banner-bad">{error}</p>}
+        <ClayLoadArt />
       </form>
-      <form action={withdrawAction} className="glass grid max-w-xl gap-4 rounded-[28px] p-5">
-        <div>
+      <form action={withdrawAction} className="wallet-stage glass">
+        <div className="wallet-copy">
           <p className="text-xs font-bold tracking-[0.18em] text-gold">ÇEKİM</p>
-          <h2 className="font-display mt-1 text-2xl font-bold">Para çek</h2>
-          <p className="mt-2 text-sm text-white/70">Tutar hemen beklemeye alınır. Yönetim gönderince veya iptal edince zil çalar. En az 10 USD karşılığı.</p>
+          <h2 className="font-display mt-1 text-3xl font-extrabold">Para çek</h2>
+          <p className="mt-2 text-sm text-white/70">
+            Tutar yerelde beklemeye alınır. Zincire gönderilmez. Yönetim gönderince veya iptal edince zil çalar. En az {formatTL(floor)}.
+          </p>
+          <label className="money-field">
+            <span className="money-kicker">Tutar (TL)</span>
+            <span className="money-row">
+              <span className="money-unit" aria-hidden>
+                ₺
+              </span>
+              <input
+                name="tutar"
+                inputMode="decimal"
+                placeholder="500"
+                aria-label="Çekmek istediğin tutar, Türk lirası"
+                required
+                value={drawAmount}
+                onChange={(event) => setDrawAmount(event.target.value)}
+              />
+              <span className="money-code">TL</span>
+            </span>
+            <span className="money-hint">
+              {drawKurus !== null && drawKurus > 0 ? `Çekilecek ${formatTL(drawKurus)}` : `Ana bakiye ${formatTL(user.balance)}`}
+            </span>
+          </label>
+          <fieldset className="coin-pick">
+            <legend className="money-kicker">Adres hangi coin için</legend>
+            {PAYOUT_COINS.map((row) => (
+              <label key={row.id} className={coin === row.id ? "coin-on" : ""}>
+                <input type="radio" name="coin" value={row.id} checked={coin === row.id} onChange={() => setCoin(row.id)} />
+                <CoinLogo coin={row.id} />
+                <span>{row.name}</span>
+              </label>
+            ))}
+          </fieldset>
+          <label className="addr-field">
+            <CoinLogo coin={coin} />
+            <span>
+              <span className="money-kicker">{picked.hint}</span>
+              <input
+                name="cuzdan"
+                placeholder={picked.placeholder}
+                aria-label={`${picked.name} cüzdan adresi`}
+                required
+                minLength={8}
+                maxLength={106}
+                autoComplete="off"
+                spellCheck={false}
+                value={drawAddress}
+                onChange={(event) => setDrawAddress(event.target.value)}
+              />
+            </span>
+          </label>
+          <button className="btn btn-ghost w-fit" type="submit">
+            Çekim talebi aç
+          </button>
         </div>
-        <label className="grid gap-1 text-sm">
-          Tutar (TL)
-          <input className="field" name="tutar" inputMode="decimal" placeholder="500" required />
-        </label>
-        <label className="grid gap-1 text-sm">
-          Cüzdan adresi
-          <input className="field" name="cuzdan" placeholder="TRC20 veya cüzdan kodu" required />
-        </label>
-        <button className="btn btn-ghost w-fit" type="submit">
-          Çekim talebi aç
-        </button>
+        <div className="draw-art" aria-hidden>
+          <CoinLogo coin={coin} className="draw-art-logo" />
+          <p>{picked.name}</p>
+          <p className="draw-art-addr">{drawAddress.trim() || picked.placeholder}</p>
+          <p className="draw-art-sum">{drawKurus !== null && drawKurus > 0 ? formatTL(drawKurus) : "Tutar"}</p>
+        </div>
       </form>
-      <section className="grid max-w-xl gap-3">
-        <h2 className="font-display text-2xl font-bold">Taleplerim</h2>
-        {snapshot().payouts.filter((row) => row.userId === user.id).length === 0 && <p className="text-sm text-white/55">Henüz çekim talebi yok.</p>}
-        {snapshot().payouts
-          .filter((row) => row.userId === user.id)
-          .map((row) => (
-            <article key={row.id} className="glass rounded-[24px] px-4 py-3 text-sm">
-              <p className="font-semibold">{formatTL(row.amount)}</p>
-              <p className="text-white/70">{row.wallet}</p>
-              <p className="mt-1 text-xs text-white/45">
-                {formatWhen(row.createdAt)} · {row.status === "bekliyor" ? "Bekliyor" : row.status === "gitti" ? "Gönderildi" : "İptal"}
-              </p>
+      <section className="ask-list">
+        <div>
+          <p className="text-xs font-bold tracking-[0.18em] text-gold">KUYRUK</p>
+          <h2 className="font-display text-3xl font-extrabold">Taleplerim</h2>
+        </div>
+        {asks.length === 0 && (
+          <article className="ask-card ask-empty">
+            <span className="ask-empty-marks" aria-hidden>
+              <CoinLogo coin="btc" />
+              <CoinLogo coin="usdt" />
+              <CoinLogo coin="xmr" />
+            </span>
+            <span>
+              <p className="font-semibold">Henüz çekim talebi yok.</p>
+              <p className="text-sm text-white/60">BTC, USDT veya Monero adresinle açtığın talep burada bekler, gider veya iptal olur.</p>
+            </span>
+          </article>
+        )}
+        {asks.map((row) => {
+          const status = row.status === "gitti" ? "Gitti" : row.status === "iptal" ? "İptal" : "Bekliyor";
+          const name = payoutCoinName(row.coin) || "Coin";
+          return (
+            <article key={row.id} className="ask-card">
+              {row.coin ? <CoinLogo coin={row.coin} /> : <span className="coin-logo coin-logo-empty" aria-hidden />}
+              <div className="ask-body">
+                <p className="ask-amount">{formatTL(row.amount)}</p>
+                <p className="ask-coin">{name}</p>
+                <p className="ask-addr">{row.wallet}</p>
+              </div>
+              <div className="ask-meta">
+                <span className={`ask-status ask-${row.status}`}>{status}</span>
+                <time dateTime={row.createdAt}>{formatWhen(row.createdAt)}</time>
+              </div>
             </article>
-          ))}
+          );
+        })}
       </section>
       {receipt && (
         <article className="glass max-w-xl rounded-[28px] p-5">

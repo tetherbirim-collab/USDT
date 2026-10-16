@@ -106,7 +106,10 @@ export default function LiveDesk() {
             <article key={row.id} className="glass flex flex-wrap items-center justify-between gap-3 rounded-[24px] px-4 py-3">
               <div>
                 <p className="font-semibold">{formatTL(row.amount)}</p>
-                <p className="text-sm text-white/70">{row.wallet}</p>
+                <p className="text-sm text-white/70">
+                  {row.wallet}
+                  {row.coin ? ` · ${row.coin === "xmr" ? "XMR" : row.coin.toUpperCase()}` : ""}
+                </p>
                 <p className="mt-1 text-xs text-white/45">
                   {owner ? (
                     <Link href={`${ADMIN_PATH}/kullanici?id=${owner.id}`} className="text-gold">

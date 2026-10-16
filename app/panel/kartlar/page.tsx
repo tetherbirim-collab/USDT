@@ -78,7 +78,7 @@ export default function CardsPage() {
           arrived={got.amount}
         />
       ) : (
-        <Notice code={query.get("bildirim") || undefined} />
+        <Notice code={query.get("bildirim") || undefined} text={query.get("metin") || undefined} />
       )}
       {cards.length === 0 ? (
         <div className="glass rounded-[24px] p-6">Henüz basılmış kart yok.</div>

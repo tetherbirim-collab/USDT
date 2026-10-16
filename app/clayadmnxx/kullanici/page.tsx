@@ -78,7 +78,7 @@ export default function AdminUserPage() {
             : `Güvenlik sorusu ${user.securityQuestion ? securityQuestionLabel(user.securityQuestion) : "yok"}${user.hasAnswer ? " · yanıt özeti kayıtlı" : ""}`}
         </p>
       </div>
-      <Notice code={query.get("bildirim") || undefined} />
+      <Notice code={query.get("bildirim") || undefined} text={query.get("metin") || undefined} />
 
       <section id="bakiye" className="glass scroll-mt-24 rounded-[28px] p-5">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -204,7 +204,7 @@ export default function AdminUserPage() {
                 <p className="order-slip-phrase">numaralı sipariş · {user.username}</p>
                 <p className="mt-2 font-display text-xl font-bold">{card.label}</p>
                 <p className="text-sm text-white/60">
-                  {CARD_TYPES[card.type].name} · {STATUS_LABEL[card.status]} · BIN {card.bin} · •••• {card.pan.slice(-4)}
+                  {CARD_TYPES[card.type].name} · {STATUS_LABEL[card.status]} · BIN {card.bin} · {/^\d{4}$/.test(String(card.pan ?? "").replace(/\D/g, "").slice(-4)) && String(card.pan ?? "").replace(/\D/g, "").length >= 4 ? `•••• ${String(card.pan ?? "").replace(/\D/g, "").slice(-4)}` : "numara yok"}
                 </p>
               </div>
               <p className="text-sm font-semibold">

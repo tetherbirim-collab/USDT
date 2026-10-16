@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { IssueForm } from "@/components/issue-form";
 import { Notice } from "@/components/notice";
-import { percentText } from "@/components/fee-sheet";
 import { formatTL } from "@/lib/format";
 import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import { listCards, snapshot } from "@/lib/store";
@@ -24,10 +23,10 @@ export default function NewCardPage() {
         </Link>
         <h1 className="font-display mt-3 text-4xl font-bold tracking-tight">Kart oluştur</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Kullanılabilir bakiye 0 ile başlar. Hesaptan yalnız basım ücreti {formatTL(settings.issueFeeKurus)} düşer. Yükleme komisyonu {percentText(settings.loadFeePercent)} kart oluştuktan sonra, kendi hesabından bakiye yüklerken kesilir.
+          Hesaptan yalnız basım ücreti {formatTL(settings.issueFeeKurus)} düşer. Kripicard tutarı en az 10 USD olarak ayrıca yazılır ve yükleme komisyonu kesilmez. Anahtar yoksa kart numarası üretilmez.
         </p>
       </div>
-      <Notice code={query.get("bildirim") || undefined} />
+      <Notice code={query.get("bildirim") || undefined} text={query.get("metin") || undefined} />
       <div className="glass rounded-[28px] p-4 sm:p-6">
         <IssueForm
           balance={user.balance}

@@ -84,7 +84,7 @@ export function CardMenu({ card, fee }: { card: Card; fee: number }) {
               <input type="hidden" name="id" value={card.id} />
               <input type="hidden" name="mod" value="dondur" />
               <p className="text-xs font-semibold">Emin misin?</p>
-              <p className="text-xs text-white/70">Kart dondurulmuş sekmeye gider. Harcama durur. Yeniden açmak {price} tutar.</p>
+              <p className="text-xs text-white/70">Kart dondurulmuş sekmeye gider. Kripicard kartında sağlayıcıya da dondurma gider. Yeniden açmak {price} tutar.</p>
               <button className="btn btn-gold" type="submit">
                 Evet, dondur
               </button>

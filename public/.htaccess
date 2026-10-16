@@ -5,6 +5,10 @@ DirectoryIndex index.php index.html
   Require all denied
 </Files>
 
+<Files "kripicard.config.php">
+  Require all denied
+</Files>
+
 <Files "heleket-payments.json">
   Require all denied
 </Files>

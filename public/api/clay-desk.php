@@ -414,6 +414,13 @@ function clay_desk_act(array &$db, ?array $me, string $action, array $in): ?arra
                 continue;
             }
             if ($mode === "dondur" && ($db["cards"][$cardIndex]["status"] ?? "") === "aktif") {
+                $gate = clay_issuer_act($db["cards"][$cardIndex], "freeze");
+                if ($gate) {
+                    if ($count > 0) {
+                        $gate["save"] = true;
+                    }
+                    return $gate;
+                }
                 $db["cards"][$cardIndex]["status"] = "donduruldu";
                 clay_notice($db, (string) $db["cards"][$cardIndex]["userId"], "Kart donduruldu", $db["cards"][$cardIndex]["label"] . " donduruldu. Harcama kapalı.");
                 $count++;

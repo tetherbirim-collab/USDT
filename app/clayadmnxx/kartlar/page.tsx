@@ -59,7 +59,7 @@ export default function AdminCardsPage() {
           Açık, dondurulmuş ve kapanmış kartlar ayrı sekmede durur. Üye panelinde aktifleştirmek kart bedeli kadar düşer. Buradaki aktif et ücret yazmaz.
         </p>
       </div>
-      <Notice code={query.get("bildirim") || undefined} />
+      <Notice code={query.get("bildirim") || undefined} text={query.get("metin") || undefined} />
       <form action={adminBulkCardsAction} className="flex flex-wrap items-center gap-2">
         <input type="hidden" name="idler" value={picked.join(",")} />
         <input type="hidden" name="donus" value={`${ADMIN_PATH}/kartlar`} />
@@ -138,7 +138,7 @@ export default function AdminCardsPage() {
                 </p>
                 <p className="mt-2 font-semibold">{card.label}</p>
                 <p className="text-xs text-white/55">
-                  {CARD_TYPES[card.type].name} · BIN {card.bin} · •••• {String(card.pan ?? "").slice(-4)} · {formatTL(card.spent)} / {formatTL(card.limit)}
+                  {CARD_TYPES[card.type].name} · BIN {card.bin} · {/^\d{4}$/.test(String(card.pan ?? "").replace(/\D/g, "").slice(-4)) && String(card.pan ?? "").replace(/\D/g, "").length >= 4 ? `•••• ${String(card.pan ?? "").replace(/\D/g, "").slice(-4)}` : "numara yok"} · {formatTL(card.spent)} / {formatTL(card.limit)}
                 </p>
               </div>
               {card.status === "aktif" && ask !== card.id && (

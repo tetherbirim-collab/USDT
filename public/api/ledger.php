@@ -77,4 +77,8 @@ if (isset($result["id"])) {
 if (isset($result["once"]) && is_string($result["once"]) && $result["once"] !== "") {
     $body["once"] = $result["once"];
 }
+if (isset($result["message"]) && is_string($result["message"]) && $result["message"] !== "") {
+    $body["message"] = $result["message"];
+}
+$body["issuerReady"] = kripicard_ready();
 clay_json_out(200, $body);

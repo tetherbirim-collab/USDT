@@ -1,8 +1,8 @@
-import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, TEST_BIN, WELCOME_USD_MINOR, bindFx, defaultSettings, fxAsOf, fxRate, merchantsFor, usdMinorToKurus } from "./catalog";
+import { CARD_PREP_MS, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, WELCOME_USD_MINOR, bindFx, defaultSettings, fxAsOf, fxRate, merchantsFor, usdMinorToKurus } from "./catalog";
 import { payoutNote } from "./coins";
 import { formatRate, formatTL, formatUsd, holderLine, istanbulKey, orderCodeFrom } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
-import type { BinRow, Card, CardTypeId, DB, Order, PublicUser, Tx, User } from "./types";
+import type { Card, CardTypeId, DB, Order, PublicUser, Tx, User } from "./types";
 
 const LEDGER_KEY = "clay-ledger-v1";
 
@@ -31,6 +31,7 @@ let cache: DB | null = null;
 let booted = false;
 let remoteMode = false;
 let remoteMe: PublicUser | null = null;
+let issuerReady = false;
 let bootPromise: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 
@@ -42,6 +43,10 @@ export function remoteSession(): { mode: boolean; me: PublicUser | null } {
 
 export function usingRemoteLedger(): boolean {
   return remoteMode;
+}
+
+export function issuerKeyReady(): boolean {
+  return issuerReady;
 }
 
 function emit() {
@@ -102,11 +107,12 @@ async function probeRemote(): Promise<boolean> {
     const text = await response.text();
     const trimmed = text.trim();
     if (!trimmed.startsWith("{")) return false;
-    const data = JSON.parse(trimmed) as { mode?: string; me?: PublicUser | null; db?: DB };
+    const data = JSON.parse(trimmed) as { mode?: string; me?: PublicUser | null; db?: DB; issuerReady?: boolean };
     if (data.mode !== "php" || !data.db?.settings || !Array.isArray(data.db.bins)) return false;
     cache = data.db;
     remoteMode = true;
     remoteMe = data.me ?? null;
+    issuerReady = data.issuerReady === true;
     hardenRemote(cache, remoteMe);
     return true;
   } catch {
@@ -119,7 +125,7 @@ async function probeRemote(): Promise<boolean> {
 export async function remoteCall(
   action: string,
   fields: Record<string, string>,
-): Promise<{ code: string; id?: string; once?: string } | null> {
+): Promise<{ code: string; id?: string; once?: string; message?: string } | null> {
   if (!remoteMode) return null;
   try {
     const response = await fetch("/api/ledger.php", {
@@ -133,13 +139,19 @@ export async function remoteCall(
       body: JSON.stringify({ action, ...fields }),
     });
     const text = await response.text();
-    const data = JSON.parse(text) as { mode?: string; code?: string; me?: PublicUser | null; db?: DB; id?: string; once?: string };
+    const data = JSON.parse(text) as { mode?: string; code?: string; me?: PublicUser | null; db?: DB; id?: string; once?: string; message?: string; issuerReady?: boolean };
     if (data.mode !== "php" || !data.db?.settings) return { code: "e-defter" };
     cache = data.db;
     remoteMe = data.me ?? null;
+    issuerReady = data.issuerReady === true;
     hardenRemote(cache, remoteMe);
     if (booted) emit();
-    return { code: String(data.code ?? ""), id: data.id, once: typeof data.once === "string" ? data.once : undefined };
+    return {
+      code: String(data.code ?? ""),
+      id: data.id,
+      once: typeof data.once === "string" ? data.once : undefined,
+      message: typeof data.message === "string" ? data.message : undefined,
+    };
   } catch {
     return { code: "e-defter" };
   }
@@ -461,7 +473,7 @@ function createSeed(): DB {
     transactions,
     notices: [],
     tickets: [],
-    bins: testBins(),
+    bins: [],
     orders: [],
     payouts: [],
     settings: defaultSettings(),
@@ -489,27 +501,6 @@ function ordersFromCards(db: DB): Order[] {
       readyAt: card.status === "hazirlaniyor" ? card.readyAt : null,
     };
   });
-}
-
-function testBins(): BinRow[] {
-  return CARD_TYPE_ORDER.map((type) => ({
-    id: `bin_${type}`,
-    type,
-    label: "Standart",
-    digits: TEST_BIN,
-  }));
-}
-
-function ensureTestBins(db: DB) {
-  for (const type of CARD_TYPE_ORDER) {
-    if (db.bins.some((row) => row.type === type)) continue;
-    db.bins.push({
-      id: `bin_${type}`,
-      type,
-      label: "Standart",
-      digits: TEST_BIN,
-    });
-  }
 }
 
 function applyLedger(db: DB) {
@@ -645,6 +636,7 @@ function sweepAutoSpend(db: DB): boolean {
   let dirty = false;
   for (const card of db.cards) {
     if (card.status !== "aktif") continue;
+    if (card.issuerCardId) continue;
     const user = db.users.find((item) => item.id === card.userId);
     const merchant = merchantsFor(card.type)[0];
     if (!user || !merchant) continue;
@@ -998,9 +990,6 @@ function normalize(db: DB): DB {
   const binCount = db.bins.length;
   db.bins = db.bins.filter((row) => kept.has(row.type));
   if (db.bins.length !== binCount) dirty = true;
-  const beforeBins = db.bins.length;
-  ensureTestBins(db);
-  if (db.bins.length !== beforeBins) dirty = true;
   for (const note of db.notices) {
     if (note.readAt === undefined || (note.readAt !== null && typeof note.readAt !== "string")) {
       note.readAt = null;
@@ -1091,7 +1080,11 @@ function assertDb(db: DB) {
     if (user.balance < 0 || user.usdMinor < 0) throw new Error("Bakiye eksi olamaz");
   }
   for (const card of db.cards) {
-    if (!/^\d{16}$/.test(card.pan) || !luhnOk(card.pan) || !card.pan.startsWith(card.bin)) {
+    if (card.issuerCardId) {
+      if (card.pan !== "" && (!/^\d{16}$/.test(card.pan) || !luhnOk(card.pan))) {
+        throw new Error("Kart numarası kayıtlı BIN ile uyuşmuyor");
+      }
+    } else if (!/^\d{16}$/.test(card.pan) || !luhnOk(card.pan) || !card.pan.startsWith(card.bin)) {
       throw new Error("Kart numarası kayıtlı BIN ile uyuşmuyor");
     }
     if (card.spent < 0 || card.spent > card.limit) {
@@ -1356,57 +1349,9 @@ export function issueCard(
     binLabel: string;
   },
 ): Card {
-  const user = db.users.find((item) => item.id === input.userId);
-  if (!user) throw new Error("Hesap yok");
-  const serial = db.nextSerial;
-  db.nextSerial += 1;
-  const now = new Date().toISOString();
-  const card: Card = {
-    id: `crd_${rid()}`,
-    userId: user.id,
-    type: input.type,
-    label: input.label,
-    limit: input.limit,
-    spent: 0,
-    pan: makePan(serial, input.bin),
-    bin: input.bin,
-    binLabel: input.binLabel,
-    expiry: makeExpiry(),
-    cvv: makeCvv(serial),
-    holder: holderLine(input.label),
-    status: "hazirlaniyor",
-    readyAt: new Date(Date.now() + CARD_PREP_MS).toISOString(),
-    period: 1,
-    createdAt: now,
-  };
-  user.balance -= input.fee;
-  db.cards.push(card);
-  const orderCode = orderCodeFrom(card.id, new Set(db.orders.map((order) => order.code).filter((code): code is string => Boolean(code))));
-  db.orders.push({
-    id: `ord_${rid()}`,
-    code: orderCode,
-    userId: user.id,
-    cardId: card.id,
-    type: card.type,
-    label: card.label,
-    limit: card.limit,
-    fee: input.fee,
-    status: "hazirlaniyor",
-    createdAt: now,
-    readyAt: card.readyAt,
-  });
-  db.transactions.push({
-    id: `tx_${rid()}`,
-    userId: user.id,
-    cardId: card.id,
-    kind: "basim",
-    title: `Basım · ${card.label}`,
-    note: `${orderCode} numaralı sipariş. Kart hazırlanıyor.`,
-    amount: -input.fee,
-    status: "tamamlandi",
-    createdAt: now,
-  });
-  return card;
+  void db;
+  void input;
+  throw new Error("e-kripicard-anahtar");
 }
 
 export function ledgerSeed(): DB {

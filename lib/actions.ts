@@ -26,7 +26,7 @@ import { foldAnswer, formatTL, formatUsd, holderLine, istanbulInputToIso, parseS
 import { payoutCoin, payoutNote } from "./coins";
 import { digestSecret, foldSeed, passwordOk, randomSalt, seedOk, seedPhraseOk } from "./secrets";
 import { COPY, COPY_KEYS } from "./copy";
-import { createUser, findUserById, findUserByUsername, issueCard, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, passwordShapeOk, pushNotice, readSettings, remoteCall, usingRemoteLedger } from "./store";
+import { createUser, findUserById, findUserByUsername, mutate, openCardCount, parseAddress, parseDisplayName, parseUsername, passwordShapeOk, pushNotice, readSettings, remoteCall, snapshot, usingRemoteLedger } from "./store";
 import type { DB, User, Card } from "./types";
 
 export type FormState = { error: string; legacy?: boolean };
@@ -47,9 +47,10 @@ function go(path: string): never {
   throw new Error("yonlendirildi");
 }
 
-function bounce(path: string, code: string): never {
+function bounce(path: string, code: string, text?: string): never {
   const join = path.includes("?") ? "&" : "?";
-  return go(`${path}${join}bildirim=${encodeURIComponent(code)}`);
+  const extra = text && text.trim() ? `&metin=${encodeURIComponent(text.trim().slice(0, 240))}` : "";
+  return go(`${path}${join}bildirim=${encodeURIComponent(code)}${extra}`);
 }
 
 async function actor() {
@@ -272,38 +273,15 @@ export async function issueAction(formData: FormData) {
   const binId = String(formData.get("bin") || "");
   const hesap = String(formData.get("hesap") || "");
   if (hesap !== user.id) return bounce("/panel/kartlar/yeni", "e-hesap");
-  const remote = await remoteCall("issue", pack(formData, ["tur", "etiket", "bin", "hesap"]));
+  const cents = parseTryToKurus(String(formData.get("tutar") || ""));
+  if (cents === null || cents < 1000) return bounce("/panel/kartlar/yeni", "e-kripicard-tutar");
+  const remote = await remoteCall("issue", pack(formData, ["tur", "etiket", "bin", "hesap", "tutar"]));
   if (remote) {
-    if (remote.code !== "basildi" || !remote.id) return bounce("/panel/kartlar/yeni", remote.code);
+    if (remote.code !== "basildi" || !remote.id) return bounce("/panel/kartlar/yeni", remote.code, remote.message);
     return bounce(`/panel/kartlar?vurgu=${remote.id}`, "siparis");
   }
-  const result = mutate((db) => {
-    const row = db.users.find((item) => item.id === user.id);
-    if (!row) return { code: "e-yok" as const };
-    const chosen = db.bins.find((item) => item.id === binId && item.type === type);
-    if (!chosen) return { code: "e-bin" as const };
-    const fee = db.settings.issueFeeKurus;
-    if (row.balance < fee) return { code: "e-bakiye" as const };
-    const plan = db.settings.plans[row.plan];
-    if (openCardCount(db, row.id) >= plan.cardLimit) return { code: "e-plan" as const };
-    const card = issueCard(db, {
-      userId: row.id,
-      type,
-      label,
-      limit: 0,
-      fee,
-      bin: chosen.digits,
-      binLabel: chosen.label,
-    });
-    pushNotice(db, {
-      userId: row.id,
-      title: "Kart bedeli düştü",
-      body: `${card.label} için hesabından yalnız basım ücreti ${formatTL(fee)} düştü. Kullanılabilir bakiye 0. Kalan bakiye ${formatTL(row.balance)}.`,
-    });
-    return { code: "basildi" as const, id: card.id };
-  });
-  if (result.code !== "basildi") return bounce("/panel/kartlar/yeni", result.code);
-  return bounce(`/panel/kartlar?vurgu=${result.id}`, "siparis");
+  void binId;
+  return bounce("/panel/kartlar/yeni", "e-kripicard-anahtar");
 }
 
 export async function fundCardAction(formData: FormData) {
@@ -316,11 +294,14 @@ export async function fundCardAction(formData: FormData) {
   const commission = loadFeeAt(tuned.loadFeePercent, gross);
   const net = gross - commission;
   if (net < 1) return bounce("/panel/kartlar", "e-tutar");
+  const known = snapshot().cards.find((item) => item.id === id && item.userId === user.id);
+  if (known?.issuerCardId && (cents === null || cents < 1000)) return bounce("/panel/kartlar", "e-kripicard-tutar");
   const remote = await remoteCall("fund", pack(formData, ["id", "tutar"]));
-  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
+  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code, remote.message);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
+    if (card?.issuerCardId) return "e-kripicard-anahtar" as const;
     if (!row || !card) return "e-yok" as const;
     if (card.status === "kapali") return "e-durum" as const;
     if (row.balance < gross) return "e-bakiye" as const;
@@ -355,10 +336,11 @@ export async function freezeAction(formData: FormData) {
   const id = String(formData.get("id") || "");
   const mode = String(formData.get("mod") || "");
   const remote = await remoteCall("freeze", pack(formData, ["id", "mod"]));
-  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
+  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code, remote.message);
   const result = mutate((db) => {
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
     if (!card) return "e-yok" as const;
+    if (card.issuerCardId) return "e-kripicard-anahtar" as const;
     if (card.status === "kapali") return "e-durum" as const;
     if (mode === "dondur") {
       if (card.status !== "aktif") return "e-durum" as const;
@@ -389,11 +371,12 @@ export async function activateCardAction(formData: FormData) {
   const user = await actor();
   const id = String(formData.get("id") || "");
   const remote = await remoteCall("activate", pack(formData, ["id"]));
-  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
+  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code, remote.message);
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     const card = db.cards.find((item) => item.id === id && item.userId === user.id);
     if (!row || !card) return "e-yok" as const;
+    if (card.issuerCardId && card.status === "donduruldu") return "e-kripicard-anahtar" as const;
     if (card.status !== "donduruldu" && card.status !== "kapali") return "e-durum" as const;
     const fee = db.settings.issueFeeKurus;
     if (card.status === "kapali" && openCardCount(db, row.id) >= db.settings.plans[row.plan].cardLimit) {
@@ -692,10 +675,11 @@ export async function adminCardAction(formData: FormData) {
   const rawBack = String(formData.get("donus") || "");
   const dest = rawBack.startsWith("/clayadm!nxx") ? rawBack : `/clayadm!nxx/kartlar?vurgu=${encodeURIComponent(id)}`;
   const remote = await remoteCall("admin-card", pack(formData, ["id", "mod", "donus"]));
-  if (remote) return bounce(dest, remote.code);
+  if (remote) return bounce(dest, remote.code, remote.message);
   const result = mutate((db) => {
     const card = db.cards.find((item) => item.id === id);
     if (!card) return { code: "e-yok" as const, userId: "" };
+    if (card.issuerCardId) return { code: "e-kripicard-anahtar" as const, userId: card.userId };
     if (card.status === "kapali") return { code: "e-durum" as const, userId: card.userId };
     if (mode === "dondur") {
       if (card.status !== "aktif") return { code: "e-durum" as const, userId: card.userId };
@@ -1375,8 +1359,8 @@ export async function adminFeesAction(formData: FormData) {
   if (!Number.isFinite(issue) || issue < 0 || issue > 100_000) return bounce(back, "e-ayar");
   if (!Number.isFinite(load) || load < 0 || load > 40) return bounce(back, "e-ayar");
   if (!Number.isFinite(transfer) || transfer < 0 || transfer > 40) return bounce(back, "e-ayar");
-  const remote = await remoteCall("admin-fees", pack(formData, ["bedel", "yukleme", "aktarim"]));
-  if (remote) return bounce(back, remote.code || "ucret");
+  const remote = await remoteCall("admin-fees", pack(formData, ["bedel", "yukleme", "aktarim", "kripicard", "anahtar_sil"]));
+  if (remote) return bounce(back, remote.code || "ucret", remote.message);
   mutate((db) => {
     db.settings.issueFeeKurus = Math.round(issue * 100);
     db.settings.loadFeePercent = Math.round(load * 10) / 10;
@@ -1502,36 +1486,15 @@ export async function adminIssueAction(formData: FormData) {
   const label = String(formData.get("etiket") || "").replace(/\s+/g, " ").trim();
   if (!isCardType(typeRaw)) return bounce(back, "e-tur");
   if (label.length < 2 || label.length > 32) return bounce(back, "e-etiket");
-  const remote = await remoteCall("admin-issue", pack(formData, ["uye", "tur", "etiket", "bin", "donus"]));
+  const grantCents = parseTryToKurus(String(formData.get("tutar") || ""));
+  if (grantCents === null || grantCents < 1000) return bounce(back, "e-kripicard-tutar");
+  const remote = await remoteCall("admin-issue", pack(formData, ["uye", "tur", "etiket", "bin", "tutar", "donus"]));
   if (remote) {
-    if (remote.code !== "basildi" || !remote.id) return bounce(back, remote.code);
+    if (remote.code !== "basildi" || !remote.id) return bounce(back, remote.code, remote.message);
     const join = back.includes("?") ? "&" : "?";
     return bounce(`${back}${join}vurgu=${encodeURIComponent(remote.id)}`, remote.code);
   }
-  const binId = String(formData.get("bin") || "");
-  let result: { code: string; id: string };
-  try {
-    result = mutate((db) => {
-      const row = db.users.find((item) => item.id === userId && item.role === "uye");
-      const chosen = db.bins.find((item) => item.id === binId && item.type === typeRaw);
-      if (!row || !chosen || !/^\d{4,8}$/.test(chosen.digits)) return { code: row ? ("e-bin" as const) : ("e-yok" as const), id: "" };
-      const plan = db.settings.plans[row.plan];
-      if (!plan || openCardCount(db, row.id) >= plan.cardLimit) return { code: "e-plan" as const, id: "" };
-      const fee = db.settings.issueFeeKurus;
-      const charged = fee > 0 && row.balance >= fee ? fee : 0;
-      const card = issueCard(db, { userId: row.id, type: typeRaw, label, limit: 0, fee: charged, bin: chosen.digits, binLabel: chosen.label });
-      const feeLine = charged > 0 ? `Basım ücreti ${formatTL(charged)} düştü.` : "Basım ücreti alınmadı. Bakiye eksiye inmedi.";
-      const basim = db.transactions.find((entry) => entry.cardId === card.id && entry.kind === "basim");
-      if (basim) basim.note = `Yönetici kartı bastı. Kullanılabilir bakiye 0. ${feeLine}`;
-      pushNotice(db, { userId: row.id, title: "Kart hazırlanıyor", body: `${label} yönetim masasından verildi. Kullanılabilir bakiye 0. ${feeLine}` });
-      return { code: "basildi" as const, id: card.id };
-    });
-  } catch {
-    return bounce(back, "e-defter");
-  }
-  if (result.code !== "basildi") return bounce(back, result.code);
-  const join = back.includes("?") ? "&" : "?";
-  return bounce(`${back}${join}vurgu=${encodeURIComponent(result.id)}`, "basildi");
+  return bounce(back, "e-kripicard-anahtar");
 }
 
 export async function adminCloseCardAction(formData: FormData) {
@@ -1899,7 +1862,7 @@ export async function clearCancelledOrderAction(formData: FormData) {
 async function desk(action: string, formData: FormData, names: string[], fallback: string) {
   await requireAdmin();
   const remote = await remoteCall(action, pack(formData, names));
-  return bounce(deskBack(formData, fallback), remote?.code || "e-defter");
+  return bounce(deskBack(formData, fallback), remote?.code || "e-defter", remote?.message);
 }
 
 export async function adminCloseAccountAction(formData: FormData) {

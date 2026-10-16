@@ -90,6 +90,8 @@ export type Card = {
   feeDueAt?: string | null;
   /** Member pin. */
   starred?: boolean;
+  /** Kripicard card_id. Empty on local leftover cards. */
+  issuerCardId?: string;
 };
 
 export type BinRow = {

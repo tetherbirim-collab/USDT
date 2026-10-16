@@ -9,7 +9,7 @@ import { useSiteSettings } from "@/lib/live";
 import { HeleketMark } from "./pay-marks";
 import { SubmitButton } from "./submit-button";
 
-export function FundForm({ cardId, balance, userId }: { cardId: string; balance: number; userId: string }) {
+export function FundForm({ cardId, balance, userId, kripicard = false }: { cardId: string; balance: number; userId: string; kripicard?: boolean }) {
   const [raw, setRaw] = useState("");
   const [method, setMethod] = useState<"hesap" | "heleket">("hesap");
   const [pending, setPending] = useState(false);
@@ -17,12 +17,13 @@ export function FundForm({ cardId, balance, userId }: { cardId: string; balance:
   const settings = useSiteSettings();
   const cents = parseTryToKurus(raw);
   const gross = cents !== null ? usdMinorToKurus(cents) : 0;
-  const commission = gross > 0 ? loadFeeAt(settings.loadFeePercent, gross) : 0;
+  const commission = !kripicard && gross > 0 ? loadFeeAt(settings.loadFeePercent, gross) : 0;
   const net = Math.max(0, gross - commission);
+  const floor = kripicard ? 1000 : MIN_USD_MINOR;
   const percent = String(settings.loadFeePercent).replace(".", ",");
   const ready =
     cents !== null &&
-    cents >= MIN_USD_MINOR &&
+    cents >= floor &&
     cents <= MAX_USD_MINOR &&
     (method === "heleket" || (gross <= balance && net >= 1));
 
@@ -79,7 +80,9 @@ export function FundForm({ cardId, balance, userId }: { cardId: string; balance:
           </span>
           <span>
             <span className="block text-sm font-semibold">Ana bakiye</span>
-            <span className="block text-xs text-white/55">Hesaptan düşer. Göndermeden önce %{percent} kesilir.</span>
+            <span className="block text-xs text-white/55">
+              {kripicard ? "Hesaptan düşer. Kripicard yüklemesinde komisyon yok. En az 10 USD." : `Hesaptan düşer. Göndermeden önce %${percent} kesilir.`}
+            </span>
           </span>
         </label>
         <label className={method === "heleket" ? "load-method load-method-on" : "load-method"}>
@@ -113,7 +116,9 @@ export function FundForm({ cardId, balance, userId }: { cardId: string; balance:
       {method === "hesap" ? (
         <div className="grid gap-2">
           <p className="text-xs text-white/70">
-            Göndermeden önce: ana bakiyeden ayrılan tutarın %{percent} kadarı yükleme komisyonu olarak kesilir. Kalan, kartın kullanılabilir bakiyesine yazılır.
+            {kripicard
+              ? "Göndermeden önce: Kripicard yüklemesi en az 10 USD. Yerel yükleme komisyonu kesilmez. Tutar sağlayıcıya gider, hesaptan kur karşılığı düşer."
+              : `Göndermeden önce: ana bakiyeden ayrılan tutarın %${percent} kadarı yükleme komisyonu olarak kesilir. Kalan, kartın kullanılabilir bakiyesine yazılır.`}
           </p>
           {gross > 0 && (
             <div className="transfer-split">

@@ -49,8 +49,11 @@ export function CardSecrets({
   const days = daysUntil(dueIso);
   const late = days < 0 || Boolean(card.feeDueAt && Date.parse(card.feeDueAt) <= Date.now());
   const leftLine = late ? "Ödeme günü geçti" : daysLeftLine(days);
-  const pan = formatPan(card.pan);
+  const digits = String(card.pan ?? "").replace(/\D/g, "");
+  const hasPan = /^\d{16}$/.test(digits);
+  const pan = hasPan ? formatPan(digits) : "";
   const expiry = prettyExpiry(String(card.expiry ?? ""));
+  const hasCvv = /^\d{3,4}$/.test(String(card.cvv ?? ""));
 
   async function copy(key: string, value: string) {
     if (!open || !value) return;
@@ -77,7 +80,7 @@ export function CardSecrets({
       {face && (
         <div className="card-face">
           {menu}
-          <VirtualCard card={{ ...card, hideCvv: !open || !cvvOn }} />
+          <VirtualCard card={{ ...card, pan: hasPan ? digits : "", panLine: hasPan ? undefined : "Numara yok", hideCvv: !open || !cvvOn || !hasCvv }} />
         </div>
       )}
       {children}
@@ -105,14 +108,14 @@ export function CardSecrets({
           <div className="rounded-2xl bg-black/25 px-3 py-2">
             <p className="text-xs text-white/50">No</p>
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-              <p className="font-mono text-sm tracking-wide">{open ? pan : `•••• •••• •••• ${String(card.pan ?? "").slice(-4)}`}</p>
-              {open && <CopyButton copied={copied === "pan"} onCopy={() => copy("pan", pan)} />}
+              <p className="font-mono text-sm tracking-wide">{open ? (hasPan ? pan : "Numara sağlayıcıdan gelmedi") : hasPan ? `•••• •••• •••• ${digits.slice(-4)}` : "Numara yok"}</p>
+              {open && hasPan && <CopyButton copied={copied === "pan"} onCopy={() => copy("pan", pan)} />}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="min-w-0 rounded-2xl bg-black/25 px-3 py-2">
               <p className="text-xs text-white/50">SKT</p>
-              <p className="mt-1 font-mono whitespace-nowrap">{open ? expiry : "•• / ••"}</p>
+              <p className="mt-1 font-mono whitespace-nowrap">{open ? (expiry || "Tarih yok") : "•• / ••"}</p>
               {open && (
                 <div className="mt-2">
                   <CopyButton copied={copied === "skt"} onCopy={() => copy("skt", expiry)} />
@@ -128,7 +131,7 @@ export function CardSecrets({
                   </button>
                 )}
               </div>
-              <p className="mt-1 font-mono whitespace-nowrap">{open && cvvOn ? card.cvv : "•••"}</p>
+              <p className="mt-1 font-mono whitespace-nowrap">{open && cvvOn ? (hasCvv ? card.cvv : "Yok") : "•••"}</p>
               {open && cvvOn && (
                 <div className="mt-2">
                   <CopyButton copied={copied === "cvv"} onCopy={() => copy("cvv", card.cvv)} />

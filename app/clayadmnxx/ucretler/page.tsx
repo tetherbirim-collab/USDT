@@ -4,6 +4,7 @@ import { adminFeesAction, adminResetAction } from "@/lib/actions";
 import { ADMIN_PATH } from "@/lib/auth";
 import { Notice } from "@/components/notice";
 import { Boot, useQuery, useSiteSettings } from "@/lib/live";
+import { issuerKeyReady } from "@/lib/store";
 
 function major(kurus: number) {
   return String(kurus / 100).replace(".", ",");
@@ -27,7 +28,7 @@ export default function AdminFeesPage() {
           Kart bedeli lira olarak yazılır. Yükleme ve aktarım yüzde olarak yazılır. Ana bakiyeye Heleket yüklemesinde bu kesintiler yoktur.
         </p>
       </div>
-      <Notice code={query.get("bildirim") || undefined} />
+      <Notice code={query.get("bildirim") || undefined} text={query.get("metin") || undefined} />
       <form action={adminResetAction}>
         <input type="hidden" name="alan" value="ucret" />
         <input type="hidden" name="donus" value={`${ADMIN_PATH}/ucretler`} />
@@ -45,6 +46,18 @@ export default function AdminFeesPage() {
         <label className="grid gap-1 text-sm">
           Kartlar arası aktarım (%)
           <input className="field" name="aktarim" inputMode="decimal" required defaultValue={percent(settings.transferFeePercent)} />
+        </label>
+        <label className="grid gap-1 text-sm">
+          Kripicard API anahtarı
+          <input className="field" name="kripicard" type="password" autoComplete="off" placeholder="Anahtarı yapıştır" />
+        </label>
+        <p className="text-sm text-white/60">
+          Anahtar yalnız sunucudaki kripicard.config.php dosyasına yazılır. Tarayıcıya dönmez, deftere yazılmaz, günlüklenmez. Boş kutu mevcut anahtarı değiştirmez.
+          {issuerKeyReady() ? " Sunucuda anahtar kayıtlı." : " Sunucudaki anahtar boş. Anahtar yoksa kart numarası üretilmez."}
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="anahtar_sil" value="1" />
+          Kayıtlı anahtarı sil
         </label>
         <button className="btn btn-gold w-fit">Ücretleri kaydet</button>
       </form>

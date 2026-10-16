@@ -24,6 +24,7 @@ export function IssueForm({
   const [type, setType] = useState<CardTypeId>("facebook_ads");
   const [label, setLabel] = useState("");
   const [binId, setBinId] = useState("");
+  const [usd, setUsd] = useState("");
   const [accountId, setAccountId] = useState(account.id);
   const [localError, setLocalError] = useState("");
   const settings = useSiteSettings();
@@ -45,6 +46,11 @@ export function IssueForm({
     }
     if (!chosen) {
       setLocalError("Bir BIN seç.");
+      return false;
+    }
+    const amount = Number(usd.trim().replace(",", "."));
+    if (!Number.isFinite(amount) || amount < 10) {
+      setLocalError("Kripicard tutarı en az 10 USD olmalı.");
       return false;
     }
     if (short) {
@@ -82,7 +88,7 @@ export function IssueForm({
                   <span className="mt-1 block text-sm text-gold">Ana bakiye {formatTL(balance)}</span>
                 </span>
               </label>
-              <p className="text-xs text-white/50">Yalnız basım ücreti bu hesaptan düşer. Kullanılabilir bakiye 0 başlar. Yükleme sonra, kendi hesabından yapılır.</p>
+              <p className="text-xs text-white/50">Hesaptan yalnız basım ücreti düşer. Kripicard tutarı ayrıdır ve en az 10 USD olur. Yükleme komisyonu bu tutara yazılmaz.</p>
             </fieldset>
             <fieldset className="grid gap-3">
               <legend className="mb-1 text-sm font-semibold">Tür</legend>
@@ -124,9 +130,20 @@ export function IssueForm({
               />
               <span className="text-white/50">Bu ad kartın üzerinde görünür.</span>
             </label>
-            <p className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white/75">
-              Kullanılabilir bakiye 0 ile başlar. Hesaptan yalnız basım ücreti alınır. Karta para, kart oluştuktan sonra kendi hesabından yüklenir.
-            </p>
+            <label className="grid gap-1 text-sm">
+              Kripicard tutarı (USD)
+              <input
+                className="field"
+                name="tutar"
+                inputMode="decimal"
+                min={10}
+                value={usd}
+                onChange={(event) => setUsd(event.target.value)}
+                placeholder="10"
+                required
+              />
+              <span className="text-white/50">En az 10 USD. Sağlayıcıya gider. Yerel yükleme komisyonu kesilmez. Anahtarsız basım kart numarası üretmez.</span>
+            </label>
             {localError && <p className="banner-bad">{localError}</p>}
             {slotsLeft <= 0 && (
               <p className="banner-bad">Bu plandaki kart hakkı doldu. Daha fazla kart için planı yükselt.</p>
@@ -149,7 +166,7 @@ export function IssueForm({
                 <div className="fee-row">
                   <dt>
                     <span className="fee-label">Karta yazılacak</span>
-                    <span className="fee-note">Kullanılabilir bakiye 0 ile başlar. Yükleme sonra yapılır.</span>
+                    <span className="fee-note">Sağlayıcı bakiye döndürürse o yazılır. Döndürmezse 0 kalır. Yükleme en az 10 USD.</span>
                   </dt>
                   <dd className="fee-value fee-keep">{formatTL(0)}</dd>
                 </div>

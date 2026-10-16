@@ -140,6 +140,74 @@ function clay_username(string $raw): ?string
     return $username;
 }
 
+function clay_digest(string $secret, string $salt): string
+{
+    return hash("sha256", $salt . "\n" . $secret);
+}
+
+function clay_hash_eq(string $known, string $given): bool
+{
+    if ($known === "" || strlen($known) !== strlen($given)) {
+        return false;
+    }
+    return hash_equals($known, $given);
+}
+
+function clay_fold_seed(string $raw): string
+{
+    $value = strtolower(trim($raw));
+    $value = preg_replace("/[^a-z\\s]+/", " ", $value);
+    $value = preg_replace("/\\s+/", " ", (string) $value);
+    return trim((string) $value);
+}
+
+function clay_seed_phrase(string $raw): ?string
+{
+    $value = clay_fold_seed($raw);
+    if (!preg_match("/^[a-z]{2,16}(?: [a-z]{2,16}){7,15}$/", $value)) {
+        return null;
+    }
+    return $value;
+}
+
+function clay_password_ok(array $user, string $password): bool
+{
+    $hash = (string) ($user["passHash"] ?? "");
+    $salt = (string) ($user["passSalt"] ?? "");
+    if ($hash !== "" && $salt !== "") {
+        return clay_hash_eq($hash, clay_digest($password, $salt));
+    }
+    $stored = (string) ($user["password"] ?? "");
+    if ($stored === "" || $password === "") {
+        return false;
+    }
+    return clay_hash_eq($stored, $password);
+}
+
+function clay_seed_ok(array $user, string $seed): bool
+{
+    $hash = (string) ($user["seedHash"] ?? "");
+    $salt = (string) ($user["seedSalt"] ?? "");
+    if ($hash === "" || $salt === "" || $seed === "") {
+        return false;
+    }
+    return clay_hash_eq($hash, clay_digest($seed, $salt));
+}
+
+function clay_hide_secrets(array $user, bool $desk): array
+{
+    $hasSeed = is_string($user["seedHash"] ?? null) && $user["seedHash"] !== "";
+    unset($user["passSalt"], $user["passHash"], $user["seedSalt"], $user["seedHash"], $user["passwordHash"], $user["email"], $user["seed"]);
+    if ($hasSeed) {
+        $user["hasSeed"] = true;
+    }
+    if (!$desk) {
+        $user["password"] = "";
+        unset($user["securityAnswer"]);
+    }
+    return $user;
+}
+
 function clay_address(string $raw): ?string
 {
     $address = trim((string) preg_replace("/\\s+/u", " ", $raw));
@@ -709,12 +777,26 @@ function clay_normalize(array &$db): bool
                 $dirty = true;
             }
         }
-        if (!is_string($db["users"][$i]["password"] ?? null) || $db["users"][$i]["password"] === "") {
+        $passHash = $db["users"][$i]["passHash"] ?? "";
+        $passSalt = $db["users"][$i]["passSalt"] ?? "";
+        $hashed = is_string($passHash) && preg_match("/^[a-f0-9]{64}$/", $passHash) === 1
+            && is_string($passSalt) && preg_match("/^[a-f0-9]{16,64}$/", $passSalt) === 1;
+        if ($hashed) {
+            if (($db["users"][$i]["password"] ?? "") !== "") {
+                $db["users"][$i]["password"] = "";
+                $dirty = true;
+            }
+        } elseif (!is_string($db["users"][$i]["password"] ?? null) || $db["users"][$i]["password"] === "") {
             if ($username === "clayadmin" || $username === "admin") {
                 $db["users"][$i]["password"] = "clayadmin";
+                $dirty = true;
             } elseif ($username === "demo") {
                 $db["users"][$i]["password"] = "demo123";
+                $dirty = true;
             }
+        }
+        if (isset($db["users"][$i]["seed"])) {
+            unset($db["users"][$i]["seed"]);
             $dirty = true;
         }
         if (!isset($db["users"][$i]["address"]) || !is_string($db["users"][$i]["address"])) {
@@ -737,7 +819,7 @@ function clay_normalize(array &$db): bool
             $db["users"][$i]["balance"] = 0;
             $dirty = true;
         }
-        unset($db["users"][$i]["email"], $db["users"][$i]["passwordHash"]);
+        unset($db["users"][$i]["email"], $db["users"][$i]["passwordHash"], $db["users"][$i]["seed"]);
     }
     if (!$hasAdmin) {
         $db["users"][] = clay_admin_record();
@@ -999,6 +1081,9 @@ function clay_public_user(array $user): array
     if (!empty($user["securityQuestion"])) {
         $out["securityQuestion"] = (string) $user["securityQuestion"];
     }
+    if (!empty($user["seedHash"]) || !empty($user["hasSeed"])) {
+        $out["hasSeed"] = true;
+    }
     return $out;
 }
 
@@ -1026,6 +1111,11 @@ function clay_view(array $db, ?array $me): array
         ];
     }
     if (($me["role"] ?? "") === "yonetici") {
+        $deskUsers = [];
+        foreach ($db["users"] as $user) {
+            $deskUsers[] = clay_hide_secrets($user, true);
+        }
+        $db["users"] = $deskUsers;
         return $db;
     }
     $id = (string) $me["id"];
@@ -1041,9 +1131,7 @@ function clay_view(array $db, ?array $me): array
     $users = [];
     foreach ($db["users"] as $user) {
         if (($user["id"] ?? "") === $id) {
-            $user["password"] = "";
-            unset($user["securityAnswer"]);
-            $users[] = $user;
+            $users[] = clay_hide_secrets($user, false);
         }
     }
     return [
@@ -1294,7 +1382,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             if (($user["username"] ?? "") !== $username) {
                 continue;
             }
-            if (($user["password"] ?? "") !== $password) {
+            if (!clay_password_ok($user, $password)) {
                 return clay_fail("e-giris");
             }
             if (($user["status"] ?? "") === "askida") {
@@ -1313,20 +1401,12 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
     if ($action === "register") {
         $username = clay_username(clay_in($in, "kullanici"));
         $password = clay_in($in, "parola");
+        $seed = clay_seed_phrase(clay_in($in, "tohum"));
         $again = clay_in($in, "parola2");
         $question = clay_in($in, "soru");
         $answer = clay_answer(clay_in($in, "cevap"));
         if (!$username) {
             return clay_fail("e-kullanici");
-        }
-        if (strlen($password) < 6 || strlen($password) > 72 || $password !== $again) {
-            return clay_fail("e-parola");
-        }
-        if (!isset(clay_questions()[$question])) {
-            return clay_fail("e-soru");
-        }
-        if (mb_strlen($answer) < 2 || mb_strlen($answer) > 40) {
-            return clay_fail("e-cevap");
         }
         foreach ($db["users"] as $user) {
             if (($user["username"] ?? "") === $username) {
@@ -1335,13 +1415,11 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         }
         $bonus = clay_kurus(3000);
         $id = "usr_" . clay_rid();
-        $db["users"][] = [
+        $record = [
             "id" => $id,
             "name" => $username,
             "username" => $username,
-            "password" => $password,
-            "securityQuestion" => $question,
-            "securityAnswer" => $answer,
+            "password" => "",
             "balance" => $bonus,
             "usdMinor" => 0,
             "plan" => "kivilcim",
@@ -1350,6 +1428,34 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             "address" => "",
             "createdAt" => clay_now(),
         ];
+        if (clay_in($in, "tohum") !== "") {
+            if (!preg_match("/^\\d{8}$/", $password)) {
+                return clay_fail("e-parola");
+            }
+            if ($seed === null) {
+                return clay_fail("e-tohum");
+            }
+            $passSalt = bin2hex(random_bytes(16));
+            $seedSalt = bin2hex(random_bytes(16));
+            $record["passSalt"] = $passSalt;
+            $record["passHash"] = clay_digest($password, $passSalt);
+            $record["seedSalt"] = $seedSalt;
+            $record["seedHash"] = clay_digest($seed, $seedSalt);
+        } else {
+            if (strlen($password) < 6 || strlen($password) > 72 || $password !== $again) {
+                return clay_fail("e-parola");
+            }
+            if (!isset(clay_questions()[$question])) {
+                return clay_fail("e-soru");
+            }
+            if (mb_strlen($answer) < 2 || mb_strlen($answer) > 40) {
+                return clay_fail("e-cevap");
+            }
+            $record["password"] = $password;
+            $record["securityQuestion"] = $question;
+            $record["securityAnswer"] = $answer;
+        }
+        $db["users"][] = $record;
         $db["transactions"][] = [
             "id" => "tx_" . clay_rid(),
             "userId" => $id,
@@ -1402,11 +1508,52 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if (($db["users"][$index]["securityQuestion"] ?? "") !== $question || ($db["users"][$index]["securityAnswer"] ?? "") !== $answer) {
             return clay_fail("e-eslesmedi");
         }
-        $db["users"][$index]["password"] = $password;
+        if (!empty($db["users"][$index]["passHash"])) {
+            $salt = bin2hex(random_bytes(16));
+            $db["users"][$index]["passSalt"] = $salt;
+            $db["users"][$index]["passHash"] = clay_digest($password, $salt);
+            $db["users"][$index]["password"] = "";
+        } else {
+            $db["users"][$index]["password"] = $password;
+        }
         clay_notice($db, (string) $db["users"][$index]["id"], "Parola yenilendi", "Yeni parolan kaydedildi. Bu parola ile girersin.");
         session_regenerate_id(true);
         $_SESSION["uid"] = $db["users"][$index]["id"];
         return clay_ok("sifre");
+    }
+    if ($action === "tohum") {
+        $username = clay_username(clay_in($in, "kullanici"));
+        $seed = clay_seed_phrase(clay_in($in, "tohum"));
+        if (!$username) {
+            return clay_fail("e-kullanici");
+        }
+        if ($seed === null) {
+            return clay_fail("e-tohum");
+        }
+        $index = -1;
+        foreach ($db["users"] as $n => $user) {
+            if (($user["username"] ?? "") === $username && ($user["role"] ?? "") === "uye") {
+                $index = $n;
+                break;
+            }
+        }
+        if ($index < 0) {
+            return clay_fail("e-eslesmedi");
+        }
+        if (($db["users"][$index]["status"] ?? "") === "askida") {
+            return clay_fail("e-askida");
+        }
+        $hasSeed = is_string($db["users"][$index]["seedHash"] ?? null) && $db["users"][$index]["seedHash"] !== "";
+        if (!$hasSeed) {
+            $hasQuestion = ($db["users"][$index]["securityQuestion"] ?? "") !== "" && ($db["users"][$index]["securityAnswer"] ?? "") !== "";
+            return clay_fail($hasQuestion ? "e-tohum-yok" : "e-eslesmedi");
+        }
+        if (!clay_seed_ok($db["users"][$index], $seed)) {
+            return clay_fail("e-eslesmedi");
+        }
+        session_regenerate_id(true);
+        $_SESSION["uid"] = $db["users"][$index]["id"];
+        return ["code" => "ok", "save" => false];
     }
     if ($action === "heleket") {
         $gate = clay_member($me);
@@ -1992,10 +2139,17 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if (strlen($next) < 6 || strlen($next) > 72 || $next !== $again) {
             return clay_fail("e-parola");
         }
-        if (($db["users"][$userIndex]["password"] ?? "") !== clay_in($in, "eski")) {
+        if (!clay_password_ok($db["users"][$userIndex], clay_in($in, "eski"))) {
             return clay_fail("e-parola-eski");
         }
-        $db["users"][$userIndex]["password"] = $next;
+        if (!empty($db["users"][$userIndex]["passHash"])) {
+            $salt = bin2hex(random_bytes(16));
+            $db["users"][$userIndex]["passSalt"] = $salt;
+            $db["users"][$userIndex]["passHash"] = clay_digest($next, $salt);
+            $db["users"][$userIndex]["password"] = "";
+        } else {
+            $db["users"][$userIndex]["password"] = $next;
+        }
         clay_notice($db, $me["id"], "Parola güncellendi", "Yeni parolan kaydedildi.");
         return clay_ok("parola");
     }
@@ -2003,7 +2157,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
     if ($action === "soru") {
         $question = clay_in($in, "soru");
         $answer = clay_answer(clay_in($in, "cevap"));
-        if (($db["users"][$userIndex]["password"] ?? "") !== clay_in($in, "eski")) {
+        if (!clay_password_ok($db["users"][$userIndex], clay_in($in, "eski"))) {
             return clay_fail("e-parola-eski");
         }
         if (!isset(clay_questions()[$question])) {
@@ -2410,7 +2564,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if (strlen($next) < 6 || strlen($next) > 72 || $next !== $again) {
             return clay_fail("e-parola");
         }
-        if (($db["users"][$userIndex]["password"] ?? "") !== clay_in($in, "eski")) {
+        if (!clay_password_ok($db["users"][$userIndex], clay_in($in, "eski"))) {
             return clay_fail("e-parola-eski");
         }
         $db["users"][$userIndex]["password"] = $next;

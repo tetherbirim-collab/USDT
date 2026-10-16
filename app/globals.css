@@ -2914,11 +2914,11 @@ html.light .theme-sun {
 
 html.light {
   color-scheme: light;
-  --color-white: #1c1722;
-  --color-black: #fffdf8;
 }
 
 html.light body {
+  --color-white: #1c1722;
+  --color-black: #fffdf8;
   color: #1c1722;
   background:
     radial-gradient(900px 520px at 8% -10%, rgba(224, 21, 43, 0.08), transparent 62%),
@@ -3085,13 +3085,20 @@ html.light .account-sheet {
 }
 
 html.light .boot-screen {
-  --color-white: #fff;
   --color-gold: #f0c98a;
   background: #07060b;
   color: #fff;
 }
 
+html.light .launchpad {
+  background:
+    radial-gradient(420px 80px at 15% 50%, rgba(240, 201, 138, 0.2), transparent 70%),
+    radial-gradient(380px 80px at 80% 50%, rgba(141, 255, 228, 0.08), transparent 70%),
+    #14120f;
+}
+
 html.light :is(
+  .bg-white,
   .account-hero,
   .pay-rail,
   .vcard,
@@ -3100,16 +3107,18 @@ html.light :is(
   .announce-bar,
   .coin-tile,
   .launchpad,
+  .plan-card,
   .nav-on,
   .btn-gold,
   .trust-line,
+  .boot-screen,
   .bg-\[\#e0152b\]
 ) {
   --color-white: #fff;
   --color-black: #000;
 }
 
-html.light :is(.account-hero, .pay-rail, .vcard, .card-menu-pop, .splash-card, .announce-bar, .coin-tile, .launchpad, .trust-line) .text-gold,
+html.light :is(.account-hero, .pay-rail, .vcard, .card-menu-pop, .splash-card, .announce-bar, .coin-tile, .launchpad, .trust-line, .plan-card) .text-gold,
 html.light .account-hero .account-kicker {
   color: #f0c98a;
 }

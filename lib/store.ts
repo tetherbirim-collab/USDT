@@ -729,14 +729,29 @@ function normalize(db: DB): DB {
       user.username = username;
       dirty = true;
     }
-    if (typeof user.password !== "string" || user.password.length === 0) {
-      if (username === "admin" || username === "clayadmin") user.password = "clayadmin";
-      else if (username === "demo") user.password = "demo123";
-      dirty = true;
+    const hashed =
+      typeof user.passHash === "string" &&
+      /^[a-f0-9]{64}$/.test(user.passHash) &&
+      typeof user.passSalt === "string" &&
+      /^[a-f0-9]{16,64}$/.test(user.passSalt);
+    if (hashed) {
+      if (user.password !== "") {
+        user.password = "";
+        dirty = true;
+      }
+    } else if (typeof user.password !== "string" || user.password.length === 0) {
+      if (username === "admin" || username === "clayadmin") {
+        user.password = "clayadmin";
+        dirty = true;
+      } else if (username === "demo") {
+        user.password = "demo123";
+        dirty = true;
+      }
     }
-    if ("email" in user || "passwordHash" in user) {
+    if ("email" in user || "passwordHash" in user || "seed" in user) {
       delete user.email;
       delete user.passwordHash;
+      delete (user as { seed?: string }).seed;
       dirty = true;
     }
     if (user.role !== "uye" && user.role !== "yonetici") {
@@ -1079,16 +1094,36 @@ export function findUserById(id: string): User | undefined {
   return read().users.find((user) => user.id === id);
 }
 
-export function createUser(input: { username: string; password: string; name: string; securityQuestion?: string; securityAnswer?: string }): User | null {
+export function createUser(input: {
+  username: string;
+  password: string;
+  name: string;
+  securityQuestion?: string;
+  securityAnswer?: string;
+  passSalt?: string;
+  passHash?: string;
+  seedSalt?: string;
+  seedHash?: string;
+}): User | null {
   return mutate((db) => {
     if (db.users.some((item) => item.username === input.username)) return null;
+    const seeded = Boolean(input.passHash && input.seedHash);
     const user: User = {
       id: `usr_${rid()}`,
       name: input.name,
       username: input.username,
-      password: input.password,
-      securityQuestion: input.securityQuestion,
-      securityAnswer: input.securityAnswer,
+      password: seeded ? "" : input.password,
+      ...(seeded
+        ? {
+            passSalt: input.passSalt,
+            passHash: input.passHash,
+            seedSalt: input.seedSalt,
+            seedHash: input.seedHash,
+          }
+        : {
+            securityQuestion: input.securityQuestion,
+            securityAnswer: input.securityAnswer,
+          }),
       balance: WELCOME_BONUS_KURUS,
       usdMinor: 0,
       plan: "kivilcim",

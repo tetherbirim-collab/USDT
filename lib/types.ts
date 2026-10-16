@@ -16,8 +16,17 @@ export type User = {
   id: string;
   name: string;
   username: string;
-  /** Plain text so the simulation admin desk can show the current password. */
+  /**
+   * Plain text only for accounts opened before seeded signup (demo, clayadmin, security-question members).
+   * New accounts keep this empty and store passHash instead.
+   */
   password: string;
+  /** Salted SHA-256 of the password. Present on accounts opened with an 8-digit password. */
+  passSalt?: string;
+  passHash?: string;
+  /** Salted SHA-256 of the recovery seed. The phrase itself is never stored. */
+  seedSalt?: string;
+  seedHash?: string;
   /** Question id chosen at signup. The answer stays off the public profile. */
   securityQuestion?: string;
   securityAnswer?: string;
@@ -48,6 +57,8 @@ export type PublicUser = {
   planUntil: string;
   /** Question id only. The answer is not sent to the browser. */
   securityQuestion?: string;
+  /** True when a recovery seed hash exists. The phrase is not sent to the browser. */
+  hasSeed?: boolean;
 };
 
 export type Card = {

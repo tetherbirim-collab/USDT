@@ -30,6 +30,7 @@ export function toPublic(user: {
   createdAt: string;
   planUntil?: string | null;
   securityQuestion?: string;
+  seedHash?: string;
 }): PublicUser {
   return {
     id: user.id,
@@ -43,6 +44,7 @@ export function toPublic(user: {
     address: user.address,
     planUntil: planEndsAt(user.createdAt, user.planUntil),
     ...(user.securityQuestion ? { securityQuestion: user.securityQuestion } : {}),
+    ...(user.seedHash ? { hasSeed: true } : {}),
   };
 }
 

@@ -58,12 +58,12 @@ export function deskPath(role: PublicUser["role"]): string {
 export function getCurrentUser(): PublicUser | null {
   const remote = remoteSession();
   if (remote.mode) {
-    if (!remote.me || remote.me.status === "askida") return null;
+    if (!remote.me || remote.me.status === "askida" || remote.me.status === "kapali") return null;
     return remote.me;
   }
   const id = readSessionUserId();
   if (!id) return null;
   const user = findUserById(id);
-  if (!user || user.status === "askida") return null;
+  if (!user || user.status === "askida" || user.status === "kapali") return null;
   return toPublic(user);
 }

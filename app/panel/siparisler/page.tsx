@@ -1,6 +1,6 @@
 "use client";
 
-import { cancelOrderAction } from "@/lib/actions";
+import { cancelOrderAction, clearCancelledOrderAction } from "@/lib/actions";
 import { DeskArrival } from "@/components/desk-arrival";
 import { GlassOrderCard } from "@/components/glass-order-card";
 import { Notice } from "@/components/notice";
@@ -42,6 +42,16 @@ export default function OrdersPage() {
                     <form action={cancelOrderAction}>
                       <input type="hidden" name="id" value={order.cardId} />
                       <SubmitButton className="btn btn-danger">Siparişi iptal et</SubmitButton>
+                    </form>
+                  )}
+                  {order.status === "iptal" && (
+                    <form action={clearCancelledOrderAction} className="flex flex-wrap items-center gap-2">
+                      <input type="hidden" name="id" value={order.cardId} />
+                      <label className="flex items-center gap-2 text-xs text-white/70">
+                        <input type="checkbox" name="onay" value="on" required />
+                        Kapalı kartla birlikte sil
+                      </label>
+                      <SubmitButton className="btn btn-ghost">Listeden kaldır</SubmitButton>
                     </form>
                   )}
                 </div>

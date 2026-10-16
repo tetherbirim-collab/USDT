@@ -1,9 +1,55 @@
 "use client";
 
-import { useState } from "react";
-import { adminCardAction, adminCloseCardAction, adminIssueAction, adminPurgeCardAction, adminTransferAction } from "@/lib/actions";
+import { useActionState, useState } from "react";
+import { adminAssignPlanAction, adminCardAction, adminCloseCardAction, adminIssueAction, adminMemberPasswordAction, adminPurgeCardAction, adminTransferAction } from "@/lib/actions";
 import { CARD_TYPE_ORDER, CARD_TYPES } from "@/lib/catalog";
-import type { BinRow, Card, CardStatus } from "@/lib/types";
+import type { BinRow, Card, CardStatus, PlanId } from "@/lib/types";
+
+export function AdminPasswordForm({ userId, seeded }: { userId: string; seeded: boolean }) {
+  const [state, action] = useActionState(adminMemberPasswordAction, { error: "", once: "" });
+  return (
+    <form action={action} className="glass grid gap-3 rounded-[28px] p-5">
+      <p className="text-xs font-bold tracking-[0.18em] text-gold">PAROLA</p>
+      <h2 className="font-display text-2xl font-bold">Parola yaz</h2>
+      <p className="text-sm text-white/70">
+        {seeded ? "Bu hesap 8 haneli rakam kullanır. Parola deftere düz yazılmaz. Kaydedince burada bir kez görünür." : "Yeni parola 6–72 karakter. Düz metin olarak saklanmaz."}
+      </p>
+      <input type="hidden" name="uye" value={userId} />
+      <label className="grid gap-1 text-sm">
+        Yeni parola
+        <input className="field" name="parola" type="text" required minLength={seeded ? 8 : 6} maxLength={seeded ? 8 : 72} autoComplete="off" />
+      </label>
+      <label className="grid gap-1 text-sm">
+        Yeniden
+        <input className="field" name="parola2" type="text" required autoComplete="off" />
+      </label>
+      <button className="btn btn-gold w-fit">Parolayı yaz</button>
+      {state.once ? <p className="rounded-2xl bg-mint/15 px-3 py-3 text-sm font-semibold text-mint">Yeni parola {state.once}. Bu sayfa kapanınca bir daha görünmez.</p> : null}
+      {state.error ? <p className="text-sm font-semibold text-[#ffb4c4]">{state.error}</p> : null}
+    </form>
+  );
+}
+
+export function AdminPlanAssign({ userId, back, plan }: { userId: string; back: string; plan: PlanId }) {
+  return (
+    <form action={adminAssignPlanAction} className="glass grid gap-3 rounded-[28px] p-5">
+      <p className="text-xs font-bold tracking-[0.18em] text-gold">PLAN</p>
+      <h2 className="font-display text-2xl font-bold">Plan yaz</h2>
+      <p className="text-sm text-white/70">Kıvılcım, Atölye veya Galeri. Ücret üyenin bakiyesinden düşer. Bakiye yetmezse plan değişmez.</p>
+      <input type="hidden" name="uye" value={userId} />
+      <input type="hidden" name="donus" value={back} />
+      <label className="grid gap-1 text-sm">
+        Plan
+        <select className="field" name="plan" defaultValue={plan}>
+          <option value="kivilcim">Kıvılcım</option>
+          <option value="atolye">Atölye</option>
+          <option value="galeri">Galeri</option>
+        </select>
+      </label>
+      <button className="btn btn-gold w-fit">Ücreti düş ve yaz</button>
+    </form>
+  );
+}
 
 export function AdminIssueForm({ userId, bins, back }: { userId: string; bins: BinRow[]; back: string }) {
   const [type, setType] = useState<(typeof CARD_TYPE_ORDER)[number]>("facebook_ads");

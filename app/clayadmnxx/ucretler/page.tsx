@@ -1,6 +1,7 @@
 "use client";
 
-import { adminFeesAction } from "@/lib/actions";
+import { adminFeesAction, adminResetAction } from "@/lib/actions";
+import { ADMIN_PATH } from "@/lib/auth";
 import { Notice } from "@/components/notice";
 import { Boot, useQuery, useSiteSettings } from "@/lib/live";
 
@@ -27,6 +28,11 @@ export default function AdminFeesPage() {
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
+      <form action={adminResetAction}>
+        <input type="hidden" name="alan" value="ucret" />
+        <input type="hidden" name="donus" value={`${ADMIN_PATH}/ucretler`} />
+        <button className="btn btn-ghost">Ücretleri varsayılana al</button>
+      </form>
       <form action={adminFeesAction} className="glass grid gap-3 rounded-[28px] p-5">
         <label className="grid gap-1 text-sm">
           Kart bedeli (₺)

@@ -45,6 +45,7 @@ export function CardSecrets({
   children?: ReactNode;
 }) {
   const [open, setOpen] = useState(true);
+  const [cvvOn, setCvvOn] = useState(false);
   const [copied, setCopied] = useState("");
   const dueIso = card.feeDueAt || plusDaysIso(String(card.createdAt ?? ""), 30);
   const due = formatDay(dueIso);
@@ -68,7 +69,7 @@ export function CardSecrets({
       `Kart: ${card.label}`,
       `Numara: ${pan}`,
       `Son kullanma: ${expiry}`,
-      `CVV: ${card.cvv}`,
+      `CVV: ${cvvOn ? card.cvv : "gizli"}`,
       line ? `Adres: ${line}` : "Adres: yazılmadı",
       `Sonraki kart ödemesi: ${due}`,
       leftLine,
@@ -81,15 +82,15 @@ export function CardSecrets({
       {face && (
         <div className="card-face">
           {menu}
-          <VirtualCard card={{ ...card, hideCvv: !open }} />
+          <VirtualCard card={{ ...card, hideCvv: !open || !cvvOn }} />
         </div>
       )}
       {children}
-      <section className="mt-4 rounded-[22px] bg-white/[0.04] p-4">
+      <section className="mt-3 rounded-2xl bg-white/[0.04] px-3 py-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-bold tracking-[0.16em] text-white/45">SONRAKİ KART ÖDEMESİ</p>
-            <p className="mt-1 font-display text-2xl font-bold">{open ? due : "•• ••• ••••"}</p>
+            <p className="text-xs font-bold tracking-[0.16em] text-white/45">Sonraki ödeme</p>
+            <p className="mt-1 font-display text-xl font-bold">{open ? due : "•• ••• ••••"}</p>
             {open && <p className={`fee-left ${late ? "fee-left-late" : ""}`}>{leftLine}</p>}
             <p className="mt-1 text-xs text-white/45">
               {late ? "Bu ödeme bakiyeden düşmedi. Kart açık kaldı." : "Kart bedeli o gün bakiyeden düşer."}
@@ -98,23 +99,24 @@ export function CardSecrets({
           {open && <CopyButton copied={copied === "odeme"} onCopy={() => copy("odeme", `${due} · ${leftLine}`)} />}
         </div>
       </section>
-      <section className="mt-3 rounded-[22px] bg-white/[0.04] p-4">
+      <section className="mt-2 rounded-2xl bg-white/[0.04] px-3 py-3">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="font-display text-xl font-bold">Kart detayları</h2>
+          <h2 className="font-display text-lg font-bold">Detay</h2>
           <button type="button" className="text-sm font-semibold text-white/70" onClick={() => setOpen((value) => !value)}>
             {open ? "Gizle" : "Göster"}
           </button>
         </div>
-        <div className="mt-4 grid gap-3">
-          <div className="rounded-2xl bg-black/25 px-3 py-3">
+        <div className="mt-3 grid gap-2">
+          <div className="rounded-2xl bg-black/25 px-3 py-2">
+            <p className="text-xs text-white/50">No</p>
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-              <p className="font-mono text-base tracking-wide">{open ? pan : `•••• •••• •••• ${String(card.pan ?? "").slice(-4)}`}</p>
+              <p className="font-mono text-sm tracking-wide">{open ? pan : `•••• •••• •••• ${String(card.pan ?? "").slice(-4)}`}</p>
               {open && <CopyButton copied={copied === "pan"} onCopy={() => copy("pan", pan)} />}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="min-w-0 rounded-2xl bg-black/25 px-3 py-3">
-              <p className="text-xs text-white/50">Son kullanma tarihi</p>
+            <div className="min-w-0 rounded-2xl bg-black/25 px-3 py-2">
+              <p className="text-xs text-white/50">SKT</p>
               <p className="mt-1 font-mono whitespace-nowrap">{open ? expiry : "•• / ••"}</p>
               {open && (
                 <div className="mt-2">
@@ -122,10 +124,17 @@ export function CardSecrets({
                 </div>
               )}
             </div>
-            <div className="min-w-0 rounded-2xl bg-black/25 px-3 py-3">
-              <p className="text-xs text-white/50">CVV</p>
-              <p className="mt-1 font-mono whitespace-nowrap">{open ? card.cvv : "•••"}</p>
-              {open && (
+            <div className="min-w-0 rounded-2xl bg-black/25 px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-white/50">CVV</p>
+                {open && (
+                  <button type="button" className="text-xs font-bold text-gold" onClick={() => setCvvOn((value) => !value)}>
+                    {cvvOn ? "Gizle" : "Göster"}
+                  </button>
+                )}
+              </div>
+              <p className="mt-1 font-mono whitespace-nowrap">{open && cvvOn ? card.cvv : "•••"}</p>
+              {open && cvvOn && (
                 <div className="mt-2">
                   <CopyButton copied={copied === "cvv"} onCopy={() => copy("cvv", card.cvv)} />
                 </div>

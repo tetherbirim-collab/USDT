@@ -24,7 +24,7 @@ export function IssueForm({
   const [type, setType] = useState<CardTypeId>("facebook_ads");
   const [label, setLabel] = useState("");
   const [binId, setBinId] = useState("");
-  const [accountId, setAccountId] = useState("");
+  const [accountId, setAccountId] = useState(account.id);
   const [localError, setLocalError] = useState("");
   const settings = useSiteSettings();
   const due = settings.issueFeeKurus;

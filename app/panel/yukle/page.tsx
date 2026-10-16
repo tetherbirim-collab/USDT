@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ClayLoadArt, CoinLogo, HeleketMark } from "@/components/pay-marks";
 import { Notice } from "@/components/notice";
-import { MAX_USD_MINOR, MIN_USD_MINOR, USD_RATE_AS_OF, USD_SELL_RATE, noticeText, usdMinorToKurus } from "@/lib/catalog";
+import { MAX_USD_MINOR, MIN_USD_MINOR, fxAsOf, fxRate, noticeText, usdMinorToKurus } from "@/lib/catalog";
 import { PAYOUT_COINS, payoutCoinName } from "@/lib/coins";
 import { formatRate, formatSigned, formatTL, formatUsd, formatWhen, parseTryToKurus } from "@/lib/format";
 import { withdrawAction } from "@/lib/actions";
@@ -137,7 +137,7 @@ export default function TopupPage() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">CÜZDAN</p>
         <h1 className="font-display text-4xl font-extrabold">Bakiye yükle</h1>
         <p className="mt-2 max-w-xl text-white/70">
-          Ana bakiyede {formatTL(user.balance)} durur. Crypto yüklemesine komisyon yok. 1 USD = {formatRate(USD_SELL_RATE)} TL · {USD_RATE_AS_OF}.
+          Ana bakiyede {formatTL(user.balance)} durur. Crypto yüklemesine komisyon yok. 1 USD = {formatRate(fxRate())} TL · {fxAsOf() ? formatWhen(fxAsOf()) : "yedek kur"}.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
@@ -151,7 +151,7 @@ export default function TopupPage() {
         <div className="wallet-copy">
           <p className="text-xs font-bold tracking-[0.18em] text-gold">CRYPTO İLE YÜKLE</p>
           <h2 className="font-display mt-1 text-3xl font-extrabold">Heleket</h2>
-          <p className="mt-2 text-sm text-white/70">Komisyon yok. Yazdığın tutar ABD dolarıdır. Onaylanınca sabit kurun TL karşılığı ana bakiyeye yazılır.</p>
+          <p className="mt-2 text-sm text-white/70">Komisyon yok. Yazdığın tutar ABD dolarıdır. Onaylanınca canlı kurun TL karşılığı ana bakiyeye yazılır.</p>
           <HeleketMark />
           <label className="money-field">
             <span className="money-kicker">Ödeme yapmak istediğin tutar (USD)</span>
@@ -172,7 +172,7 @@ export default function TopupPage() {
             <span className="money-hint">
               {ready && cents !== null
                 ? `${formatUsd(cents)} = ${formatTL(usdMinorToKurus(cents))}`
-                : `1 USD = ${formatRate(USD_SELL_RATE)} TL · 1–5.000 USD`}
+                : `1 USD = ${formatRate(fxRate())} TL · ${fxAsOf() ? formatWhen(fxAsOf()) : "yedek kur"}`}
             </span>
           </label>
           <button className="btn btn-gold w-fit" type="submit" disabled={pending}>
@@ -189,7 +189,7 @@ export default function TopupPage() {
           <p className="text-xs font-bold tracking-[0.18em] text-gold">ÇEKİM</p>
           <h2 className="font-display mt-1 text-3xl font-extrabold">Para çek</h2>
           <p className="mt-2 text-sm text-white/70">
-            Tutar yerelde beklemeye alınır. Zincire gönderilmez. Yönetim gönderince veya iptal edince zil çalar. En az {formatTL(floor)}.
+            Tutar beklemeye alınır. Yönetim Heleket ile gönderir; anahtar yoksa talep bekler ve zincire çıkmaz. En az {formatTL(floor)}.
           </p>
           <label className="money-field">
             <span className="money-kicker">Tutar (TL)</span>

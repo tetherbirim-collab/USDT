@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { adminAccountAction, adminBalanceAction } from "@/lib/actions";
+import { useState } from "react";
+import { adminAccountAction, adminBalanceAction, adminBulkSuspendAction, adminCloseAccountAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { ADMIN_PATH } from "@/lib/auth";
 import { formatTL, showOrderCode } from "@/lib/format";
@@ -13,6 +14,7 @@ export default function AdminMembersPage() {
   const settings = useSiteSettings();
   if (!query) return <Boot />;
   const highlight = query.get("vurgu");
+  const [picked, setPicked] = useState<string[]>([]);
   const db = snapshot();
   const users = [...db.users].sort((a, b) => {
     if (a.role !== b.role) return a.role === "uye" ? -1 : 1;
@@ -25,10 +27,16 @@ export default function AdminMembersPage() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">ÜYELER</p>
         <h1 className="font-display text-4xl font-extrabold">Üye listesi</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Bakiye dolar olarak yazılır, ekranda sabit kurun TL karşılığı durur. Parola düz metin görünür. Kart dondurma Kartlar sekmesindedir.
+          Bakiye dolar olarak yazılır, ekranda canlı kurun TL karşılığı durur. Parola düz metin görünür. Kart dondurma Kartlar sekmesindedir.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
+      <form action={adminBulkSuspendAction} className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="idler" value={picked.join(",")} />
+        <input type="hidden" name="donus" value={`${ADMIN_PATH}/uyeler`} />
+        <button className="btn btn-danger">Seçilenleri askıya al</button>
+        <p className="text-sm text-white/60">{picked.length} üye seçili</p>
+      </form>
       <div className="grid gap-4">
         {users.map((user) => {
           const cards = db.cards.filter((card) => card.userId === user.id);
@@ -41,7 +49,17 @@ export default function AdminMembersPage() {
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-display text-2xl font-bold">{user.name}</p>
+                  <div className="flex items-center gap-2">
+                    {user.role === "uye" && user.status === "acik" && (
+                      <input
+                        type="checkbox"
+                        aria-label={`${user.username} seç`}
+                        checked={picked.includes(user.id)}
+                        onChange={() => setPicked((cur) => (cur.includes(user.id) ? cur.filter((id) => id !== user.id) : [...cur, user.id]))}
+                      />
+                    )}
+                    <p className="font-display text-2xl font-bold">{user.name}</p>
+                  </div>
                   <Link href={`${ADMIN_PATH}/kullanici?id=${user.id}`} className="text-gold underline decoration-gold/40">
                     {user.username}
                   </Link>
@@ -49,9 +67,9 @@ export default function AdminMembersPage() {
                   <p className="font-mono text-sm text-white/80">Parola {user.password}</p>
                 </div>
                 <span
-                  className={`rounded-full px-3 py-1 text-sm font-bold ${user.status === "askida" ? "bg-[#ff8aa2] text-[#2a1018]" : "bg-mint text-[#10241f]"}`}
+                  className={`rounded-full px-3 py-1 text-sm font-bold ${user.status === "acik" ? "bg-mint text-[#10241f]" : "bg-[#ff8aa2] text-[#2a1018]"}`}
                 >
-                  {user.status === "askida" ? "Askıda" : "Açık"}
+                  {user.status === "kapali" ? "Kapalı" : user.status === "askida" ? "Askıda" : "Açık"}
                 </span>
               </div>
               <dl className="mt-4 grid gap-3 sm:grid-cols-4">
@@ -109,11 +127,23 @@ export default function AdminMembersPage() {
                     <button className="btn btn-danger" name="mod" value="aski">
                       Hesabı askıya al
                     </button>
-                  ) : (
+                  ) : user.status === "askida" ? (
                     <button className="btn btn-gold" name="mod" value="ac">
                       Hesabı aç
                     </button>
-                  )}
+                  ) : null}
+                </form>
+              )}
+              {user.role === "uye" && user.status !== "kapali" && (
+                <form action={adminCloseAccountAction} className="mt-3 flex flex-wrap items-center gap-2">
+                  <input type="hidden" name="uye" value={user.id} />
+                  <input type="hidden" name="mod" value="kalici" />
+                  <input type="hidden" name="donus" value={`${ADMIN_PATH}/uyeler`} />
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="onay" value="on" required />
+                    Kalıcı kapat
+                  </label>
+                  <button className="btn btn-ghost">Kalıcı kapat</button>
                 </form>
               )}
             </article>

@@ -294,6 +294,76 @@ function heleket_webhook(): void
     heleket_json(200, ["ok" => true]);
 }
 
+function heleket_payout_network(string $coin, string $address): ?string
+{
+    if ($coin === "btc") {
+        return "BTC";
+    }
+    if ($coin === "xmr") {
+        return "XMR";
+    }
+    if ($coin === "usdt") {
+        if (preg_match("/^T[1-9A-HJ-NP-Za-km-z]{33}$/", $address)) {
+            return "TRON";
+        }
+        if (preg_match("/^0x[a-fA-F0-9]{40}$/", $address)) {
+            return "ETH";
+        }
+    }
+    return null;
+}
+
+function heleket_payout_send(array $row): array
+{
+    $config = heleket_config();
+    if ($config["merchant"] === "" || $config["payment_key"] === "") {
+        return ["ok" => false, "error" => "anahtar"];
+    }
+    $coin = clay_payout_coin($row["coin"] ?? "");
+    $address = trim((string) ($row["wallet"] ?? ""));
+    $network = heleket_payout_network($coin, $address);
+    if ($coin === "" || $network === null || $address === "") {
+        return ["ok" => false, "error" => "ag-adres"];
+    }
+    $usd = (int) ($row["usdMinor"] ?? 0);
+    if ($usd < 1) {
+        $usd = (int) round(((int) ($row["amount"] ?? 0)) / clay_fx_rate());
+    }
+    if ($usd < 100) {
+        return ["ok" => false, "error" => "tutar"];
+    }
+    $to = $coin === "btc" ? "BTC" : ($coin === "xmr" ? "XMR" : "USDT");
+    $orderId = "c" . substr(preg_replace("/[^a-z0-9]/", "", strtolower((string) ($row["id"] ?? ""))), 0, 30);
+    if (strlen($orderId) < 8) {
+        return ["ok" => false, "error" => "tutar"];
+    }
+    $payload = [
+        "amount" => number_format($usd / 100, 2, ".", ""),
+        "currency" => "USD",
+        "to_currency" => $to,
+        "network" => $network,
+        "order_id" => $orderId,
+        "address" => $address,
+        "is_subtract" => true,
+        "url_callback" => heleket_origin() . "/api/heleket.php",
+    ];
+    $response = heleket_post("/v1/payout", $payload, $config);
+    if (empty($response["ok"]) || !is_array($response["body"]["result"] ?? null)) {
+        return ["ok" => false, "error" => "cek"];
+    }
+    $result = $response["body"]["result"];
+    $status = strtolower((string) ($result["status"] ?? ""));
+    if (in_array($status, ["fail", "cancel", "cancelled", "system_fail"], true)) {
+        return ["ok" => false, "error" => "cek"];
+    }
+    $uuid = trim((string) ($result["uuid"] ?? ""));
+    if ($uuid === "") {
+        return ["ok" => false, "error" => "cek"];
+    }
+    $txid = trim((string) ($result["txid"] ?? ""));
+    return ["ok" => true, "uuid" => $uuid, "txid" => $txid];
+}
+
 function heleket_handle(): void
 {
     $raw = file_get_contents("php://input");

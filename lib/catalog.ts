@@ -10,6 +10,25 @@ export const CARD_PREP_MS = 15_000;
  */
 export const USD_SELL_RATE = 49.3929;
 export const USD_RATE_AS_OF = "15 Eki 2026";
+
+let activeRate = USD_SELL_RATE;
+let activeAsOf = "";
+
+export function bindFx(fx?: { rate?: number; asOf?: string } | null) {
+  const rate = Number(fx?.rate);
+  if (Number.isFinite(rate) && rate > 1 && rate < 500) {
+    activeRate = rate;
+    activeAsOf = typeof fx?.asOf === "string" ? fx.asOf : "";
+  }
+}
+
+export function fxRate(): number {
+  return activeRate;
+}
+
+export function fxAsOf(): string {
+  return activeAsOf;
+}
 export const WELCOME_USD_MINOR = 3_000;
 export const MIN_USD_MINOR = 100;
 export const MAX_USD_MINOR = 500_000;
@@ -60,11 +79,11 @@ export function loadFee(amount: number): number {
 }
 
 export function usdMinorToKurus(minor: number): number {
-  return Math.round(minor * USD_SELL_RATE);
+  return Math.round(minor * activeRate);
 }
 
 export function kurusToUsdMinor(kurus: number): number {
-  return Math.round(kurus / USD_SELL_RATE);
+  return Math.round(kurus / activeRate);
 }
 
 export const WELCOME_BONUS_KURUS = usdMinorToKurus(WELCOME_USD_MINOR);
@@ -205,10 +224,27 @@ export const KIND_LABEL: Record<TxKind, string> = {
 };
 
 export const NOTICES: Record<string, string> = {
-  hosgeldin: "Hoş geldin bakiyesi yazıldı. Tutar, doların sabit kur karşılığıdır.",
+  hosgeldin: "Hoş geldin bakiyesi yazıldı. Tutar, doların canlı kur karşılığıdır.",
   yuklendi: "Bakiyeniz yüklendi.",
   "e-heleket": "Heleket ödeme sayfası açılmadı.",
   "e-anahtar": "Heleket anahtarı sunucuda boş. heleket.config.php doldurulmalı.",
+  "e-cek-anahtar": "Çekim anahtarı yok. Heleket anahtarı heleket.config.php içinde boş. Talep bekliyor, zincire çıkmadı.",
+  "e-cek": "Heleket çekimi kabul etmedi. Talep bekliyor, zincire çıkmadı.",
+  "e-cek-ag": "Bu adresin ağı seçilemedi. Talep bekliyor, zincire çıkmadı.",
+  "e-kapali": "Bu hesap kalıcı olarak kapatıldı. Giriş kapalı.",
+  "e-ters": "Bu satırın bakiyeye etkisi geri alınamadı. Satır duruyor, bakiye değişmedi.",
+  "e-kuyruk": "Çekim satırı kuyruğa bağlı. Defter satırı silinmez.",
+  kapandi: "Hesap kalıcı kapatıldı. Giriş kapalı. Geçmiş duruyor.",
+  "sifre-yaz": "Parola yazıldı. Bu ekranda bir kez görünür.",
+  "plan-yaz": "Plan yazıldı. Ücret bakiyeden düştü.",
+  profil: "Ad, adres ve güvenlik kaydı güncellendi.",
+  "kartlar-kapandi": "Üyenin açık kartları kapatıldı. Basım ücreti döndü.",
+  ters: "Satırın etkisi geri alındı ve satır silindi.",
+  temiz: "Reddedilen satırlar silindi. Tamamlanan para hareketi duruyor.",
+  gizlendi: "Talep listeden kalktı. Parayı yazan defter satırı duruyor.",
+  sifirlandi: "Varsayılan yazıldı.",
+  "bildirim-sil": "Bildirimler silindi.",
+  "talep-sil": "Talep silindi.",
   "e-odeme": "Heleket ödemesi henüz tamamlanmadı.",
   basildi: "Kart oluşturuldu.",
   siparis: "Kart oluşturuldu. Kullanılabilir bakiye 0 ile başlar. Hesaptan yalnız basım ücreti düştü.",
@@ -231,8 +267,8 @@ export const NOTICES: Record<string, string> = {
   yildiz: "Kart yıldızı güncellendi.",
   "e-cuzdan": "Cüzdan adresi 8–106 karakter olmalı. Boşluk kullanma.",
   "e-coin": "Çekim adresinin coinini seç: BTC, USDT veya Monero.",
-  dolar: "Bakiye yazıldı. Ekranda doların sabit kur karşılığı durur.",
-  cevrildi: "Bakiye, doların sabit kur karşılığı olarak duruyor.",
+  dolar: "Bakiye yazıldı. Ekranda doların canlı kur karşılığı durur.",
+  cevrildi: "Bakiye, doların canlı kur karşılığı olarak duruyor.",
   plan: "Plan güncellendi. Plan ücreti bakiyeden düştü.",
   "plan-ayni": "Plan aynı kaldı. Ücret alınmadı.",
   harcama: "Harcama ana bakiyeye ve kullanılabilir bakiyeye işlendi.",
@@ -298,7 +334,6 @@ export const NOTICES: Record<string, string> = {
   "duyuru-sil": "Duyuru kapatıldı.",
   metin: "Yazılar kaydedildi. Boş bırakılan satır varsayılan metne döner.",
   "talep-kapandi": "Talep kapatıldı.",
-  "bildirim-sil": "Bildirim silindi.",
 };
 
 export function noticeText(code?: string): string | null {

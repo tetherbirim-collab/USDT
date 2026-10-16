@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { adminClearTxAction, adminDeleteTxAction } from "@/lib/actions";
 import { AdminOrderSlip } from "@/components/admin-order-slip";
 import { Notice } from "@/components/notice";
 import { ADMIN_PATH } from "@/lib/auth";
@@ -50,6 +51,14 @@ export default function AdminLedgerPage() {
         <p className="mt-2 max-w-2xl text-white/70">Yükleme, harcama, aktarım, basım ve çekim her üyeden buraya düşer. Çekim satırı bekliyor, gitti veya iptal diye durur. Sipariş fişi altta kalır.</p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
+      <form action={adminClearTxAction} className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="donus" value={`${ADMIN_PATH}/islemler`} />
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="onay" value="on" required />
+          Yalnız reddedilen ve tersine çevrilmiş satırlar
+        </label>
+        <button className="btn btn-ghost">Bunları temizle</button>
+      </form>
       <div className="flex flex-wrap items-center gap-2">
         {FILTERS.map(([id, label]) => (
           <button key={label} type="button" className={`nav-pill rounded-full px-3 py-2 text-sm font-bold ${kind === id ? "nav-on" : "bg-white/5 text-white/80"}`} onClick={() => setKind(id)}>
@@ -77,7 +86,18 @@ export default function AdminLedgerPage() {
               </p>
               {entry.note ? <p className="mt-1 text-white/70">{entry.note}</p> : null}
             </div>
-            <p className={entry.amount > 0 ? "font-bold text-mint" : "font-semibold"}>{formatSigned(entry.amount)}</p>
+            <div className="grid justify-items-end gap-2">
+              <p className={entry.amount > 0 ? "font-bold text-mint" : "font-semibold"}>{formatSigned(entry.amount)}</p>
+              <form action={adminDeleteTxAction} className="flex flex-wrap items-center justify-end gap-2">
+                <input type="hidden" name="islem" value={entry.id} />
+                <input type="hidden" name="donus" value={`${ADMIN_PATH}/islemler`} />
+                <label className="flex items-center gap-2 text-xs text-white/70">
+                  <input type="checkbox" name="onay" value="on" required />
+                  Geri al
+                </label>
+                <button className="btn btn-ghost px-3 py-2 text-sm">Satırı sil</button>
+              </form>
+            </div>
           </article>
         ))}
       </section>

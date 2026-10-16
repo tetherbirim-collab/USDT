@@ -1,6 +1,7 @@
 "use client";
 
-import { adminPlanSaveAction } from "@/lib/actions";
+import { adminPlanSaveAction, adminResetAction } from "@/lib/actions";
+import { ADMIN_PATH } from "@/lib/auth";
 import { Notice } from "@/components/notice";
 import { PLANS } from "@/lib/catalog";
 import { Boot, useQuery, useSiteSettings } from "@/lib/live";
@@ -24,6 +25,11 @@ export default function AdminPlansPage() {
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
+      <form action={adminResetAction}>
+        <input type="hidden" name="alan" value="plan" />
+        <input type="hidden" name="donus" value={`${ADMIN_PATH}/planlar`} />
+        <button className="btn btn-ghost">Planları varsayılana al</button>
+      </form>
       <div className="grid gap-4">
         {ORDER.map((id) => {
           const plan = settings.plans[id];

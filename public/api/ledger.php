@@ -74,4 +74,7 @@ $body = [
 if (isset($result["id"])) {
     $body["id"] = $result["id"];
 }
+if (isset($result["once"]) && is_string($result["once"]) && $result["once"] !== "") {
+    $body["once"] = $result["once"];
+}
 clay_json_out(200, $body);

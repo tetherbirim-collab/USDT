@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AdminCardOps } from "@/components/admin-member-tools";
-import { adminCardAction } from "@/lib/actions";
+import { adminBulkCardsAction, adminCardAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { ADMIN_PATH } from "@/lib/auth";
 import { CARD_TYPES } from "@/lib/catalog";
@@ -31,6 +31,7 @@ export default function AdminCardsPage() {
   const sekme = query?.get("sekme") ?? null;
   const [tab, setTab] = useState<(typeof TABS)[number][0]>("acik");
   const [ask, setAsk] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string[]>([]);
   useEffect(() => {
     const card = highlight ? snapshot().cards.find((row) => row.id === highlight) : undefined;
     if (card?.status === "donduruldu") setTab("donuk");
@@ -59,6 +60,27 @@ export default function AdminCardsPage() {
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
+      <form action={adminBulkCardsAction} className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="idler" value={picked.join(",")} />
+        <input type="hidden" name="donus" value={`${ADMIN_PATH}/kartlar`} />
+        <button className="btn btn-ghost" name="mod" value="dondur">
+          Seçileni dondur
+        </button>
+        <button className="btn btn-ghost" name="mod" value="iptal">
+          Hazırlananı iptal et
+        </button>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="onay" value="on" />
+          Kapat veya sil için onay
+        </label>
+        <button className="btn btn-ghost" name="mod" value="kapat">
+          Seçileni kapat
+        </button>
+        <button className="btn btn-danger" name="mod" value="sil">
+          Kapalıları sil
+        </button>
+        <p className="text-sm text-white/60">{picked.length} kart</p>
+      </form>
       <div className="card-tabs" role="tablist" aria-label="Kart durumları">
         {TABS.map(([id, title]) => {
           const count =
@@ -94,6 +116,14 @@ export default function AdminCardsPage() {
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
+                <label className="flex items-center gap-2 text-xs text-white/70">
+                  <input
+                    type="checkbox"
+                    checked={picked.includes(card.id)}
+                    onChange={() => setPicked((cur) => (cur.includes(card.id) ? cur.filter((id) => id !== card.id) : [...cur, card.id]))}
+                  />
+                  Seç
+                </label>
                 <p className="order-slip-kicker">{STATUS_LABEL[card.status]}</p>
                 <p className="order-slip-code">{code}</p>
                 <p className="order-slip-phrase">

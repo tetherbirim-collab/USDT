@@ -1,6 +1,7 @@
 "use client";
 
-import { adminAnnounceAction, adminNoticeAction, adminNoticeRemoveAction, adminNoticeSaveAction } from "@/lib/actions";
+import { adminAnnounceAction, adminClearMemberNoticesAction, adminDeleteNoticeAction, adminNoticeAction, adminNoticeRemoveAction, adminNoticeSaveAction } from "@/lib/actions";
+import { ADMIN_PATH } from "@/lib/auth";
 import { Notice } from "@/components/notice";
 import { formatWhen } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
@@ -11,7 +12,7 @@ function batches(notices: InboxNote[], users: User[]) {
   const names = new Map(users.map((user) => [user.id, user.username]));
   const seen = new Map<
     string,
-    { batch: string; title: string; body: string; createdAt: string; who: string[]; read: number; editable: boolean }
+    { batch: string; title: string; body: string; createdAt: string; who: string[]; read: number; editable: boolean; ids: string[] }
   >();
   for (const note of [...notices].sort((a, b) => b.createdAt.localeCompare(a.createdAt))) {
     const row = seen.get(note.batch);
@@ -25,9 +26,11 @@ function batches(notices: InboxNote[], users: User[]) {
         who: [name],
         read: note.readAt ? 1 : 0,
         editable: note.ref == null,
+        ids: [note.id],
       });
     } else {
       row.who.push(name);
+      row.ids.push(note.id);
       if (note.readAt) row.read += 1;
       if (note.ref) row.editable = false;
     }
@@ -90,6 +93,20 @@ export default function AdminNoticesPage() {
         </label>
         <button className="btn btn-gold w-fit">Bildirimi gönder</button>
       </form>
+      {members.length > 0 && <form action={adminClearMemberNoticesAction} className="flex flex-wrap items-end gap-2">
+        <input type="hidden" name="donus" value={`${ADMIN_PATH}/bildirimler`} />
+        <label className="grid gap-1 text-sm">
+          Üyenin kutusunu boşalt
+          <select className="field" name="uye" required defaultValue={members[0]?.id ?? ""}>
+            {members.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.username}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button className="btn btn-ghost">Tümünü sil</button>
+      </form>}
       <ul className="grid gap-2">
         {batches(db.notices, db.users).map((item) => (
           <li key={item.batch} className="glass rounded-[24px] px-4 py-3 text-sm">
@@ -98,6 +115,15 @@ export default function AdminNoticesPage() {
             <p className="mt-1 text-xs text-white/45">
               {formatWhen(item.createdAt)} · {item.who.join(", ")} · {item.read}/{item.who.length} okudu
             </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {item.ids.map((id) => (
+                <form key={id} action={adminDeleteNoticeAction}>
+                  <input type="hidden" name="id" value={id} />
+                  <input type="hidden" name="donus" value={`${ADMIN_PATH}/bildirimler`} />
+                  <button className="btn btn-ghost">Sil</button>
+                </form>
+              ))}
+            </div>
             {item.editable && (
               <form action={adminNoticeSaveAction} className="mt-3 grid gap-2">
                 <input type="hidden" name="batch" value={item.batch} />

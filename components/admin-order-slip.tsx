@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { adminCancelOrderAction, adminDeleteOrderAction } from "@/lib/actions";
 import { ADMIN_PATH } from "@/lib/auth";
 import { CARD_TYPES } from "@/lib/catalog";
 import { formatTL, formatWhen, showOrderCode } from "@/lib/format";
@@ -16,7 +17,9 @@ const LABEL: Record<OrderStatus, string> = {
 export function AdminOrderSlip({ order }: { order: Order }) {
   const db = snapshot();
   const owner = db.users.find((user) => user.id === order.userId);
+  const card = db.cards.find((item) => item.id === order.cardId);
   const code = showOrderCode(order);
+  const canDrop = order.status === "iptal" || card?.status === "kapali";
   return (
     <article className="order-slip">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -43,9 +46,29 @@ export function AdminOrderSlip({ order }: { order: Order }) {
             <p className="mt-2 text-sm font-semibold text-mint">Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz.</p>
           )}
         </div>
-        <Link href={`${ADMIN_PATH}/kartlar?vurgu=${order.cardId}`} className="btn btn-ghost">
-          Karta git
-        </Link>
+        <div className="grid gap-2">
+          <Link href={`${ADMIN_PATH}/kartlar?vurgu=${order.cardId}`} className="btn btn-ghost">
+            Karta git
+          </Link>
+          {order.status === "hazirlaniyor" && (
+            <form action={adminCancelOrderAction}>
+              <input type="hidden" name="id" value={order.id} />
+              <input type="hidden" name="donus" value={`${ADMIN_PATH}/islemler`} />
+              <button className="btn btn-danger">İptal et</button>
+            </form>
+          )}
+          {canDrop && card?.status !== "aktif" && card?.status !== "donduruldu" && card?.status !== "hazirlaniyor" && (
+            <form action={adminDeleteOrderAction} className="grid gap-2">
+              <input type="hidden" name="id" value={order.id} />
+              <input type="hidden" name="donus" value={`${ADMIN_PATH}/islemler`} />
+              <label className="flex items-center gap-2 text-xs">
+                <input type="checkbox" name="onay" value="on" required />
+                Kartla birlikte sil
+              </label>
+              <button className="btn btn-ghost">Siparişi sil</button>
+            </form>
+          )}
+        </div>
       </div>
     </article>
   );

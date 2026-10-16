@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CARD_TYPES, CARD_TYPE_ORDER } from "@/lib/catalog";
+import { CARD_TYPES, CARD_TYPE_ORDER, bindFx, fxAsOf, fxRate } from "@/lib/catalog";
 import { ChromePair, useChrome } from "@/components/chrome-controls";
 import { siteText, type CopyKey } from "@/lib/copy";
 import { uiText } from "@/lib/ui";
@@ -9,7 +9,7 @@ import { useSiteSettings } from "@/lib/live";
 import { AnnounceBar } from "./announce-bar";
 import { PlanGrid } from "./plan-grid";
 import { TrustLine } from "./trust-line";
-import { formatTL } from "@/lib/format";
+import { formatRate, formatTL, formatWhen } from "@/lib/format";
 import { makeCvv, makePan } from "@/lib/pan";
 import type { CardTypeId } from "@/lib/types";
 import { CoinYard } from "./coin-yard";
@@ -144,6 +144,7 @@ export function Marketing({
   deskLabel?: string;
 }) {
   const settings = useSiteSettings();
+  bindFx(settings.fx);
   const { lang } = useChrome();
   const line = (key: Parameters<typeof siteText>[1]) => siteText(settings, key, lang);
   const say = (key: Parameters<typeof uiText>[1]) => uiText(lang, key);
@@ -234,7 +235,7 @@ export function Marketing({
             </div>
             <dl className="mt-10 grid grid-cols-3 gap-3 text-left text-sm">
               {[
-                ["49,3929", "sabit kur"],
+                [formatRate(fxRate()), fxAsOf() ? formatWhen(fxAsOf()) : "yedek kur"],
                 [String(CARD_TYPE_ORDER.length), "kart türü"],
                 ["30 USD", "hoş geldin"],
               ].map(([value, label]) => (

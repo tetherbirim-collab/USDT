@@ -12,9 +12,9 @@ import {
   MIN_TRANSFER_KURUS,
   MIN_TRANSFER_USD_MINOR,
   MIN_USD_MINOR,
-  USD_RATE_AS_OF,
-  USD_SELL_RATE,
+  fxRate,
   isCardType,
+  noticeText,
   isMerchantForType,
   isPlan,
   loadFeeAt,
@@ -22,7 +22,7 @@ import {
   transferFeeAt,
   usdMinorToKurus,
 } from "./catalog";
-import { foldAnswer, formatRate, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
+import { foldAnswer, formatTL, formatUsd, holderLine, istanbulInputToIso, parseSignedTryToKurus, parseTryToKurus } from "./format";
 import { payoutCoin, payoutNote } from "./coins";
 import { digestSecret, foldSeed, passwordOk, randomSalt, seedOk, seedPhraseOk } from "./secrets";
 import { COPY, COPY_KEYS } from "./copy";
@@ -75,6 +75,7 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
       return go(deskPath(me?.role ?? "uye"));
     }
     if (remote.code === "e-askida") return { error: "Bu hesap askıya alındı. Giriş kapalı." };
+    if (remote.code === "e-kapali") return { error: "Bu hesap kalıcı olarak kapatıldı. Giriş kapalı." };
     return { error: "Kullanıcı adı veya parola hatalı." };
   }
   const user = username ? findUserByUsername(username) : undefined;
@@ -83,6 +84,9 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
   }
   if (user.status === "askida") {
     return { error: "Bu hesap askıya alındı. Giriş kapalı." };
+  }
+  if (user.status === "kapali") {
+    return { error: "Bu hesap kalıcı olarak kapatıldı. Giriş kapalı." };
   }
   await setSession(user.id);
   return go(deskPath(user.role));
@@ -142,6 +146,7 @@ export async function seedLoginAction(_prev: FormState, formData: FormData): Pro
       return go(deskPath(me?.role ?? "uye"));
     }
     if (remote.code === "e-askida") return { error: "Bu hesap askıya alındı. Giriş kapalı." };
+    if (remote.code === "e-kapali") return { error: "Bu hesap kalıcı olarak kapatıldı. Giriş kapalı." };
     if (remote.code === "e-kullanici") return { error: "Kullanıcı adını yaz." };
     if (remote.code === "e-tohum") return { error: "Tohum 8 ile 16 kelime olmalı." };
     if (remote.code === "e-tohum-yok") return { error: "Bu hesapta tohum yok. Eski hesap formu açıldı.", legacy: true };
@@ -154,6 +159,7 @@ export async function seedLoginAction(_prev: FormState, formData: FormData): Pro
   const user = findUserByUsername(username);
   if (!user || user.role !== "uye") return { error: "Kullanıcı adı veya tohum hatalı." };
   if (user.status === "askida") return { error: "Bu hesap askıya alındı. Giriş kapalı." };
+  if (user.status === "kapali") return { error: "Bu hesap kalıcı olarak kapatıldı. Giriş kapalı." };
   if (!user.seedHash || !user.seedSalt) {
     if (user.securityQuestion && user.securityAnswer) {
       return { error: "Bu hesapta tohum yok. Eski hesap formu açıldı.", legacy: true };
@@ -1693,7 +1699,7 @@ export async function withdrawAction(formData: FormData) {
   const result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
     if (!row || row.balance < amount) return "e-bakiye" as const;
-    let usd = Math.round(amount / USD_SELL_RATE);
+    let usd = Math.round(amount / fxRate());
     if (usd < 1) usd = 1;
     if (row.usdMinor >= usd) row.usdMinor -= usd;
     else usd = 0;
@@ -1736,6 +1742,7 @@ export async function settlePayoutAction(formData: FormData) {
   if (decision !== "gitti" && decision !== "iptal") return bounce("/clayadm!nxx/canli", "e-durum");
   const remote = await remoteCall("admin-cek", pack(formData, ["id", "karar"]));
   if (remote) return bounce("/clayadm!nxx/canli", remote.code);
+  if (decision === "gitti") return bounce("/clayadm!nxx/canli", "e-cek-anahtar");
   const id = String(formData.get("id") || "");
   const result = mutate((db) => {
     const row = db.payouts.find((item) => item.id === id && item.status === "bekliyor");
@@ -1771,18 +1778,138 @@ export async function settlePayoutAction(formData: FormData) {
       }
       row.status = "iptal";
       pushNotice(db, { userId: row.userId, title: "Çekim iptal", body: `${formatTL(row.amount)} cüzdanına geri yazıldı.` });
-    } else {
-      if (held) {
-        held.amount = -Math.abs(row.amount);
-        held.title = "Çekim talebi";
-        held.note = payoutNote("gitti", mask, row.coin);
-        held.usdMinor = row.usdMinor > 0 ? -row.usdMinor : null;
-      }
-      row.status = "gitti";
-      pushNotice(db, { userId: row.userId, title: "Çekim gönderildi", body: `${formatTL(row.amount)} çıktı.` });
+      row.settledAt = new Date().toISOString();
+      return "cekim-iptal" as const;
     }
-    row.settledAt = new Date().toISOString();
-    return decision === "gitti" ? ("cekim-gitti" as const) : ("cekim-iptal" as const);
+    return "e-cek-anahtar" as const;
   });
   return bounce("/clayadm!nxx/canli", result);
+}
+
+function deskBack(formData: FormData, fallback: string) {
+  const back = String(formData.get("donus") || "");
+  return back.startsWith(ADMIN_PATH) ? back : fallback;
+}
+
+export async function clearNoticesAction() {
+  const user = await actor();
+  const remote = await remoteCall("notice-clear", {});
+  if (remote) return bounce("/panel/bildirimler", remote.code);
+  mutate((db) => {
+    db.notices = db.notices.filter((note) => note.userId !== user.id);
+  });
+  return bounce("/panel/bildirimler", "bildirim-sil");
+}
+
+export async function purgeClosedCardsAction(formData: FormData) {
+  const user = await actor();
+  if (String(formData.get("onay") || "") !== "on") return bounce("/panel/kartlar", "e-onay");
+  const remote = await remoteCall("purge-kapali", pack(formData, ["onay"]));
+  if (remote) return bounce("/panel/kartlar", remote.code);
+  const result = mutate((db) => {
+    const ids = db.cards.filter((card) => card.userId === user.id && card.status === "kapali").map((card) => card.id);
+    if (ids.length === 0) return "e-yok" as const;
+    db.cards = db.cards.filter((card) => !ids.includes(card.id));
+    db.orders = db.orders.filter((order) => !ids.includes(order.cardId));
+    return "silindi" as const;
+  });
+  return bounce("/panel/kartlar", result);
+}
+
+export async function clearCancelledOrderAction(formData: FormData) {
+  const user = await actor();
+  if (String(formData.get("onay") || "") !== "on") return bounce("/panel/siparisler", "e-onay");
+  const remote = await remoteCall("order-clear", pack(formData, ["id", "onay"]));
+  if (remote) return bounce("/panel/siparisler", remote.code);
+  const id = String(formData.get("id") || "");
+  const result = mutate((db) => {
+    const card = db.cards.find((item) => item.id === id && item.userId === user.id);
+    const order = db.orders.find((item) => item.cardId === id && item.userId === user.id);
+    if (!card || card.status !== "kapali" || !order || order.status !== "iptal") return "e-durum" as const;
+    db.cards = db.cards.filter((item) => item.id !== id);
+    db.orders = db.orders.filter((item) => item.cardId !== id);
+    return "silindi" as const;
+  });
+  return bounce("/panel/siparisler", result);
+}
+
+async function desk(action: string, formData: FormData, names: string[], fallback: string) {
+  await requireAdmin();
+  const remote = await remoteCall(action, pack(formData, names));
+  return bounce(deskBack(formData, fallback), remote?.code || "e-defter");
+}
+
+export async function adminCloseAccountAction(formData: FormData) {
+  return desk("admin-kapat", formData, ["uye", "mod", "onay", "donus"], `${ADMIN_PATH}/uyeler`);
+}
+
+export async function adminBulkSuspendAction(formData: FormData) {
+  return desk("admin-toplu-aski", formData, ["idler", "donus"], `${ADMIN_PATH}/uyeler`);
+}
+
+export async function adminMemberPasswordAction(
+  _prev: { error: string; once: string },
+  formData: FormData,
+): Promise<{ error: string; once: string }> {
+  await requireAdmin();
+  const remote = await remoteCall("admin-uye-sifre", pack(formData, ["uye", "parola", "parola2"]));
+  if (!remote) return { error: "Defter yazılamadı.", once: "" };
+  if (remote.code === "sifre-yaz") return { error: "", once: remote.once || "" };
+  return { error: noticeText(remote.code) || "Parola yazılamadı.", once: "" };
+}
+
+export async function adminAssignPlanAction(formData: FormData) {
+  return desk("admin-uye-plan", formData, ["uye", "plan", "donus"], `${ADMIN_PATH}/uyeler`);
+}
+
+export async function adminMemberProfileAction(formData: FormData) {
+  return desk("admin-uye-profil", formData, ["uye", "ad", "adres", "soru", "cevap", "donus"], `${ADMIN_PATH}/uyeler`);
+}
+
+export async function adminCloseMemberCardsAction(formData: FormData) {
+  return desk("admin-kartlari-kapat", formData, ["uye", "onay", "donus"], `${ADMIN_PATH}/uyeler`);
+}
+
+export async function adminBulkCardsAction(formData: FormData) {
+  return desk("admin-kart-toplu", formData, ["mod", "idler", "onay", "donus"], `${ADMIN_PATH}/kartlar`);
+}
+
+export async function adminCancelOrderAction(formData: FormData) {
+  return desk("admin-siparis-iptal", formData, ["id", "donus"], `${ADMIN_PATH}/islemler`);
+}
+
+export async function adminDeleteOrderAction(formData: FormData) {
+  return desk("admin-siparis-sil", formData, ["id", "onay", "donus"], `${ADMIN_PATH}/islemler`);
+}
+
+export async function adminDeleteTxAction(formData: FormData) {
+  return desk("admin-tx-sil", formData, ["islem", "onay", "donus"], `${ADMIN_PATH}/islemler`);
+}
+
+export async function adminClearTxAction(formData: FormData) {
+  return desk("admin-tx-temizle", formData, ["onay", "donus"], `${ADMIN_PATH}/islemler`);
+}
+
+export async function adminDeleteTicketAction(formData: FormData) {
+  return desk("admin-ticket-sil", formData, ["id", "donus"], `${ADMIN_PATH}/destek`);
+}
+
+export async function adminClearTicketsAction(formData: FormData) {
+  return desk("admin-ticket-temizle", formData, ["donus"], `${ADMIN_PATH}/destek`);
+}
+
+export async function adminDeleteNoticeAction(formData: FormData) {
+  return desk("admin-notice-sil", formData, ["id", "donus"], `${ADMIN_PATH}/bildirimler`);
+}
+
+export async function adminClearMemberNoticesAction(formData: FormData) {
+  return desk("admin-notice-temizle", formData, ["uye", "donus"], `${ADMIN_PATH}/bildirimler`);
+}
+
+export async function hidePayoutAction(formData: FormData) {
+  return desk("admin-cek-gizle", formData, ["id", "donus"], `${ADMIN_PATH}/canli`);
+}
+
+export async function adminResetAction(formData: FormData) {
+  return desk("admin-sifirla", formData, ["alan", "donus"], `${ADMIN_PATH}/planlar`);
 }

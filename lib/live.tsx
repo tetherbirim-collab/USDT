@@ -3,7 +3,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { Mark } from "@/components/mark";
 import { getCurrentUser } from "./auth";
-import { defaultSettings } from "./catalog";
+import { bindFx, defaultSettings } from "./catalog";
 import { bootLedger, ledgerSnapshot, subscribeLedger, touchLedger } from "./store";
 import type { DB, PublicUser, SiteSettings } from "./types";
 
@@ -19,7 +19,9 @@ export function useLedger(): DB | null {
 
 export function useSiteSettings(): SiteSettings {
   const db = useLedger();
-  return db?.settings ?? defaultSettings();
+  const settings = db?.settings ?? defaultSettings();
+  bindFx(settings.fx);
+  return settings;
 }
 
 export function useUser(): PublicUser | null | undefined {

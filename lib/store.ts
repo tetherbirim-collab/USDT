@@ -1,4 +1,4 @@
-import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, TEST_BIN, USD_RATE_AS_OF, USD_SELL_RATE, WELCOME_BONUS_KURUS, WELCOME_USD_MINOR, defaultSettings, merchantsFor, usdMinorToKurus } from "./catalog";
+import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, TEST_BIN, WELCOME_USD_MINOR, bindFx, defaultSettings, fxAsOf, fxRate, merchantsFor, usdMinorToKurus } from "./catalog";
 import { payoutNote } from "./coins";
 import { formatRate, formatTL, formatUsd, holderLine, istanbulKey, orderCodeFrom } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
@@ -119,7 +119,7 @@ async function probeRemote(): Promise<boolean> {
 export async function remoteCall(
   action: string,
   fields: Record<string, string>,
-): Promise<{ code: string; id?: string } | null> {
+): Promise<{ code: string; id?: string; once?: string } | null> {
   if (!remoteMode) return null;
   try {
     const response = await fetch("/api/ledger.php", {
@@ -133,13 +133,13 @@ export async function remoteCall(
       body: JSON.stringify({ action, ...fields }),
     });
     const text = await response.text();
-    const data = JSON.parse(text) as { mode?: string; code?: string; me?: PublicUser | null; db?: DB; id?: string };
+    const data = JSON.parse(text) as { mode?: string; code?: string; me?: PublicUser | null; db?: DB; id?: string; once?: string };
     if (data.mode !== "php" || !data.db?.settings) return { code: "e-defter" };
     cache = data.db;
     remoteMe = data.me ?? null;
     hardenRemote(cache, remoteMe);
     if (booted) emit();
-    return { code: String(data.code ?? ""), id: data.id };
+    return { code: String(data.code ?? ""), id: data.id, once: typeof data.once === "string" ? data.once : undefined };
   } catch {
     return { code: "e-defter" };
   }
@@ -166,6 +166,7 @@ function hardenRemote(db: DB, me: PublicUser | null) {
     }
     if (!db.settings.copy || typeof db.settings.copy !== "object" || Array.isArray(db.settings.copy)) db.settings.copy = {};
     if ("pst" in db.settings) delete (db.settings as { pst?: unknown }).pst;
+    bindFx(db.settings.fx);
   }
   if (!Array.isArray(db.tickets)) db.tickets = [];
   if (!Array.isArray(db.orders)) db.orders = [];
@@ -1149,7 +1150,7 @@ export async function creditHeleketPayment(input: {
       cardId: null,
       kind: "yukleme",
       title: "Heleket yüklemesi",
-      note: `${formatUsd(input.cents)} × ${formatRate(USD_SELL_RATE)} = ${formatTL(credit)}. Heleket ödemesi, sabit kur ${USD_RATE_AS_OF}.`,
+      note: `${formatUsd(input.cents)} × ${formatRate(fxRate())} = ${formatTL(credit)}. Heleket ödemesi. Kur ${fxAsOf() || "yedek"}.`,
       amount: credit,
       usdMinor: input.cents,
       status: "tamamlandi",
@@ -1239,7 +1240,7 @@ export function createUser(input: {
             securityQuestion: input.securityQuestion,
             securityAnswer: input.securityAnswer,
           }),
-      balance: WELCOME_BONUS_KURUS,
+      balance: usdMinorToKurus(WELCOME_USD_MINOR),
       usdMinor: 0,
       plan: "kivilcim",
       role: "uye",
@@ -1254,8 +1255,8 @@ export function createUser(input: {
       cardId: null,
       kind: "yukleme",
       title: "Hoş geldin bakiyesi",
-      note: "30 USD sabit kur karşılığı.",
-      amount: WELCOME_BONUS_KURUS,
+      note: `30 USD · 1 USD = ${fxRate().toFixed(4)} TL.`,
+      amount: usdMinorToKurus(WELCOME_USD_MINOR),
       usdMinor: WELCOME_USD_MINOR,
       status: "tamamlandi",
       createdAt: new Date().toISOString(),
@@ -1263,7 +1264,7 @@ export function createUser(input: {
     pushNotice(db, {
       userId: user.id,
       title: "Hoş geldin",
-      body: `${formatTL(WELCOME_BONUS_KURUS)} bakiyen hazır. İlk kartını basabilirsin.`,
+      body: `${formatTL(usdMinorToKurus(WELCOME_USD_MINOR))} bakiyen hazır. İlk kartını basabilirsin.`,
     });
     return user;
   });

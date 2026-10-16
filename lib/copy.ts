@@ -71,7 +71,7 @@ export const COPY: Record<CopyKey, { group: string; label: string; fallback: str
     group: "Ana sayfa",
     label: "Ana paragraf",
     fallback:
-      "Facebook Ads, TikTok, Google Ads ve Ultima kartlarını aynı cüzdanda tut. CLAY kartı basar, kullanılabilir bakiyeyi yazar, dondurur ve işlem dökümünü tutar. Bakiye, doların sabit kur karşılığıdır.",
+      "Facebook Ads, TikTok, Google Ads ve Ultima kartlarını aynı cüzdanda tut. CLAY kartı basar, kullanılabilir bakiyeyi yazar, dondurur ve işlem dökümünü tutar. Bakiye, doların canlı kur karşılığıdır.",
     max: 400,
   },
   navTypes: { group: "Ana sayfa", label: "Menü · türler", fallback: "Türler", max: 24 },
@@ -98,7 +98,7 @@ export const COPY: Record<CopyKey, { group: string; label: string; fallback: str
   step2Text: {
     group: "Ana sayfa",
     label: "Adım 2 yazı",
-    fallback: "Tutarı dolar olarak girersin. Heleket ödemesi onaylanınca bakiyede sabit kurun TL karşılığı durur.",
+    fallback: "Tutarı dolar olarak girersin. Heleket ödemesi onaylanınca bakiyede canlı kurun TL karşılığı durur.",
     max: 220,
   },
   step3Title: { group: "Ana sayfa", label: "Adım 3 başlık", fallback: "Kart bas", max: 40 },
@@ -116,7 +116,7 @@ export const COPY: Record<CopyKey, { group: string; label: string; fallback: str
   faq1q: { group: "Ana sayfa", label: "Soru 1", fallback: "Kart nasıl oluşur?", max: 80 },
   faq1a: { group: "Ana sayfa", label: "Yanıt 1", fallback: "Türü, adı ve kullanılabilir bakiyeyi seçersin. Üzerindeki ad, verdiğin addır.", max: 240 },
   faq2q: { group: "Ana sayfa", label: "Soru 2", fallback: "Bakiye nasıl durur?", max: 80 },
-  faq2a: { group: "Ana sayfa", label: "Yanıt 2", fallback: "Tutar dolar olarak girilir. Ekranda yalnız sabit kurun TL karşılığı görünür.", max: 240 },
+  faq2a: { group: "Ana sayfa", label: "Yanıt 2", fallback: "Tutar dolar olarak girilir. Ekranda canlı kurun TL karşılığı ve saati görünür.", max: 240 },
   faq3q: { group: "Ana sayfa", label: "Soru 3", fallback: "Numara ne zaman görünür?", max: 80 },
   faq3a: {
     group: "Ana sayfa",
@@ -127,7 +127,7 @@ export const COPY: Record<CopyKey, { group: string; label: string; fallback: str
   footerLine: {
     group: "Ana sayfa",
     label: "Alt yazı",
-    fallback: "CLAY Sanal Kart Hizmetleri. Bakiye, doların sabit kur karşılığıdır.",
+    fallback: "CLAY Sanal Kart Hizmetleri. Bakiye, doların canlı kur karşılığıdır.",
     max: 180,
   },
   loginTitle: { group: "Giriş", label: "Giriş başlığı", fallback: "Hoş geldin", max: 40 },

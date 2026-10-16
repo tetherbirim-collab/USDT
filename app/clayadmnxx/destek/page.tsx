@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { adminTicketCloseAction, adminTicketReplyAction } from "@/lib/actions";
+import { adminClearTicketsAction, adminDeleteTicketAction, adminTicketCloseAction, adminTicketReplyAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { ADMIN_PATH } from "@/lib/auth";
 import { formatWhen } from "@/lib/format";
@@ -22,6 +22,10 @@ export default function AdminSupportPage() {
         <p className="mt-2 max-w-2xl text-white/70">Üye talep yazınca burada durur. Yanıt üyenin ziline de düşer.</p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
+      <form action={adminClearTicketsAction}>
+        <input type="hidden" name="donus" value={`${ADMIN_PATH}/destek`} />
+        <button className="btn btn-ghost">Kapanmış talepleri temizle</button>
+      </form>
       <ul className="grid gap-3">
         {tickets.map((ticket) => {
           const owner = db.users.find((item) => item.id === ticket.userId);
@@ -50,12 +54,19 @@ export default function AdminSupportPage() {
                 <textarea className="field min-h-20" name="yanit" required minLength={2} maxLength={400} placeholder="Üyeye kısa yanıt" defaultValue={ticket.reply ?? ""} />
                 <button className="btn btn-gold w-fit">Yanıtla</button>
               </form>
-              {ticket.status !== "kapandi" && (
-                <form action={adminTicketCloseAction} className="mt-2">
+              <div className="mt-2 flex flex-wrap gap-2">
+                {ticket.status !== "kapandi" && (
+                  <form action={adminTicketCloseAction}>
+                    <input type="hidden" name="id" value={ticket.id} />
+                    <button className="btn btn-ghost">Talebi kapat</button>
+                  </form>
+                )}
+                <form action={adminDeleteTicketAction}>
                   <input type="hidden" name="id" value={ticket.id} />
-                  <button className="btn btn-ghost">Talebi kapat</button>
+                  <input type="hidden" name="donus" value={`${ADMIN_PATH}/destek`} />
+                  <button className="btn btn-ghost">Talebi sil</button>
                 </form>
-              )}
+              </div>
             </li>
           );
         })}

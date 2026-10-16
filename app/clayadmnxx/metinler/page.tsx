@@ -1,6 +1,7 @@
 "use client";
 
-import { adminCopyAction } from "@/lib/actions";
+import { adminCopyAction, adminResetAction } from "@/lib/actions";
+import { ADMIN_PATH } from "@/lib/auth";
 import { Notice } from "@/components/notice";
 import { COPY, COPY_KEYS, siteText } from "@/lib/copy";
 import { Boot, useQuery, useSiteSettings } from "@/lib/live";
@@ -21,6 +22,11 @@ export default function AdminCopyPage() {
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
+      <form action={adminResetAction}>
+        <input type="hidden" name="alan" value="metin" />
+        <input type="hidden" name="donus" value={`${ADMIN_PATH}/metinler`} />
+        <button className="btn btn-ghost">Yazıları varsayılana al</button>
+      </form>
       <form action={adminCopyAction} className="grid gap-5">
         {groups.map((group) => (
           <section key={group} className="glass grid gap-3 rounded-[28px] p-5">

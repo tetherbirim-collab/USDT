@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { planAction } from "@/lib/actions";
 import { PLANS, usdMinorToKurus } from "@/lib/catalog";
 import { percentText } from "@/components/fee-sheet";
@@ -105,10 +106,12 @@ function OfferSet({
   prefix,
   planId,
   planUntil,
+  publicMode = false,
 }: {
   prefix: string;
   planId: PlanId;
   planUntil: string;
+  publicMode?: boolean;
 }) {
   const settings = useSiteSettings();
   const days = daysUntil(planUntil || new Date().toISOString());
@@ -122,8 +125,8 @@ function OfferSet({
       {ids.map((id) => {
         const row = settings.plans?.[id] ?? PLANS[id];
         const offer = OFFER[id];
-        const current = id === planId;
-        const higher = RANK[id] > RANK[planId];
+        const current = !publicMode && id === planId;
+        const higher = !publicMode && RANK[id] > RANK[planId];
         return (
           <article key={`${prefix}-${id}`} className={`plan-offer plan-offer-${offer.metal}${current ? " plan-offer-now" : ""}`}>
             <div className="plan-offer-art">
@@ -146,16 +149,35 @@ function OfferSet({
                 <li>30 gün {issue}</li>
                 <li>Aktarım {transfer}</li>
               </ul>
-              <form action={planAction} className="plan-offer-cta">
-                <input type="hidden" name="plan" value={id} />
-                <button className="btn btn-gold w-full" type="submit">
-                  {current ? "Bu paket sende" : higher ? "Planı yükselt" : "Bu plana geç"}
-                </button>
-              </form>
+              {publicMode ? (
+                <Link href="/kayit" className="btn btn-gold plan-offer-cta w-full">
+                  Hesap aç
+                </Link>
+              ) : (
+                <form action={planAction} className="plan-offer-cta">
+                  <input type="hidden" name="plan" value={id} />
+                  <button className="btn btn-gold w-full" type="submit">
+                    {current ? "Bu paket sende" : higher ? "Planı yükselt" : "Bu plana geç"}
+                  </button>
+                </form>
+              )}
             </div>
           </article>
         );
       })}
+    </div>
+  );
+}
+
+export function PublicPlanOffers() {
+  return (
+    <div className="plan-stage">
+      <div className="plan-track">
+        <OfferSet prefix="pub-a" planId="atolye" planUntil="" publicMode />
+        <div inert aria-hidden="true">
+          <OfferSet prefix="pub-b" planId="atolye" planUntil="" publicMode />
+        </div>
+      </div>
     </div>
   );
 }

@@ -53,9 +53,151 @@ function clay_iso(int $ms): string
     return $dt->format("Y-m-d\\TH:i:s") . sprintf(".%03dZ", $frac);
 }
 
+function clay_fx_rate(): float
+{
+    global $CLAY_FX_RATE;
+    $rate = isset($CLAY_FX_RATE) ? (float) $CLAY_FX_RATE : 49.3929;
+    if ($rate <= 1 || $rate >= 500) {
+        return 49.3929;
+    }
+    return $rate;
+}
+
+function clay_fx_asof(): string
+{
+    global $CLAY_FX_ASOF;
+    return is_string($CLAY_FX_ASOF ?? null) ? $CLAY_FX_ASOF : "";
+}
+
+function clay_fx_apply(array $db): void
+{
+    global $CLAY_FX_RATE, $CLAY_FX_ASOF;
+    $fx = $db["settings"]["fx"] ?? null;
+    $rate = 49.3929;
+    $asOf = "";
+    if (is_array($fx) && isset($fx["rate"]) && is_numeric($fx["rate"])) {
+        $candidate = (float) $fx["rate"];
+        if ($candidate > 1 && $candidate < 500) {
+            $rate = $candidate;
+            $asOf = is_string($fx["asOf"] ?? null) ? $fx["asOf"] : "";
+        }
+    }
+    $CLAY_FX_RATE = $rate;
+    $CLAY_FX_ASOF = $asOf;
+}
+
+function clay_fx_http(string $url): ?string
+{
+    if (function_exists("curl_init")) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 4,
+            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_USERAGENT => "clay-ledger",
+        ]);
+        $raw = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if (!is_string($raw) || $raw === "" || $code < 200 || $code >= 300) {
+            return null;
+        }
+        return $raw;
+    }
+    $context = stream_context_create([
+        "http" => ["timeout" => 4, "header" => "User-Agent: clay-ledger\r\n", "ignore_errors" => true],
+    ]);
+    $raw = @file_get_contents($url, false, $context);
+    return is_string($raw) && $raw !== "" ? $raw : null;
+}
+
+function clay_fx_frankfurter(): ?array
+{
+    $raw = clay_fx_http("https://api.frankfurter.app/latest?from=USD&to=TRY");
+    if ($raw === null) {
+        return null;
+    }
+    $data = json_decode($raw, true);
+    if (!is_array($data) || !isset($data["rates"]["TRY"]) || !is_numeric($data["rates"]["TRY"])) {
+        return null;
+    }
+    $rate = (float) $data["rates"]["TRY"];
+    if ($rate <= 1 || $rate >= 500) {
+        return null;
+    }
+    $date = is_string($data["date"] ?? null) ? $data["date"] : "";
+    $asOf = preg_match("/^\\d{4}-\\d{2}-\\d{2}$/", $date) ? $date . "T15:30:00.000Z" : clay_now();
+    return ["rate" => $rate, "asOf" => $asOf, "source" => "frankfurter"];
+}
+
+function clay_fx_tcmb(): ?array
+{
+    $raw = clay_fx_http("https://www.tcmb.gov.tr/kurlar/today.xml");
+    if ($raw === null || !preg_match('/CurrencyCode="USD"[\\s\\S]*?<ForexSelling>([0-9.]+)<\\/ForexSelling>/', $raw, $match)) {
+        return null;
+    }
+    $rate = (float) $match[1];
+    if ($rate <= 1 || $rate >= 500) {
+        return null;
+    }
+    $asOf = clay_now();
+    if (preg_match('/Tarih="(\\d{2})\\.(\\d{2})\\.(\\d{4})"/', $raw, $date)) {
+        $asOf = $date[3] . "-" . $date[2] . "-" . $date[1] . "T15:30:00.000Z";
+    }
+    return ["rate" => $rate, "asOf" => $asOf, "source" => "tcmb"];
+}
+
+function clay_fx_sync(array &$db): bool
+{
+    $dirty = false;
+    if (!isset($db["settings"]["fx"]) || !is_array($db["settings"]["fx"])) {
+        $db["settings"]["fx"] = ["rate" => 49.3929, "asOf" => "", "source" => "yedek", "fetchedAt" => ""];
+        $dirty = true;
+    }
+    clay_fx_apply($db);
+    $fx = $db["settings"]["fx"];
+    $fetchedRaw = (string) ($fx["fetchedAt"] ?? "");
+    $fetched = preg_match("/^\\d{4}-\\d{2}-\\d{2}T/", $fetchedRaw) ? clay_ms($fetchedRaw) : 0;
+    $now = (int) round(microtime(true) * 1000);
+    if ($fetched > 0 && ($now - $fetched) < 20 * 60 * 1000 && (float) ($fx["rate"] ?? 0) > 1) {
+        return $dirty;
+    }
+    $quote = clay_fx_frankfurter();
+    if ($quote === null) {
+        $quote = clay_fx_tcmb();
+    }
+    if ($quote === null) {
+        if (!isset($fx["rate"]) || !is_numeric($fx["rate"]) || (float) $fx["rate"] <= 1) {
+            $db["settings"]["fx"]["rate"] = 49.3929;
+            $db["settings"]["fx"]["asOf"] = "";
+            $db["settings"]["fx"]["source"] = "yedek";
+            $dirty = true;
+        }
+        $db["settings"]["fx"]["fetchedAt"] = clay_now();
+        clay_fx_apply($db);
+        return true;
+    }
+    $db["settings"]["fx"] = [
+        "rate" => $quote["rate"],
+        "asOf" => $quote["asOf"],
+        "source" => $quote["source"],
+        "fetchedAt" => clay_now(),
+    ];
+    clay_fx_apply($db);
+    return true;
+}
+
 function clay_kurus(int $minor): int
 {
-    return (int) round($minor * 49.3929);
+    return (int) round($minor * clay_fx_rate());
+}
+
+function clay_fx_note(): string
+{
+    $rate = number_format(clay_fx_rate(), 4, ",", ".");
+    $asOf = clay_fx_asof();
+    return $asOf !== "" ? $rate . " · " . $asOf : $rate . " · yedek";
 }
 
 function clay_tl(int $kurus): string
@@ -197,15 +339,45 @@ function clay_seed_ok(array $user, string $seed): bool
 function clay_hide_secrets(array $user, bool $desk): array
 {
     $hasSeed = is_string($user["seedHash"] ?? null) && $user["seedHash"] !== "";
-    unset($user["passSalt"], $user["passHash"], $user["seedSalt"], $user["seedHash"], $user["passwordHash"], $user["email"], $user["seed"]);
+    $hasAnswer = (is_string($user["answerHash"] ?? null) && $user["answerHash"] !== "")
+        || (is_string($user["securityAnswer"] ?? null) && $user["securityAnswer"] !== "");
+    unset($user["passSalt"], $user["passHash"], $user["seedSalt"], $user["seedHash"], $user["passwordHash"], $user["email"], $user["seed"], $user["answerSalt"], $user["answerHash"], $user["securityAnswer"]);
     if ($hasSeed) {
         $user["hasSeed"] = true;
     }
+    if ($hasAnswer) {
+        $user["hasAnswer"] = true;
+    }
     if (!$desk) {
         $user["password"] = "";
-        unset($user["securityAnswer"]);
     }
     return $user;
+}
+
+function clay_has_answer(array $user): bool
+{
+    $hash = (string) ($user["answerHash"] ?? "");
+    $plain = (string) ($user["securityAnswer"] ?? "");
+    return ($hash !== "" && (string) ($user["answerSalt"] ?? "") !== "") || $plain !== "";
+}
+
+function clay_answer_ok(array $user, string $folded): bool
+{
+    $hash = (string) ($user["answerHash"] ?? "");
+    $salt = (string) ($user["answerSalt"] ?? "");
+    if ($hash !== "" && $salt !== "") {
+        return clay_hash_eq($hash, clay_digest($folded, $salt));
+    }
+    $plain = (string) ($user["securityAnswer"] ?? "");
+    return $plain !== "" && clay_hash_eq($plain, $folded);
+}
+
+function clay_answer_put(array &$user, string $folded): void
+{
+    $salt = bin2hex(random_bytes(16));
+    $user["answerSalt"] = $salt;
+    $user["answerHash"] = clay_digest($folded, $salt);
+    unset($user["securityAnswer"]);
 }
 
 function clay_address(string $raw): ?string
@@ -984,6 +1156,17 @@ function clay_normalize(array &$db): bool
             unset($db["users"][$i]["seed"]);
             $dirty = true;
         }
+        $plainAnswer = (string) ($db["users"][$i]["securityAnswer"] ?? "");
+        $answerHash = (string) ($db["users"][$i]["answerHash"] ?? "");
+        if ($plainAnswer !== "" && $answerHash === "") {
+            clay_answer_put($db["users"][$i], $plainAnswer);
+            $dirty = true;
+        }
+        $status = (string) ($db["users"][$i]["status"] ?? "");
+        if ($status !== "acik" && $status !== "askida" && $status !== "kapali") {
+            $db["users"][$i]["status"] = "acik";
+            $dirty = true;
+        }
         if (!isset($db["users"][$i]["address"]) || !is_string($db["users"][$i]["address"])) {
             $db["users"][$i]["address"] = "";
             $dirty = true;
@@ -1121,6 +1304,9 @@ function clay_normalize(array &$db): bool
             $dirty = true;
         }
         $seenCodes[$code] = true;
+    }
+    if (clay_fx_sync($db)) {
+        $dirty = true;
     }
     if (clay_sweep_fees($db)) {
         $dirty = true;
@@ -1262,7 +1448,7 @@ function clay_public_user(array $user): array
         "usdMinor" => (int) ($user["usdMinor"] ?? 0),
         "plan" => $plan,
         "role" => ($user["role"] ?? "") === "yonetici" ? "yonetici" : "uye",
-        "status" => ($user["status"] ?? "") === "askida" ? "askida" : "acik",
+        "status" => in_array((string) ($user["status"] ?? ""), ["askida", "kapali"], true) ? (string) $user["status"] : "acik",
         "address" => (string) ($user["address"] ?? ""),
         "planUntil" => clay_plan_until($user),
     ];
@@ -1343,7 +1529,8 @@ function clay_session_user(array $db): ?array
         return null;
     }
     $index = clay_user_index($db, $id);
-    if ($index < 0 || ($db["users"][$index]["status"] ?? "") === "askida") {
+    $sessionStatus = (string) ($db["users"][$index]["status"] ?? "");
+    if ($index < 0 || $sessionStatus === "askida" || $sessionStatus === "kapali") {
         unset($_SESSION["uid"]);
         return null;
     }
@@ -1421,7 +1608,7 @@ function clay_credit_apply(array &$db, string $userId, string $orderId, int $cen
         "cardId" => null,
         "kind" => "yukleme",
         "title" => "Heleket yüklemesi",
-        "note" => clay_usd($cents) . " × 49,3929 = " . clay_tl($credit) . ". Heleket ödemesi, sabit kur 15 Eki 2026.",
+        "note" => clay_usd($cents) . " × " . clay_fx_note() . " = " . clay_tl($credit) . ". Heleket ödemesi.",
         "amount" => $credit,
         "usdMinor" => $cents,
         "status" => "tamamlandi",
@@ -1576,6 +1763,9 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             if (($user["status"] ?? "") === "askida") {
                 return clay_fail("e-askida");
             }
+            if (($user["status"] ?? "") === "kapali") {
+                return clay_fail("e-kapali");
+            }
             session_regenerate_id(true);
             $_SESSION["uid"] = $user["id"];
             return ["code" => "ok", "save" => false];
@@ -1641,7 +1831,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             }
             $record["password"] = $password;
             $record["securityQuestion"] = $question;
-            $record["securityAnswer"] = $answer;
+            clay_answer_put($record, $answer);
         }
         $db["users"][] = $record;
         $db["transactions"][] = [
@@ -1650,7 +1840,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             "cardId" => null,
             "kind" => "yukleme",
             "title" => "Hoş geldin bakiyesi",
-            "note" => "30 USD sabit kur karşılığı.",
+            "note" => "30 USD kur karşılığı. " . clay_fx_note() . ".",
             "amount" => $bonus,
             "usdMinor" => 3000,
             "status" => "tamamlandi",
@@ -1690,10 +1880,10 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if ($index < 0) {
             return clay_fail("e-eslesmedi");
         }
-        if (($db["users"][$index]["securityQuestion"] ?? "") === "" || ($db["users"][$index]["securityAnswer"] ?? "") === "") {
+        if (($db["users"][$index]["securityQuestion"] ?? "") === "" || !clay_has_answer($db["users"][$index])) {
             return clay_fail("e-sorusuz");
         }
-        if (($db["users"][$index]["securityQuestion"] ?? "") !== $question || ($db["users"][$index]["securityAnswer"] ?? "") !== $answer) {
+        if (($db["users"][$index]["securityQuestion"] ?? "") !== $question || !clay_answer_ok($db["users"][$index], $answer)) {
             return clay_fail("e-eslesmedi");
         }
         if (!empty($db["users"][$index]["passHash"])) {
@@ -1731,9 +1921,12 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if (($db["users"][$index]["status"] ?? "") === "askida") {
             return clay_fail("e-askida");
         }
+        if (($db["users"][$index]["status"] ?? "") === "kapali") {
+            return clay_fail("e-kapali");
+        }
         $hasSeed = is_string($db["users"][$index]["seedHash"] ?? null) && $db["users"][$index]["seedHash"] !== "";
         if (!$hasSeed) {
-            $hasQuestion = ($db["users"][$index]["securityQuestion"] ?? "") !== "" && ($db["users"][$index]["securityAnswer"] ?? "") !== "";
+            $hasQuestion = ($db["users"][$index]["securityQuestion"] ?? "") !== "" && clay_has_answer($db["users"][$index]);
             return clay_fail($hasQuestion ? "e-tohum-yok" : "e-eslesmedi");
         }
         if (!clay_seed_ok($db["users"][$index], $seed)) {
@@ -1762,8 +1955,8 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         return $code === "ok" || $code === "var" ? clay_ok($code) : clay_fail($code);
     }
 
-    $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "purge", "plan", "spend", "ticket", "refund", "renew", "transfer", "address", "name", "password", "notice-read", "notice-read-all", "yildiz", "cek", "soru"];
-    $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-ticket-close", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup", "admin-issue", "admin-close", "admin-purge", "admin-transfer", "admin-notice-save", "admin-notice-remove", "admin-announce", "admin-copy", "admin-cek"];
+    $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "purge", "purge-kapali", "order-clear", "plan", "spend", "ticket", "refund", "renew", "transfer", "address", "name", "password", "notice-read", "notice-read-all", "notice-clear", "yildiz", "cek", "soru"];
+    $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-ticket-close", "admin-ticket-sil", "admin-ticket-temizle", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-tx-sil", "admin-tx-temizle", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup", "admin-issue", "admin-close", "admin-purge", "admin-transfer", "admin-notice-save", "admin-notice-remove", "admin-notice-sil", "admin-notice-temizle", "admin-announce", "admin-copy", "admin-cek", "admin-cek-gizle", "admin-kapat", "admin-toplu-aski", "admin-uye-sifre", "admin-uye-plan", "admin-uye-profil", "admin-kart-toplu", "admin-kartlari-kapat", "admin-siparis-iptal", "admin-siparis-sil", "admin-sifirla"];
     if (in_array($action, $memberActions, true)) {
         $gate = clay_member($me);
         if ($gate) {
@@ -2331,7 +2524,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             return clay_fail("e-cevap");
         }
         $db["users"][$userIndex]["securityQuestion"] = $question;
-        $db["users"][$userIndex]["securityAnswer"] = $answer;
+        clay_answer_put($db["users"][$userIndex], $answer);
         clay_notice($db, $me["id"], "Güvenlik sorusu kaydedildi", "Şifreni unutursan kullanıcı adın ve bu yanıtla yeni parola belirlersin.");
         return clay_ok("soru");
     }
@@ -3159,7 +3352,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if ($userIndex < 0 || $db["users"][$userIndex]["balance"] < $amount) {
             return clay_fail("e-bakiye");
         }
-        $usd = (int) round($amount / 49.3929);
+        $usd = (int) round($amount / clay_fx_rate());
         if ($usd < 1) {
             $usd = 1;
         }
@@ -3264,24 +3457,58 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             clay_notice($db, (string) $row["userId"], "Çekim iptal", clay_tl($amount) . " cüzdanına geri yazıldı.");
             $db["payouts"][$index]["status"] = "iptal";
         } else {
+            require_once __DIR__ . "/heleket.php";
+            $chain = heleket_payout_send($row);
+            if (empty($chain["ok"])) {
+                $reason = (string) ($chain["error"] ?? "");
+                if ($reason === "anahtar") {
+                    return clay_fail("e-cek-anahtar");
+                }
+                if ($reason === "ag-adres") {
+                    return clay_fail("e-cek-ag");
+                }
+                return clay_fail("e-cek");
+            }
             $wallet = (string) ($row["wallet"] ?? "");
             $mask = strlen($wallet) >= 8 ? substr($wallet, 0, 4) . "…" . substr($wallet, -4) : $wallet;
             $sent = abs((int) $row["amount"]);
             $usdOut = abs((int) ($row["usdMinor"] ?? 0));
+            $uuid = (string) ($chain["uuid"] ?? "");
+            $txid = (string) ($chain["txid"] ?? "");
+            $note = clay_payout_note("gitti", $mask, clay_payout_coin($row["coin"] ?? ""));
+            if ($uuid !== "") {
+                $note .= " Heleket " . $uuid . ".";
+            }
+            if ($txid !== "") {
+                $note .= " Tx " . $txid . ".";
+            }
             foreach ($db["transactions"] as $n => $entry) {
                 if (($entry["ref"] ?? "") === $id) {
                     $db["transactions"][$n]["amount"] = -$sent;
                     $db["transactions"][$n]["title"] = "Çekim talebi";
-                    $db["transactions"][$n]["note"] = clay_payout_note("gitti", $mask, clay_payout_coin($row["coin"] ?? ""));
+                    $db["transactions"][$n]["note"] = $note;
                     $db["transactions"][$n]["usdMinor"] = $usdOut > 0 ? -$usdOut : null;
                 }
             }
-            clay_notice($db, (string) $row["userId"], "Çekim gönderildi", clay_tl((int) $row["amount"]) . " çıktı. Cüzdan adresine işlendi.");
+            clay_notice($db, (string) $row["userId"], "Çekim gönderildi", clay_tl((int) $row["amount"]) . " Heleket çekimine yazıldı.");
             $db["payouts"][$index]["status"] = "gitti";
+            if ($uuid !== "") {
+                $db["payouts"][$index]["uuid"] = $uuid;
+            }
+            if ($txid !== "") {
+                $db["payouts"][$index]["txid"] = $txid;
+            }
         }
         $db["payouts"][$index]["settledAt"] = clay_now();
         return clay_ok($decision === "gitti" ? "cekim-gitti" : "cekim-iptal");
     }
 
+    $extra = clay_desk_act($db, $me, $action, $in);
+    if ($extra !== null) {
+        return $extra;
+    }
+
     return clay_fail("e-yok");
 }
+
+require_once __DIR__ . "/clay-desk.php";

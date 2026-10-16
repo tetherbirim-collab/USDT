@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { settlePayoutAction } from "@/lib/actions";
+import { hidePayoutAction, settlePayoutAction } from "@/lib/actions";
 import { AdminOrderSlip } from "@/components/admin-order-slip";
 import { ADMIN_PATH } from "@/lib/auth";
 import { CARD_TYPES } from "@/lib/catalog";
@@ -18,7 +18,8 @@ export default function LiveDesk() {
   const settings = useSiteSettings();
   if (!query) return <Boot />;
   const db = snapshot();
-  const waiting = db.payouts.filter((row) => row.status === "bekliyor");
+  const waiting = db.payouts.filter((row) => row.status === "bekliyor" && !row.hidden);
+  const settled = db.payouts.filter((row) => (row.status === "gitti" || row.status === "iptal") && !row.hidden);
   const preparing = db.orders.filter((order) => order.status === "hazirlaniyor");
   const frozen = db.cards.filter((card) => card.status === "donduruldu");
   const money = [...db.transactions]
@@ -98,7 +99,9 @@ export default function LiveDesk() {
       </section>
       <section id="cekim" className="grid gap-3 scroll-mt-24">
         <h2 className="font-display text-2xl font-bold">Çekim kuyruğu</h2>
-        <p className="text-sm text-white/60">Talep yerelde bekler. Gönderildi yazınca durum gitti olur, iptal tutarı cüzdana döndürür.</p>
+        <p className="text-sm text-white/60">
+          Gönderildi, Heleket çekimini çağırır. Anahtar boşsa talep bekliyor kalır ve zincire çıkmaz. Gitti ve iptal satırı listeden kalkar; parayı yazan defter satırı durur.
+        </p>
         {waiting.length === 0 && <p className="text-sm text-white/60">Bekleyen talep yok.</p>}
         {waiting.map((row) => {
           const owner = db.users.find((user) => user.id === row.userId);
@@ -141,6 +144,30 @@ export default function LiveDesk() {
             </article>
           );
         })}
+        <h3 className="font-display text-xl font-bold">Kapanan talepler</h3>
+        {settled.length === 0 && <p className="text-sm text-white/60">Gitti veya iptal satırı yok.</p>}
+        {settled.map((row) => (
+          <article key={row.id} className="glass flex flex-wrap items-center justify-between gap-3 rounded-[24px] px-4 py-3">
+            <div>
+              <p className="font-semibold">
+                {formatTL(row.amount)} · {row.status === "gitti" ? "Gitti" : "İptal"}
+              </p>
+              <p className="text-sm text-white/70">{row.wallet}</p>
+            </div>
+            <form action={hidePayoutAction}>
+              <input type="hidden" name="id" value={row.id} />
+              <input type="hidden" name="donus" value={`${ADMIN_PATH}/canli`} />
+              <button className="btn btn-ghost px-3 py-2 text-sm" type="submit">
+                Listeden kaldır
+              </button>
+            </form>
+          </article>
+        ))}
+        {settled.length === 0 && (
+          <button className="btn btn-ghost w-fit px-3 py-2 text-sm" type="button" disabled>
+            Listeden kaldır
+          </button>
+        )}
       </section>
     </div>
   );

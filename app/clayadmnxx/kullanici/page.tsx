@@ -8,10 +8,11 @@ import {
   adminEditTxAction,
   adminSetBalanceAction,
 } from "@/lib/actions";
-import { AdminCardOps, AdminIssueForm, AdminTransferForm } from "@/components/admin-member-tools";
+import { adminCloseAccountAction, adminCloseMemberCardsAction, adminDeleteTxAction, adminMemberProfileAction } from "@/lib/actions";
+import { AdminCardOps, AdminIssueForm, AdminPasswordForm, AdminPlanAssign, AdminTransferForm } from "@/components/admin-member-tools";
 import { Notice } from "@/components/notice";
 import { ADMIN_PATH } from "@/lib/auth";
-import { CARD_TYPES, KIND_LABEL, kurusToUsdMinor, securityQuestionLabel } from "@/lib/catalog";
+import { CARD_TYPES, KIND_LABEL, SECURITY_QUESTIONS, kurusToUsdMinor, securityQuestionLabel } from "@/lib/catalog";
 import { formatSigned, formatTL, formatWhen, isoToIstanbulInput, kurusToInput, showOrderCode } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
 import { snapshot } from "@/lib/store";
@@ -72,9 +73,9 @@ export default function AdminUserPage() {
           <p className="text-sm text-white/80">Parola düz metin olarak durmaz. Defterde yalnız özeti vardır.</p>
         )}
         <p className="mt-1 text-sm text-white/80">
-          {user.hasSeed || user.seedHash
+            {user.hasSeed || user.seedHash
             ? "Kurtarma tohumu düz metin olarak durmaz."
-            : `Güvenlik sorusu ${user.securityQuestion ? securityQuestionLabel(user.securityQuestion) : "yok"}${user.securityAnswer ? ` · yanıt ${user.securityAnswer}` : ""}`}
+            : `Güvenlik sorusu ${user.securityQuestion ? securityQuestionLabel(user.securityQuestion) : "yok"}${user.hasAnswer ? " · yanıt özeti kayıtlı" : ""}`}
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
@@ -85,8 +86,8 @@ export default function AdminUserPage() {
             <p className="text-xs uppercase tracking-[0.16em] text-white/45">Bakiye</p>
             <p className="font-display text-4xl font-extrabold">{formatTL(user.balance)}</p>
           </div>
-          <span className={`rounded-full px-3 py-1 text-sm font-bold ${user.status === "askida" ? "bg-[#ff8aa2] text-[#2a1018]" : "bg-mint text-[#10241f]"}`}>
-            {user.status === "askida" ? "Askıda" : "Açık"}
+          <span className={`rounded-full px-3 py-1 text-sm font-bold ${user.status === "acik" ? "bg-mint text-[#10241f]" : "bg-[#ff8aa2] text-[#2a1018]"}`}>
+            {user.status === "kapali" ? "Kapalı" : user.status === "askida" ? "Askıda" : "Açık"}
           </span>
         </div>
         {member && (
@@ -101,21 +102,89 @@ export default function AdminUserPage() {
           </form>
         )}
         {member && (
-          <form action={adminAccountAction} className="mt-4">
-            <input type="hidden" name="uye" value={user.id} />
-            <input type="hidden" name="donus" value={back} />
-            {user.status === "acik" ? (
-              <button className="btn btn-danger" name="mod" value="aski">
-                Hesabı askıya al
-              </button>
-            ) : (
-              <button className="btn btn-gold" name="mod" value="ac">
-                Hesabı aç
-              </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <form action={adminAccountAction}>
+              <input type="hidden" name="uye" value={user.id} />
+              <input type="hidden" name="donus" value={back} />
+              {user.status === "acik" ? (
+                <button className="btn btn-danger" name="mod" value="aski">
+                  Hesabı askıya al
+                </button>
+              ) : user.status === "askida" ? (
+                <button className="btn btn-gold" name="mod" value="ac">
+                  Hesabı aç
+                </button>
+              ) : (
+                <p className="text-sm text-white/70">Hesap kalıcı kapalı. Giriş yok. Geçmiş duruyor.</p>
+              )}
+            </form>
+            {user.status !== "kapali" && (
+              <form action={adminCloseAccountAction} className="flex flex-wrap items-center gap-2">
+                <input type="hidden" name="uye" value={user.id} />
+                <input type="hidden" name="mod" value="kalici" />
+                <input type="hidden" name="donus" value={back} />
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="onay" value="on" required />
+                  Kalıcı kapat. Geçmiş silinmez.
+                </label>
+                <button className="btn btn-danger">Kalıcı kapat</button>
+              </form>
             )}
-          </form>
+            <form action={adminCloseMemberCardsAction} className="flex flex-wrap items-center gap-2">
+              <input type="hidden" name="uye" value={user.id} />
+              <input type="hidden" name="donus" value={back} />
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="onay" value="on" required />
+                Açık kartlar kapanır. Basım ücreti döner.
+              </label>
+              <button className="btn btn-ghost">Kartları kapat</button>
+            </form>
+          </div>
         )}
       </section>
+
+      {member && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <AdminPlanAssign userId={user.id} back={back} plan={user.plan} />
+          <AdminPasswordForm userId={user.id} seeded={Boolean(user.hasSeed || user.seedHash)} />
+        </div>
+      )}
+
+      {member && (
+        <form action={adminMemberProfileAction} className="glass grid gap-3 rounded-[28px] p-5">
+          <p className="text-xs font-bold tracking-[0.18em] text-gold">KİMLİK</p>
+          <h2 className="font-display text-2xl font-bold">Ad, adres, güvenlik</h2>
+          <p className="text-sm text-white/70">
+            Güvenlik yanıtı {user.hasAnswer ? "kayıtlı ve düz metin değil." : "yok."} Yeni yanıt yazarsan özeti saklanır, yanıtın kendisi durmaz.
+          </p>
+          <input type="hidden" name="uye" value={user.id} />
+          <input type="hidden" name="donus" value={back} />
+          <label className="grid gap-1 text-sm">
+            Ad
+            <input className="field" name="ad" required minLength={2} maxLength={40} defaultValue={user.name} />
+          </label>
+          <label className="grid gap-1 text-sm">
+            Adres
+            <input className="field" name="adres" maxLength={120} defaultValue={user.address} />
+          </label>
+          <label className="grid gap-1 text-sm">
+            Güvenlik sorusu
+            <select className="field" name="soru" defaultValue="">
+              <option value="">Değiştirme</option>
+              {SECURITY_QUESTIONS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm">
+            Yeni yanıt
+            <input className="field" name="cevap" maxLength={40} autoComplete="off" placeholder="Soru değişince yaz" />
+          </label>
+          <button className="btn btn-gold w-fit">Kimliği kaydet</button>
+        </form>
+      )}
 
       {member && (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -221,6 +290,17 @@ export default function AdminUserPage() {
                   <input className="field w-36" name="tutar" defaultValue={kurusToInput(kurusToUsdMinor(entry.amount))} required />
                 </label>
                 <button className="btn btn-ghost">Tutarı yaz</button>
+              </form>
+            )}
+            {member && (
+              <form action={adminDeleteTxAction} className="mt-2 flex flex-wrap items-center gap-2">
+                <input type="hidden" name="islem" value={entry.id} />
+                <input type="hidden" name="donus" value={back} />
+                <label className="flex items-center gap-2 text-xs text-white/70">
+                  <input type="checkbox" name="onay" value="on" required />
+                  Etki geri alınsın, satır silinsin
+                </label>
+                <button className="btn btn-ghost">Satırı sil</button>
               </form>
             )}
           </article>

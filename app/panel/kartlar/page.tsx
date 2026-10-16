@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { purgeClosedCardsAction } from "@/lib/actions";
 import { CardActions } from "@/components/card-actions";
 import { CrestBanner } from "@/components/crest-banner";
 import { CardMenu } from "@/components/card-menu";
@@ -9,7 +10,6 @@ import { CardSecrets } from "@/components/card-secrets";
 import { TransferForm } from "@/components/transfer-form";
 import { Notice } from "@/components/notice";
 import { TransferBurst } from "@/components/transfer-burst";
-import { VirtualCard } from "@/components/virtual-card";
 import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import { listCards, listTransactions } from "@/lib/store";
 import type { Card } from "@/lib/types";
@@ -49,14 +49,12 @@ export default function CardsPage() {
   const toCard = cards.find((card) => card.id === landed);
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-bold tracking-[0.22em] text-gold">KARTLARIM</p>
           <h1 className="font-display text-4xl font-extrabold">Kartlarım</h1>
-          <p className="mt-2 max-w-xl text-white/65">
-            Kart basılınca kullanılabilir bakiye 0 başlar. Yükleme kendi hesabından yapılır. Harcama işlem geçmişine düşer.
-          </p>
+          <p className="mt-2 max-w-xl text-white/65">Bakiye 0 başlar. Yükleme kartın altından yapılır.</p>
         </div>
         <Link href="/panel/kartlar/yeni" className="btn btn-gold">
           Kart bas
@@ -133,37 +131,42 @@ export default function CardsPage() {
               })
               .sort((a, b) => Number(Boolean(b.starred)) - Number(Boolean(a.starred)));
             if (rows.length === 0) return <p className="text-sm text-white/50">Bu sekmede kart yok.</p>;
+            const closed = tab === "kapali" && cards.some((card) => card.status === "kapali");
             return (
-                <div className="grid gap-5 lg:grid-cols-2">
+                <div className="grid gap-3">
+                  {closed && (
+                    <form action={purgeClosedCardsAction} className="flex flex-wrap items-center gap-2">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="onay" value="on" required />
+                        Kapalı kartlar ve siparişleri silinsin. Para geçmişi durur.
+                      </label>
+                      <button className="btn btn-ghost">Kapalıları temizle</button>
+                    </form>
+                  )}
+                <div className="grid gap-3 lg:grid-cols-2">
                   {rows.map((card) => (
                     <article
                       key={card.id}
                       id={card.id}
                       className={`glass rounded-[28px] p-4 ${highlight === card.id || landed === card.id ? "ring-2 ring-gold" : ""}`}
                     >
-                      {card.status === "hazirlaniyor" ? (
-                        <div className="card-face">
-                          <CardMenu card={card} fee={settings.issueFeeKurus} />
-                          <VirtualCard card={card} />
-                        </div>
-                      ) : (
-                        <CardSecrets
-                          card={card}
-                          address={user.address}
-                          menu={<CardMenu card={card} fee={settings.issueFeeKurus} />}
-                        >
-                          {card.status !== "kapali" &&
-                            card.limit - card.spent > 0 &&
-                            cards.some((item) => item.id !== card.id && (item.status === "aktif" || item.status === "donduruldu")) && (
-                              <div className="mt-4">
-                                <TransferForm
-                                  card={card}
-                                  peers={cards.filter((item) => item.id !== card.id && (item.status === "aktif" || item.status === "donduruldu"))}
-                                />
-                              </div>
-                            )}
-                        </CardSecrets>
-                      )}
+                      <CardSecrets
+                        card={card}
+                        address={user.address}
+                        menu={<CardMenu card={card} fee={settings.issueFeeKurus} />}
+                      >
+                        {card.status !== "kapali" &&
+                          card.status !== "hazirlaniyor" &&
+                          card.limit - card.spent > 0 &&
+                          cards.some((item) => item.id !== card.id && (item.status === "aktif" || item.status === "donduruldu")) && (
+                            <div className="mt-4">
+                              <TransferForm
+                                card={card}
+                                peers={cards.filter((item) => item.id !== card.id && (item.status === "aktif" || item.status === "donduruldu"))}
+                              />
+                            </div>
+                          )}
+                      </CardSecrets>
                       <CardActions
                         card={card}
                         balance={user.balance}
@@ -172,6 +175,7 @@ export default function CardsPage() {
                       />
                     </article>
                   ))}
+                </div>
                 </div>
             );
           })()}

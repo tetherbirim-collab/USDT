@@ -1,7 +1,7 @@
 "use client";
 
 import { Notice } from "@/components/notice";
-import { markAllNoticesReadAction, markNoticeReadAction } from "@/lib/actions";
+import { clearNoticesAction, markAllNoticesReadAction, markNoticeReadAction } from "@/lib/actions";
 import { formatWhen } from "@/lib/format";
 import { Boot, useQuery, useUser } from "@/lib/live";
 import { listNotices } from "@/lib/store";
@@ -23,11 +23,18 @@ export default function NoticesPage() {
             Dondurma, aktif etme, harcama, yükleme ve aktarım burada birikir. Sayfayı açmak okundu saymaz.
           </p>
         </div>
-        {unread > 0 && (
-          <form action={markAllNoticesReadAction}>
-            <button className="btn btn-gold">Tümünü okundu say</button>
-          </form>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {unread > 0 && (
+            <form action={markAllNoticesReadAction}>
+              <button className="btn btn-gold">Tümünü okundu say</button>
+            </form>
+          )}
+          {notes.length > 0 && (
+            <form action={clearNoticesAction}>
+              <button className="btn btn-ghost">Tümünü sil</button>
+            </form>
+          )}
+        </div>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
       {notes.length === 0 ? (

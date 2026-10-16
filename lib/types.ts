@@ -10,7 +10,7 @@ export type TxStatus = "tamamlandi" | "reddedildi";
 
 export type UserRole = "uye" | "yonetici";
 
-export type AccountStatus = "acik" | "askida";
+export type AccountStatus = "acik" | "askida" | "kapali";
 
 export type User = {
   id: string;
@@ -29,6 +29,8 @@ export type User = {
   seedHash?: string;
   /** Set on the desk view when the seed hash exists but was stripped from the payload. */
   hasSeed?: boolean;
+  /** Set when a security answer hash exists. The answer itself is not sent. */
+  hasAnswer?: boolean;
   /** Question id chosen at signup. The answer stays off the public profile. */
   securityQuestion?: string;
   securityAnswer?: string;
@@ -61,6 +63,7 @@ export type PublicUser = {
   securityQuestion?: string;
   /** True when a recovery seed hash exists. The phrase is not sent to the browser. */
   hasSeed?: boolean;
+  hasAnswer?: boolean;
 };
 
 export type Card = {
@@ -127,6 +130,8 @@ export type Tx = {
   usdMinor?: number | null;
   /** Heleket invoice key. A paid order is written once. */
   ref?: string | null;
+  /** Effect already undone. Bulk clear may drop the row. */
+  reversed?: boolean;
 };
 
 export type OrderStatus = "hazirlaniyor" | "hazir" | "iptal";
@@ -187,6 +192,17 @@ export type Payout = {
   status: PayoutStatus;
   createdAt: string;
   settledAt: string | null;
+  /** Hidden from the active queue. The ledger line stays. */
+  hidden?: boolean;
+  uuid?: string;
+  txid?: string;
+};
+
+export type FxQuote = {
+  rate: number;
+  asOf: string;
+  source?: string;
+  fetchedAt?: string;
 };
 
 export type SiteSettings = {
@@ -200,6 +216,8 @@ export type SiteSettings = {
   announcement: Announcement;
   /** Admin overrides. Empty or missing keys keep the built-in Turkish line. */
   copy: Record<string, string>;
+  /** Cached USD/TRY quote. Missing falls back to 49.3929. */
+  fx?: FxQuote;
 };
 
 export type InboxNote = {

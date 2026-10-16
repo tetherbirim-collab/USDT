@@ -74,19 +74,19 @@ body {
 }
 
 .crest-sheen {
-  background: linear-gradient(118deg, rgba(255, 255, 255, 0.05) 0%, transparent 36%);
-  clip-path: polygon(46% 0, 100% 0, 100% 100%, 22% 100%);
+  background: linear-gradient(155deg, rgba(126, 168, 230, 0.22), rgba(14, 32, 64, 0.08) 62%);
+  clip-path: polygon(50% 0, 100% 0, 100% 100%, 16% 100%);
 }
 
 .crest-sheen::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(115deg, transparent 0 48%, rgba(176, 206, 245, 0.16) 49%, rgba(10, 24, 48, 0.28) 54%, transparent 68%);
+  background: linear-gradient(112deg, transparent 0 46%, rgba(168, 196, 236, 0.1) 47.5%, rgba(12, 28, 56, 0.12) 54%, transparent 66%);
 }
 
 .crest-glint {
-  background: linear-gradient(102deg, transparent 40%, rgba(255, 255, 255, 0.07) 48%, transparent 56%);
+  background: linear-gradient(102deg, transparent 42%, rgba(255, 255, 255, 0.04) 50%, transparent 58%);
   animation: crest-glint 16s ease-in-out infinite;
 }
 
@@ -131,14 +131,15 @@ body {
   grid-area: 1 / 1;
   margin: 0;
   letter-spacing: -0.04em;
-  line-height: 0.98;
+  line-height: 1.02;
 }
 
 .crest-ghost {
-  color: rgba(232, 240, 255, 0.16);
-  font-size: clamp(2.15rem, 8.4vw, 3.15rem);
+  z-index: 0;
+  color: rgba(232, 240, 255, 0.15);
+  font-size: clamp(1.95rem, 7.4vw, 2.75rem);
   font-weight: 500;
-  transform: translate(0.55rem, -0.42rem);
+  transform: translate(0, -0.22em);
   user-select: none;
 }
 
@@ -149,6 +150,7 @@ body {
 }
 
 .crest-title {
+  z-index: 1;
   font-size: clamp(1.85rem, 7.2vw, 2.65rem);
   font-weight: 500;
   color: #f7f9fc;
@@ -210,8 +212,8 @@ body {
   }
 
   .crest-ghost {
-    font-size: clamp(2.8rem, 4.6vw, 4.7rem);
-    transform: translate(0.8rem, -0.55rem);
+    font-size: clamp(2.5rem, 3.7vw, 3.9rem);
+    transform: translate(0.45rem, -0.28em);
   }
 
   .crest-title {

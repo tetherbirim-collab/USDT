@@ -30,10 +30,10 @@ export function CrestBanner() {
             </defs>
 
             <path
-              d="M28 318 C 140 392, 300 404, 560 292"
+              d="M18 300 C 150 392, 320 408, 590 268"
               fill="none"
               stroke="url(#crest-arc)"
-              strokeWidth="1.6"
+              strokeWidth="2"
             />
             <path
               d="M78 338 C 150 372, 230 378, 300 348"

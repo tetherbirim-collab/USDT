@@ -2236,3 +2236,222 @@ header .trust-line:not(.trust-bar) {
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.82);
 }
+
+.pay-rail {
+  position: relative;
+  margin-top: 0.85rem;
+  overflow: hidden;
+  border: 1px solid rgba(168, 92, 255, 0.28);
+  border-radius: 28px;
+  background:
+    radial-gradient(420px 180px at 70% 40%, rgba(120, 40, 20, 0.45), transparent 70%),
+    linear-gradient(90deg, #120e0c 0%, #1a120e 42%, #100c14 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.pay-rail-stage {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 168px;
+  padding: 0.85rem 1rem 0.35rem;
+  overflow-x: auto;
+}
+
+.pay-code {
+  display: none;
+  height: 132px;
+  width: 210px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(240, 201, 138, 0.18);
+  background: rgba(8, 6, 8, 0.55);
+  color: rgba(232, 196, 140, 0.78);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  line-height: 1.45;
+  mask-image: linear-gradient(180deg, transparent, #000 12%, #000 82%, transparent);
+}
+
+.pay-code-scroll {
+  animation: pay-code 16s linear infinite;
+}
+
+.pay-code p {
+  padding: 0 0.7rem;
+  white-space: nowrap;
+}
+
+.pay-visa {
+  position: relative;
+  display: grid;
+  width: 168px;
+  height: 104px;
+  flex: 0 0 auto;
+  align-content: space-between;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.55), transparent 42%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.16) 0 2px, transparent 2px 7px),
+    linear-gradient(160deg, #f4f1ea, #b9b3a8 46%, #8d877e);
+  padding: 0.7rem 0.75rem;
+  color: #1c1916;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.35);
+  animation: pay-float 4.8s ease-in-out infinite;
+}
+
+.pay-visa-beam {
+  position: absolute;
+  inset: -20% auto -20% 38%;
+  width: 18px;
+  background: linear-gradient(180deg, transparent, rgba(255, 214, 120, 0.95), transparent);
+  filter: blur(0.5px);
+  animation: pay-beam 3.2s ease-in-out infinite;
+}
+
+.pay-chip {
+  width: 22px;
+  height: 16px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #f0d48a, #a67c2d);
+}
+
+.pay-contactless {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.7rem;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(28, 25, 22, 0.7);
+  border-left: 0;
+  border-radius: 0 12px 12px 0;
+}
+
+.pay-visa-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.95rem;
+  letter-spacing: 0.18em;
+}
+
+.pay-visa strong,
+.pay-crypto-foot strong {
+  justify-self: end;
+  font-style: italic;
+  letter-spacing: 0.08em;
+}
+
+.pay-crypto {
+  position: relative;
+  display: block;
+  width: 220px;
+  height: 150px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(180, 120, 255, 0.35);
+  background: #121014;
+  padding: 0.7rem 0.8rem;
+  color: #fff;
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.35);
+  animation: pay-float 5.4s ease-in-out infinite;
+}
+
+.pay-waves {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: pay-wave 8s linear infinite;
+}
+
+.pay-crypto-top,
+.pay-crypto-foot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.pay-crypto-top {
+  font-weight: 700;
+}
+
+.pay-mark {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.pay-mark i {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid #fff;
+  border-radius: 999px;
+}
+
+.pay-signal {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #fff;
+  border-left: 0;
+  border-radius: 0 12px 12px 0;
+}
+
+.pay-crypto-coin {
+  position: relative;
+  margin-top: 0.85rem;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.pay-crypto-foot {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.65rem;
+  left: 0.8rem;
+  font-size: 0.72rem;
+}
+
+.pay-crypto-foot small {
+  display: block;
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.pay-rail-line {
+  padding: 0 1rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #f0c98a;
+}
+
+@keyframes pay-code {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+@keyframes pay-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pay-beam {
+  0%, 100% { opacity: 0.35; transform: translateX(-8px); }
+  50% { opacity: 1; transform: translateX(10px); }
+}
+
+@keyframes pay-wave {
+  from { transform: translateX(0); }
+  to { transform: translateX(-18px); }
+}
+
+@media (min-width: 900px) {
+  .pay-code { display: block; }
+}

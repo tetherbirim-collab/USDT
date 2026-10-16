@@ -8,6 +8,7 @@ import { PLANS } from "@/lib/catalog";
 import { daysLeftLine, daysUntil, formatDay } from "@/lib/format";
 import type { PlanId } from "@/lib/types";
 import { AnnounceBar } from "./announce-bar";
+import { PayRail } from "./pay-rail";
 import { Mark, Wordmark } from "./mark";
 import { TrustLine } from "./trust-line";
 import { siteText } from "@/lib/copy";
@@ -152,6 +153,7 @@ export function PanelFrame({
         <TrustLine />
       </header>
       <AnnounceBar />
+      <PayRail />
       <div className="mt-6">{children}</div>
     </div>
   );

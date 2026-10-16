@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { daysLeftLine, daysUntil, formatDay, formatPan, plusDaysIso } from "@/lib/format";
 import type { Card } from "@/lib/types";
@@ -33,13 +32,11 @@ function CopyButton({ copied, onCopy }: { copied: boolean; onCopy: () => void })
 
 export function CardSecrets({
   card,
-  address,
   face = true,
   menu,
   children,
 }: {
   card: Card;
-  address: string;
   face?: boolean;
   menu?: ReactNode;
   children?: ReactNode;
@@ -54,7 +51,6 @@ export function CardSecrets({
   const leftLine = late ? "Ödeme günü geçti" : daysLeftLine(days);
   const pan = formatPan(card.pan);
   const expiry = prettyExpiry(String(card.expiry ?? ""));
-  const line = String(address ?? "").trim();
 
   async function copy(key: string, value: string) {
     if (!open || !value) return;
@@ -70,7 +66,6 @@ export function CardSecrets({
       `Numara: ${pan}`,
       `Son kullanma: ${expiry}`,
       `CVV: ${cvvOn ? card.cvv : "gizli"}`,
-      line ? `Adres: ${line}` : "Adres: yazılmadı",
       `Sonraki kart ödemesi: ${due}`,
       leftLine,
     ].join("\n");
@@ -139,24 +134,6 @@ export function CardSecrets({
                   <CopyButton copied={copied === "cvv"} onCopy={() => copy("cvv", card.cvv)} />
                 </div>
               )}
-            </div>
-          </div>
-          <div className="rounded-2xl bg-black/25 px-3 py-3">
-            <p className="text-xs text-white/50">Adres</p>
-            <div className="mt-1 flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-              {open && line ? (
-                <p className="min-w-0 break-words">{line}</p>
-              ) : open ? (
-                <p className="text-white/55">
-                  Bu hesaba adres yazılmadı.{" "}
-                  <Link href="/panel/hesap" className="font-semibold text-gold">
-                    Hesap
-                  </Link>
-                </p>
-              ) : (
-                <p className="font-mono tracking-widest">••••••••</p>
-              )}
-              {open && line && <CopyButton copied={copied === "adres"} onCopy={() => copy("adres", line)} />}
             </div>
           </div>
           {open && (

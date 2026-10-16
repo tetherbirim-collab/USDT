@@ -106,17 +106,15 @@ export function CrestBanner() {
         <div className="crest-copy">
           <div className="crest-stack">
             <p className="crest-ghost" aria-hidden="true">
-              <span>KYC yok.</span>
-              <span>Evrak yok.</span>
+              <span>CLAY</span>
+              <span>SANAL KART</span>
             </p>
             <h2 id="crest-baslik" className="crest-title">
-              <span>Kriptonuz.</span>
-              <span>Banka hesabı yok.</span>
+              <span>Sanal kart.</span>
+              <span>Hemen harca.</span>
             </h2>
           </div>
-          <p className="crest-lede">
-            Kripto ile fonlanır. Bağlanacak bir banka hesabı yoktur. Kimlik, katılımın bedeli değildir.
-          </p>
+          <p className="crest-lede">KYC yok. Kripto ile yükle.</p>
         </div>
       </div>
     </section>

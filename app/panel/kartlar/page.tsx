@@ -10,6 +10,7 @@ import { CardSecrets } from "@/components/card-secrets";
 import { TransferForm } from "@/components/transfer-form";
 import { Notice } from "@/components/notice";
 import { TransferBurst } from "@/components/transfer-burst";
+import { formatTL } from "@/lib/format";
 import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import { listCards, listTransactions } from "@/lib/store";
 import type { Card } from "@/lib/types";
@@ -47,6 +48,9 @@ export default function CardsPage() {
   const got = sent ? txs.find((entry) => entry.kind === "transfer" && entry.amount > 0 && entry.createdAt === sent.createdAt) : undefined;
   const fromCard = cards.find((card) => card.id === highlight);
   const toCard = cards.find((card) => card.id === landed);
+  const returned = note === "ana-hesap"
+    ? txs.find((entry) => entry.title === "Ana hesaba aktar" && (!highlight || entry.cardId === highlight))
+    : undefined;
 
   return (
     <div className="grid gap-4">
@@ -61,21 +65,11 @@ export default function CardsPage() {
         </Link>
       </div>
       <CrestBanner />
-      <div className="mission-pair">
-        <article className="mission-card">
-          <p className="mission-kicker">Misyonumuz</p>
-          <p className="mission-line">
-            Kimlik doğrulaması olmaksızın anonim bir sanal kart sunmak. Kart kripto ile fonlanır; bakiye ve kart üyede kalır. Reklam harcaması aynı masadan izlenir. Kayıt tutulmaz.
-          </p>
-        </article>
-        <article className="mission-card mission-card-quiet">
-          <p className="mission-kicker">Vizyonumuz</p>
-          <p className="mission-line">
-            Güvenli ve anonim bir kart hizmetini sürdürmek. Üye, kartını ve bakiyesini kendinde tutar. Katılım için banka hesabı bağlamak ya da kimlik belgesi sunmak gerekmez.
-          </p>
-        </article>
-      </div>
-      {query.get("bildirim") === "transfer" && fromCard && toCard && sent && got ? (
+      {note === "ana-hesap" && returned ? (
+        <p className="banner-ok" role="status">
+          Ana hesaba {formatTL(Math.abs(returned.amount))} aktarıldı. Karttan düştü. Komisyon yok.
+        </p>
+      ) : query.get("bildirim") === "transfer" && fromCard && toCard && sent && got ? (
         <TransferBurst
           from={fromCard}
           to={toCard}
@@ -152,13 +146,9 @@ export default function CardsPage() {
                     >
                       <CardSecrets
                         card={card}
-                        address={user.address}
                         menu={<CardMenu card={card} fee={settings.issueFeeKurus} />}
                       >
-                        {card.status !== "kapali" &&
-                          card.status !== "hazirlaniyor" &&
-                          card.limit - card.spent > 0 &&
-                          cards.some((item) => item.id !== card.id && (item.status === "aktif" || item.status === "donduruldu")) && (
+                        {card.status !== "kapali" && card.status !== "hazirlaniyor" && card.limit - card.spent > 0 && (
                             <div className="mt-4">
                               <TransferForm
                                 card={card}

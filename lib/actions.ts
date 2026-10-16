@@ -1224,6 +1224,53 @@ export async function transferAction(formData: FormData) {
   return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}&karsi=${encodeURIComponent(hedef)}`, result);
 }
 
+export async function returnToWalletAction(formData: FormData) {
+  const user = await actor();
+  const id = String(formData.get("id") || "");
+  const cents = parseTryToKurus(String(formData.get("tutar") || ""));
+  if (cents === null || cents < MIN_TRANSFER_USD_MINOR) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, "e-transfer");
+  const amount = usdMinorToKurus(cents);
+  if (amount < 1) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, "e-transfer");
+  const remote = await remoteCall("ana-hesap", pack(formData, ["id", "tutar"]));
+  if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, remote.code);
+  let result: string;
+  try {
+    result = mutate((db) => {
+      const row = db.users.find((item) => item.id === user.id);
+      const source = db.cards.find((item) => item.id === id && item.userId === user.id);
+      if (!row || !source) return "e-yok" as const;
+      if (!movable(source)) return "e-durum" as const;
+      const usable = source.limit - source.spent;
+      if (amount > usable) return "e-transfer" as const;
+      if (row.balance + amount > MAX_BALANCE_KURUS) return "e-tavan" as const;
+      source.limit -= amount;
+      row.balance += amount;
+      row.usdMinor = (row.usdMinor || 0) + cents;
+      db.transactions.push({
+        id: `tx_${rid()}`,
+        userId: row.id,
+        cardId: source.id,
+        kind: "duzeltme",
+        title: "Ana hesaba aktar",
+        note: `${source.label} kartından ana hesaba ${formatTL(amount)} yazıldı. Komisyon yok.`,
+        amount,
+        usdMinor: cents,
+        status: "tamamlandi",
+        createdAt: new Date().toISOString(),
+      });
+      pushNotice(db, {
+        userId: row.id,
+        title: "Ana hesaba aktarıldı",
+        body: `${source.label} kartından ana hesaba ${formatTL(amount)} yazıldı. Komisyon yok.`,
+      });
+      return "ana-hesap" as const;
+    });
+  } catch {
+    return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, "e-defter");
+  }
+  return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}`, result);
+}
+
 export async function addressAction(formData: FormData) {
   const user = await actor();
   if (user.role !== "uye") return go("/clayadm!nxx");
@@ -1462,17 +1509,26 @@ export async function adminIssueAction(formData: FormData) {
     return bounce(`${back}${join}vurgu=${encodeURIComponent(remote.id)}`, remote.code);
   }
   const binId = String(formData.get("bin") || "");
-  const result = mutate((db) => {
-    const row = db.users.find((item) => item.id === userId && item.role === "uye");
-    const chosen = db.bins.find((item) => item.id === binId && item.type === typeRaw);
-    if (!row || !chosen) return { code: row ? ("e-bin" as const) : ("e-yok" as const), id: "" };
-    const fee = db.settings.issueFeeKurus;
-    if (row.balance < fee) return { code: "e-bakiye" as const, id: "" };
-    if (openCardCount(db, row.id) >= db.settings.plans[row.plan].cardLimit) return { code: "e-plan" as const, id: "" };
-    const card = issueCard(db, { userId: row.id, type: typeRaw, label, limit: 0, fee, bin: chosen.digits, binLabel: chosen.label });
-    pushNotice(db, { userId: row.id, title: "Kart hazırlanıyor", body: `${label} yönetim masasından basıldı. Kullanılabilir bakiye 0. Basım ücreti ${formatTL(fee)}.` });
-    return { code: "basildi" as const, id: card.id };
-  });
+  let result: { code: string; id: string };
+  try {
+    result = mutate((db) => {
+      const row = db.users.find((item) => item.id === userId && item.role === "uye");
+      const chosen = db.bins.find((item) => item.id === binId && item.type === typeRaw);
+      if (!row || !chosen || !/^\d{4,8}$/.test(chosen.digits)) return { code: row ? ("e-bin" as const) : ("e-yok" as const), id: "" };
+      const plan = db.settings.plans[row.plan];
+      if (!plan || openCardCount(db, row.id) >= plan.cardLimit) return { code: "e-plan" as const, id: "" };
+      const fee = db.settings.issueFeeKurus;
+      const charged = fee > 0 && row.balance >= fee ? fee : 0;
+      const card = issueCard(db, { userId: row.id, type: typeRaw, label, limit: 0, fee: charged, bin: chosen.digits, binLabel: chosen.label });
+      const feeLine = charged > 0 ? `Basım ücreti ${formatTL(charged)} düştü.` : "Basım ücreti alınmadı. Bakiye eksiye inmedi.";
+      const basim = db.transactions.find((entry) => entry.cardId === card.id && entry.kind === "basim");
+      if (basim) basim.note = `Yönetici kartı bastı. Kullanılabilir bakiye 0. ${feeLine}`;
+      pushNotice(db, { userId: row.id, title: "Kart hazırlanıyor", body: `${label} yönetim masasından verildi. Kullanılabilir bakiye 0. ${feeLine}` });
+      return { code: "basildi" as const, id: card.id };
+    });
+  } catch {
+    return bounce(back, "e-defter");
+  }
   if (result.code !== "basildi") return bounce(back, result.code);
   const join = back.includes("?") ? "&" : "?";
   return bounce(`${back}${join}vurgu=${encodeURIComponent(result.id)}`, "basildi");
@@ -1697,8 +1753,11 @@ export async function withdrawAction(formData: FormData) {
   if (!/^[A-Za-z0-9:._@-]{8,106}$/.test(wallet)) return bounce("/panel/yukle", "e-cuzdan");
   const remote = await remoteCall("cek", pack(formData, ["tutar", "cuzdan", "coin"]));
   if (remote) return bounce("/panel/yukle", remote.code);
-  const result = mutate((db) => {
+  let result: string;
+  try {
+    result = mutate((db) => {
     const row = db.users.find((item) => item.id === user.id);
+    if (!Array.isArray(db.payouts)) db.payouts = [];
     if (!row || row.balance < amount) return "e-bakiye" as const;
     let usd = Math.round(amount / fxRate());
     if (usd < 1) usd = 1;
@@ -1734,6 +1793,9 @@ export async function withdrawAction(formData: FormData) {
     pushNotice(db, { userId: row.id, title: "Çekim talebi alındı", body: `${formatTL(amount)} beklemeye alındı.` });
     return "cekim" as const;
   });
+  } catch {
+    return bounce("/panel/yukle", "e-defter");
+  }
   return bounce("/panel/yukle", result);
 }
 

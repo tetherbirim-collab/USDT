@@ -125,8 +125,8 @@ export default function TopupPage() {
   const picked = PAYOUT_COINS.find((row) => row.id === coin) ?? PAYOUT_COINS[1];
   const drawKurus = parseTryToKurus(drawAmount);
   const floor = usdMinorToKurus(1000);
-  const asks = snapshot()
-    .payouts.filter((row) => row.userId === user.id)
+  const asks = (snapshot().payouts ?? [])
+    .filter((row) => row.userId === user.id)
     .slice()
     .reverse();
 
@@ -134,8 +134,8 @@ export default function TopupPage() {
     <div className="grid gap-5">
       <Loaded show={loaded} />
       <div>
-        <p className="text-xs font-bold tracking-[0.22em] text-gold">CÜZDAN</p>
-        <h1 className="font-display text-4xl font-extrabold">Bakiye yükle</h1>
+        <p className="text-xs font-bold tracking-[0.22em] text-gold">PARA YATIR/ÇEK</p>
+        <h1 className="font-display text-4xl font-extrabold">Para Yatır/Çek</h1>
         <p className="mt-2 max-w-xl text-white/70">
           Ana bakiyede {formatTL(user.balance)} durur. Crypto yüklemesine komisyon yok. 1 USD = {formatRate(fxRate())} TL · {fxAsOf() ? formatWhen(fxAsOf()) : "yedek kur"}.
         </p>

@@ -1960,7 +1960,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         return $code === "ok" || $code === "var" ? clay_ok($code) : clay_fail($code);
     }
 
-    $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "purge", "purge-kapali", "order-clear", "plan", "spend", "ticket", "refund", "renew", "transfer", "address", "name", "password", "notice-read", "notice-read-all", "notice-clear", "yildiz", "cek", "soru"];
+    $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "purge", "purge-kapali", "order-clear", "plan", "spend", "ticket", "refund", "renew", "transfer", "ana-hesap", "address", "name", "password", "notice-read", "notice-read-all", "notice-clear", "yildiz", "cek", "soru"];
     $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-ticket-close", "admin-ticket-sil", "admin-ticket-temizle", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-tx-sil", "admin-tx-temizle", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup", "admin-issue", "admin-close", "admin-purge", "admin-transfer", "admin-notice-save", "admin-notice-remove", "admin-notice-sil", "admin-notice-temizle", "admin-announce", "admin-copy", "admin-cek", "admin-cek-gizle", "admin-kapat", "admin-toplu-aski", "admin-uye-sifre", "admin-uye-plan", "admin-uye-profil", "admin-kart-toplu", "admin-kartlari-kapat", "admin-siparis-iptal", "admin-siparis-sil", "admin-sifirla"];
     if (in_array($action, $memberActions, true)) {
         $gate = clay_member($me);
@@ -2473,6 +2473,50 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             clay_notice($db, $me["id"], "Bakiye yarıda", $source["label"] . " kartının kullanılabilir bakiyesinin yarısı kullanıldı.", "tavan50:" . $source["id"] . ":" . $source["period"]);
         }
         return clay_ok("transfer");
+    }
+
+    if ($action === "ana-hesap") {
+        $cents = clay_cents(clay_in($in, "tutar"));
+        $sourceIndex = clay_card_index($db, clay_in($in, "id"), $me["id"]);
+        if ($sourceIndex < 0) {
+            return clay_fail("e-yok");
+        }
+        if ($cents === null || $cents < 100) {
+            return clay_fail("e-transfer");
+        }
+        $amount = clay_kurus($cents);
+        if ($amount < 1) {
+            return clay_fail("e-transfer");
+        }
+        $source = $db["cards"][$sourceIndex];
+        if (($source["status"] ?? "") !== "aktif" && ($source["status"] ?? "") !== "donduruldu") {
+            return clay_fail("e-durum");
+        }
+        $usable = (int) $source["limit"] - (int) $source["spent"];
+        if ($amount > $usable) {
+            return clay_fail("e-transfer");
+        }
+        if ((int) $db["users"][$userIndex]["balance"] + $amount > clay_max_balance()) {
+            return clay_fail("e-tavan");
+        }
+        $db["cards"][$sourceIndex]["limit"] -= $amount;
+        $db["users"][$userIndex]["balance"] += $amount;
+        $db["users"][$userIndex]["usdMinor"] = (int) ($db["users"][$userIndex]["usdMinor"] ?? 0) + $cents;
+        $db["transactions"][] = [
+            "id" => "tx_" . clay_rid(),
+            "userId" => $me["id"],
+            "cardId" => $source["id"],
+            "kind" => "duzeltme",
+            "title" => "Ana hesaba aktar",
+            "note" => $source["label"] . " kartından ana hesaba " . clay_tl($amount) . " yazıldı. Komisyon yok.",
+            "amount" => $amount,
+            "usdMinor" => $cents,
+            "status" => "tamamlandi",
+            "createdAt" => clay_now(),
+            "ref" => null,
+        ];
+        clay_notice($db, $me["id"], "Ana hesaba aktarıldı", $source["label"] . " kartından ana hesaba " . clay_tl($amount) . " yazıldı. Komisyon yok.");
+        return clay_ok("ana-hesap");
     }
 
     if ($action === "address") {
@@ -3042,23 +3086,24 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
                 break;
             }
         }
-        if (!$chosen) {
+        if (!$chosen || !preg_match("/^\\d{4,8}$/", (string) ($chosen["digits"] ?? ""))) {
             return clay_fail("e-bin");
         }
-        $fee = (int) $db["settings"]["issueFeeKurus"];
+        $fee = (int) ($db["settings"]["issueFeeKurus"] ?? 0);
         $ownerId = (string) $db["users"][$index]["id"];
-        if ($db["users"][$index]["balance"] < $fee) {
-            return clay_fail("e-bakiye");
-        }
-        if (clay_open_count($db, $ownerId) >= (int) $db["settings"]["plans"][$db["users"][$index]["plan"]]["cardLimit"]) {
+        $planId = (string) ($db["users"][$index]["plan"] ?? "");
+        $planRow = $db["settings"]["plans"][$planId] ?? null;
+        if (!is_array($planRow) || clay_open_count($db, $ownerId) >= (int) ($planRow["cardLimit"] ?? 0)) {
             return clay_fail("e-plan");
         }
+        $balance = (int) ($db["users"][$index]["balance"] ?? 0);
+        $charged = $fee > 0 && $balance >= $fee ? $fee : 0;
         $serial = (int) $db["nextSerial"];
         $db["nextSerial"] = $serial + 1;
         $now = clay_now();
         $readyAt = clay_iso(clay_ms($now) + 15000);
         $cardId = "crd_" . clay_rid();
-        $db["users"][$index]["balance"] -= $fee;
+        $db["users"][$index]["balance"] -= $charged;
         $orderCode = clay_order_code($db, $cardId);
         $db["cards"][] = [
             "id" => $cardId,
@@ -3087,25 +3132,28 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             "type" => $type,
             "label" => $label,
             "limit" => 0,
-            "fee" => $fee,
+            "fee" => $charged,
             "status" => "hazirlaniyor",
             "createdAt" => $now,
             "readyAt" => $readyAt,
         ];
+        $feeLine = $charged > 0
+            ? "Basım ücreti " . clay_tl($charged) . " düştü."
+            : "Basım ücreti alınmadı. Bakiye eksiye inmedi.";
         $db["transactions"][] = [
             "id" => "tx_" . clay_rid(),
             "userId" => $ownerId,
             "cardId" => $cardId,
             "kind" => "basim",
             "title" => "Basım · " . $label,
-            "note" => "Yönetici kartı bastı. " . $orderCode . " numaralı sipariş. Kullanılabilir bakiye 0.",
-            "amount" => -$fee,
+            "note" => "Yönetici kartı bastı. " . $orderCode . " numaralı sipariş. Kullanılabilir bakiye 0. " . $feeLine,
+            "amount" => -$charged,
             "usdMinor" => null,
             "status" => "tamamlandi",
             "createdAt" => $now,
             "ref" => null,
         ];
-        clay_notice($db, $ownerId, "Kart hazırlanıyor", $label . " yönetim masasından basıldı. Kullanılabilir bakiye 0. Basım ücreti " . clay_tl($fee) . ".");
+        clay_notice($db, $ownerId, "Kart hazırlanıyor", $label . " yönetim masasından verildi. Kullanılabilir bakiye 0. " . $feeLine);
         return clay_ok("basildi", $cardId);
     }
 

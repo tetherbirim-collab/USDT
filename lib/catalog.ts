@@ -251,6 +251,7 @@ export const NOTICES: Record<string, string> = {
   hazir: "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz.",
   yenilendi: "Kullanılabilir bakiye yenilendi. Harcama sayacı sıfırlandı. Cüzdan tutarı değişmedi.",
   transfer: "Kullanılabilir bakiye aktarıldı. Karşı karta %4 komisyon kesildi. Ana bakiye değişmedi.",
+  "ana-hesap": "Ana hesaba aktarıldı. Tutar karttan ana bakiyeye yazıldı. Komisyon yok.",
   yuklendi_kart: "Hesaptan karta yükleme yazıldı. %7,3 komisyon kesildi. Ana bakiyeye bu kesinti uygulanmaz.",
   iade: "İade cüzdana ve kullanılabilir bakiyeye işlendi.",
   ad: "Görünen ad güncellendi.",

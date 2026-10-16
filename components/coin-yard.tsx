@@ -103,9 +103,9 @@ export function CoinYard() {
         </p>
       </div>
       <ul className="coin-grid">
-        {COINS.map((coin, index) => (
-          <li key={coin.id} className="coin-tile" style={{ animationDelay: `${index * 0.18}s` }}>
-            <span className={`coin-mark coin-mark-${coin.id}`} style={{ ["--glow" as string]: coin.glow, animationDelay: `${index * 0.18}s` }}>
+        {COINS.map((coin) => (
+          <li key={coin.id} className="coin-tile">
+            <span className={`coin-mark coin-mark-${coin.id}`} style={{ ["--glow" as string]: coin.glow }}>
               <Glyph id={coin.id} />
             </span>
             <span className="coin-name">{coin.name}</span>

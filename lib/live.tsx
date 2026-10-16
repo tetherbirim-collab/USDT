@@ -36,7 +36,7 @@ export function useQuery(): URLSearchParams | null {
 
 export function Boot() {
   return (
-    <main className="grid min-h-screen place-items-center px-6">
+    <main className="boot-screen grid min-h-screen place-items-center px-6">
       <div className="grid justify-items-center gap-7">
         <div className="splash-card relative">
           <div className="pointer-events-none absolute -inset-10 rounded-full bg-[radial-gradient(circle,rgba(240,201,138,.38),transparent_68%)]" />

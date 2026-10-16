@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { CARD_TYPES, CARD_TYPE_ORDER } from "@/lib/catalog";
+import { ChromePair, useChrome } from "@/components/chrome-controls";
 import { siteText, type CopyKey } from "@/lib/copy";
+import { uiText } from "@/lib/ui";
 import { useSiteSettings } from "@/lib/live";
 import { AnnounceBar } from "./announce-bar";
 import { PlanGrid } from "./plan-grid";
@@ -24,6 +26,7 @@ const LAUNCH: { type: CardTypeId; phrase: CopyKey }[] = [
 
 function LaunchUnit() {
   const settings = useSiteSettings();
+  const { lang } = useChrome();
   return (
     <div className="launch-unit">
       {LAUNCH.map((beat) => (
@@ -33,7 +36,7 @@ function LaunchUnit() {
             <span className="launch-line">Clay Virtual Card</span>
             <span className="launch-brand">{CARD_TYPES[beat.type].name}</span>
           </span>
-          <span className="launch-phrase">{siteText(settings, beat.phrase)}</span>
+          <span className="launch-phrase">{siteText(settings, beat.phrase, lang)}</span>
         </span>
       ))}
     </div>
@@ -41,8 +44,9 @@ function LaunchUnit() {
 }
 
 function LaunchRail() {
+  const { lang } = useChrome();
   return (
-    <div className="launchpad" aria-label="KYC gerekmez. Anonim sanal kart oluştur ve hemen harca.">
+    <div className="launchpad" aria-label={uiText(lang, "launch")}>
       <div className="launch-track">
         <LaunchUnit />
         <LaunchUnit />
@@ -140,7 +144,9 @@ export function Marketing({
   deskLabel?: string;
 }) {
   const settings = useSiteSettings();
-  const line = (key: Parameters<typeof siteText>[1]) => siteText(settings, key);
+  const { lang } = useChrome();
+  const line = (key: Parameters<typeof siteText>[1]) => siteText(settings, key, lang);
+  const say = (key: Parameters<typeof uiText>[1]) => uiText(lang, key);
   const steps = [
     { n: "01", title: line("step1Title"), text: line("step1Text") },
     { n: "02", title: line("step2Title"), text: line("step2Text") },
@@ -165,19 +171,20 @@ export function Marketing({
   return (
     <div>
       <header className="site-bar sticky top-0 z-40">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="flex items-center gap-2">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3">
+          <Link href="/" className="flex min-w-0 items-center gap-2">
             <Mark />
             <Wordmark />
           </Link>
-          <nav className="hidden items-center gap-5 text-sm text-white/75 md:flex" aria-label="Sayfa">
-            <a href="#yetenek">Atölye</a>
+          <nav className="hidden items-center gap-5 text-sm text-white/75 md:flex" aria-label={say("pageNav")}>
+            <a href="#yetenek">{say("workshop")}</a>
             <a href="#turler">{line("navTypes")}</a>
             <a href="#nasil">{line("navHow")}</a>
             <a href="#fiyat">{line("navPlans")}</a>
             <a href="#sorular">{line("navFaq")}</a>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <ChromePair />
             {loggedIn ? (
               <Link href={deskHref} className="btn btn-gold">
                 {deskLabel}
@@ -185,10 +192,10 @@ export function Marketing({
             ) : (
               <>
                 <Link href="/giris" className="btn btn-ghost px-3 py-2 text-sm">
-                  Giriş
+                  {say("signIn")}
                 </Link>
                 <Link href="/kayit" className="btn btn-gold px-3 py-2 text-sm">
-                  Hesap aç
+                  {say("openAccount")}
                 </Link>
               </>
             )}
@@ -219,10 +226,10 @@ export function Marketing({
             <p className="mt-5 text-lg text-white/75">{line("heroLede")}</p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link href={loggedIn ? deskHref : "/kayit"} className="btn btn-gold">
-                {loggedIn ? deskLabel : "Hesap aç"}
+                {loggedIn ? deskLabel : say("openAccount")}
               </Link>
               <Link href="/giris" className="btn btn-ghost">
-                Giriş yap
+                {say("signInLong")}
               </Link>
             </div>
             <dl className="mt-10 grid grid-cols-3 gap-3 text-left text-sm">
@@ -285,9 +292,9 @@ export function Marketing({
               ["02", "Yatır", "Cüzdana crypto ile yükle. Komisyon yok. Kur sabit."],
               ["03", "Çek", "Adres yaz, tutar beklemeye alınsın. Yönetim gönderince haberin gelir."],
               ["04", "Dondur", "Harcama dursun. Kart durur, bakiye durur."],
-              ["05", "Kapat", "Kart kapanır. PST kartında komut hesaba da gider."],
+              ["05", "Kapat", "Kart kapanır. Basım ücreti bakiyeye döner."],
               ["06", "Aktar", "Kullanılabilir bakiye karşı karta geçer. Ana cüzdan durur."],
-              ["07", "Canlı takip", "Ekran kapansa da VPS yatırımı, çekimi ve kartı okur."],
+              ["07", "Defter", "Yükleme, harcama ve çekim aynı panelde durur."],
               ["08", "Destek", "Talep aç. Yanıt zilde durur. Yönetim aynı masayı görür."],
             ].map(([n, title, text]) => (
               <article key={n} className="glass rounded-[24px] p-4">
@@ -340,7 +347,7 @@ export function Marketing({
               <p className="mt-2 max-w-xl text-white/70">Hesap aç, cüzdanı yükle, kartı bas. KYC yok. Aynı masa yönetimden de izlenir.</p>
             </div>
             <Link href={loggedIn ? deskHref : "/kayit"} className="btn btn-gold">
-              {loggedIn ? deskLabel : "Hesap aç"}
+              {loggedIn ? deskLabel : say("openAccount")}
             </Link>
           </div>
         </section>

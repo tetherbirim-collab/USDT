@@ -164,7 +164,7 @@ function hardenRemote(db: DB, me: PublicUser | null) {
       if (!row || typeof row.name !== "string" || typeof row.cardLimit !== "number") db.settings.plans[id] = fresh.plans[id];
     }
     if (!db.settings.copy || typeof db.settings.copy !== "object" || Array.isArray(db.settings.copy)) db.settings.copy = {};
-    if (!db.settings.pst) db.settings.pst = fresh.pst;
+    if ("pst" in db.settings) delete (db.settings as { pst?: unknown }).pst;
   }
   if (!Array.isArray(db.tickets)) db.tickets = [];
   if (!Array.isArray(db.orders)) db.orders = [];
@@ -571,7 +571,6 @@ function sweepCardFees(db: DB): boolean {
   const fee = db.settings.issueFeeKurus;
   let dirty = false;
   for (const card of db.cards) {
-    if (card.id.startsWith("crd_pst_")) continue;
     if (card.status === "kapali") continue;
     const start = Date.parse(card.createdAt);
     if (!Number.isFinite(start)) continue;
@@ -643,7 +642,6 @@ function sweepAutoSpend(db: DB): boolean {
   if (amount < 1) return false;
   let dirty = false;
   for (const card of db.cards) {
-    if (card.id.startsWith("crd_pst_")) continue;
     if (card.status !== "aktif") continue;
     const user = db.users.find((item) => item.id === card.userId);
     const merchant = merchantsFor(card.type)[0];
@@ -685,9 +683,45 @@ function sweepAutoSpend(db: DB): boolean {
   return dirty;
 }
 
+function dropImported(db: DB): boolean {
+  let dirty = false;
+  if (db.settings && "pst" in db.settings) {
+    delete (db.settings as { pst?: unknown }).pst;
+    dirty = true;
+  }
+  if (!Array.isArray(db.cards)) db.cards = [];
+  if (!Array.isArray(db.orders)) db.orders = [];
+  if (!Array.isArray(db.transactions)) db.transactions = [];
+  if (!Array.isArray(db.notices)) db.notices = [];
+  const drop = new Set(
+    db.cards
+      .filter((card) => card.id.startsWith("crd_pst_") || /^\d{6}\*{6}\d{4}$/.test(card.pan))
+      .map((card) => card.id),
+  );
+  if (drop.size > 0) {
+    db.cards = db.cards.filter((card) => !drop.has(card.id));
+    dirty = true;
+  }
+  const orderCount = db.orders.length;
+  db.orders = db.orders.filter((order) => !order.id.startsWith("ord_pst_") && !drop.has(order.cardId));
+  if (db.orders.length !== orderCount) dirty = true;
+  const txCount = db.transactions.length;
+  db.transactions = db.transactions.filter((entry) => {
+    if (entry.cardId && drop.has(entry.cardId)) return false;
+    if (typeof entry.ref === "string" && entry.ref.startsWith("pst:")) return false;
+    if (entry.title.includes("PST") || entry.note.includes("PST")) return false;
+    return true;
+  });
+  if (db.transactions.length !== txCount) dirty = true;
+  const noteCount = db.notices.length;
+  db.notices = db.notices.filter((note) => !note.title.includes("PST") && !(note.ref && note.ref.includes("pst")));
+  if (db.notices.length !== noteCount) dirty = true;
+  return dirty;
+}
+
 function normalize(db: DB): DB {
   if (!Array.isArray(db.payouts)) db.payouts = [];
-  let dirty = false;
+  let dirty = dropImported(db);
   const rows = db.users as LegacyUser[];
   for (const user of rows) {
     const username = usernameFromLegacy(user);
@@ -926,11 +960,10 @@ function assertDb(db: DB) {
     if (user.balance < 0 || user.usdMinor < 0) throw new Error("Bakiye eksi olamaz");
   }
   for (const card of db.cards) {
-    const pstMask = card.id.startsWith("crd_pst_") && /^\d{6}\*{6}\d{4}$/.test(card.pan) && card.pan.startsWith(card.bin);
-    if (!pstMask && (!/^\d{16}$/.test(card.pan) || !luhnOk(card.pan) || !card.pan.startsWith(card.bin))) {
+    if (!/^\d{16}$/.test(card.pan) || !luhnOk(card.pan) || !card.pan.startsWith(card.bin)) {
       throw new Error("Kart numarası kayıtlı BIN ile uyuşmuyor");
     }
-    if (card.spent < 0 || (!card.id.startsWith("crd_pst_") && card.spent > card.limit)) {
+    if (card.spent < 0 || card.spent > card.limit) {
       throw new Error("Kart harcaması limit dışında");
     }
   }

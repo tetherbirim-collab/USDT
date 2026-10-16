@@ -7,7 +7,7 @@ import { ADMIN_PATH } from "@/lib/auth";
 import { CARD_TYPES } from "@/lib/catalog";
 import { Notice } from "@/components/notice";
 import { Boot, useQuery, useSiteSettings } from "@/lib/live";
-import { formatSigned, formatTL, formatUsd, formatWhen } from "@/lib/format";
+import { formatSigned, formatTL, formatWhen } from "@/lib/format";
 import { snapshot } from "@/lib/store";
 import type { CardTypeId } from "@/lib/types";
 
@@ -18,13 +18,11 @@ export default function LiveDesk() {
   const settings = useSiteSettings();
   if (!query) return <Boot />;
   const db = snapshot();
-  const pst = settings.pst;
-  const watched = pst?.watchedAt ? Date.now() - Date.parse(pst.watchedAt) < 90000 : false;
-  const wallets = pst?.wallets ?? [];
-  const queue = (pst?.queue ?? []).filter((job) => job.status === "bekliyor" || job.status === "hata");
   const waiting = db.payouts.filter((row) => row.status === "bekliyor");
+  const preparing = db.orders.filter((order) => order.status === "hazirlaniyor");
+  const frozen = db.cards.filter((card) => card.status === "donduruldu");
   const money = [...db.transactions]
-    .filter((entry) => entry.title.startsWith("PST ") || entry.title.startsWith("Çekim"))
+    .filter((entry) => entry.kind === "yukleme" || entry.kind === "transfer" || entry.title.startsWith("Çekim"))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 8);
   const byScene = SCENES.map((id) => ({
@@ -35,23 +33,20 @@ export default function LiveDesk() {
 
   return (
     <div className="grid gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold tracking-[0.22em] text-gold">CANLI MASA</p>
-          <h1 className="font-display text-4xl font-extrabold">Stüdyo</h1>
-          <p className="mt-2 max-w-2xl text-white/70">Kart, yatırım, çekim ve kapatma aynı masada. PST bağlantısı ekran kapalıyken de buraya düşer.</p>
-        </div>
-        <p className={`rounded-full px-3 py-2 text-sm font-bold ${watched ? "bg-[#e0152b] text-white" : "bg-white/10 text-white/70"}`}>
-          {watched ? "İzleyici ayakta" : "İzleyici duruyor"}
+      <div>
+        <p className="text-xs font-bold tracking-[0.22em] text-gold">CANLI MASA</p>
+        <h1 className="font-display text-4xl font-extrabold">Stüdyo</h1>
+        <p className="mt-2 max-w-2xl text-white/70">
+          Kart, yatırım, çekim ve kapatma aynı masada. Çekim talebi burada bekler; gönderildi ya da iptal buradan işlenir.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Açık kart", String(db.cards.filter((card) => card.status === "aktif" || card.status === "donduruldu").length)],
-          ["PST kartı", String(db.cards.filter((card) => card.id.startsWith("crd_pst_")).length)],
+          ["Hazırlanan sipariş", String(preparing.length)],
           ["Bekleyen çekim", String(waiting.length)],
-          ["Kapatma kuyruğu", String(queue.length)],
+          ["Dondurulmuş kart", String(frozen.length)],
         ].map(([label, value]) => (
           <article key={label} className="glass rounded-[24px] p-4">
             <p className="text-sm text-white/55">{label}</p>
@@ -71,17 +66,12 @@ export default function LiveDesk() {
       </section>
       <section className="grid gap-3 lg:grid-cols-2">
         <article className="glass rounded-[28px] p-5">
-          <h2 className="font-display text-2xl font-bold">PST cüzdanı</h2>
-          <p className="mt-2 text-sm text-white/65">
-            {pst?.on ? `Bağlı · anahtar ••••${pst.tokenTail} · ${pst.cards} kart · ${pst.transactions} hareket` : "Bağlı değil."}
-            {pst?.error ? ` ${pst.error}` : ""}
-          </p>
+          <h2 className="font-display text-2xl font-bold">Sahne</h2>
           <ul className="mt-4 grid gap-2">
-            {wallets.length === 0 && <li className="text-sm text-white/55">Cüzdan bakiyesi ilk izlemede yazılır.</li>}
-            {wallets.map((row) => (
-              <li key={row.id} className="rounded-2xl bg-black/25 px-3 py-3">
-                <p className="text-xs text-white/45">Hesap {row.id}</p>
-                <p className="font-display text-2xl font-bold">{formatUsd(row.minor)}</p>
+            {byScene.map((row) => (
+              <li key={row.id} className="flex items-center justify-between rounded-2xl bg-black/25 px-3 py-3">
+                <span className="font-semibold">{row.name}</span>
+                <span className="font-display text-xl font-bold">{row.count}</span>
               </li>
             ))}
           </ul>
@@ -93,12 +83,14 @@ export default function LiveDesk() {
           </Link>
         </article>
         <article className="glass rounded-[28px] p-5">
-          <h2 className="font-display text-2xl font-bold">Sahne</h2>
-          <ul className="mt-4 grid gap-2">
-            {byScene.map((row) => (
-              <li key={row.id} className="flex items-center justify-between rounded-2xl bg-black/25 px-3 py-3">
-                <span className="font-semibold">{row.name}</span>
-                <span className="font-display text-xl font-bold">{row.count}</span>
+          <h2 className="font-display text-2xl font-bold">Yatırım ve çekim</h2>
+          <ul className="mt-3 grid gap-2">
+            {money.length === 0 && <li className="text-sm text-white/55">Henüz hareket yok.</li>}
+            {money.map((entry) => (
+              <li key={entry.id} className="rounded-2xl bg-black/25 px-3 py-3 text-sm">
+                <p className="font-semibold">{entry.title}</p>
+                <p className={entry.amount < 0 ? "text-white" : "text-mint"}>{formatSigned(entry.amount)}</p>
+                <p className="text-xs text-white/45">{formatWhen(entry.createdAt)}</p>
               </li>
             ))}
           </ul>
@@ -106,6 +98,7 @@ export default function LiveDesk() {
       </section>
       <section id="cekim" className="grid gap-3 scroll-mt-24">
         <h2 className="font-display text-2xl font-bold">Çekim kuyruğu</h2>
+        <p className="text-sm text-white/60">Talep yerelde bekler. Gönderildi yazınca durum gitti olur, iptal tutarı cüzdana döndürür.</p>
         {waiting.length === 0 && <p className="text-sm text-white/60">Bekleyen talep yok.</p>}
         {waiting.map((row) => {
           const owner = db.users.find((user) => user.id === row.userId);
@@ -145,33 +138,6 @@ export default function LiveDesk() {
             </article>
           );
         })}
-      </section>
-      <section className="grid gap-3 lg:grid-cols-2">
-        <article className="glass rounded-[28px] p-5">
-          <h2 className="font-display text-2xl font-bold">Yatırım ve çekim</h2>
-          <ul className="mt-3 grid gap-2">
-            {money.length === 0 && <li className="text-sm text-white/55">Henüz PST hareketi yok.</li>}
-            {money.map((entry) => (
-              <li key={entry.id} className="rounded-2xl bg-black/25 px-3 py-3 text-sm">
-                <p className="font-semibold">{entry.title}</p>
-                <p className={entry.amount < 0 ? "text-white" : "text-mint"}>{formatSigned(entry.amount)}</p>
-                <p className="text-xs text-white/45">{formatWhen(entry.createdAt)}</p>
-              </li>
-            ))}
-          </ul>
-        </article>
-        <article className="glass rounded-[28px] p-5">
-          <h2 className="font-display text-2xl font-bold">Kart kapatma</h2>
-          <ul className="mt-3 grid gap-2">
-            {queue.length === 0 && <li className="text-sm text-white/55">Bekleyen kapatma yok.</li>}
-            {queue.map((job) => (
-              <li key={job.id} className="rounded-2xl bg-black/25 px-3 py-3 text-sm">
-                <p className="font-semibold">{job.cardId}</p>
-                <p className="text-white/70">{job.status === "hata" ? job.error || "PST yanıt vermedi" : "PST’ye gidiyor"}</p>
-              </li>
-            ))}
-          </ul>
-        </article>
       </section>
     </div>
   );

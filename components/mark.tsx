@@ -4,7 +4,10 @@ export function Wordmark({ tone = "dark" }: { tone?: "dark" | "light" }) {
   return (
     <span className="leading-none">
       <span className={`block font-display text-[1.15rem] font-bold tracking-[0.2em] ${ink}`}>CLAY</span>
-      <span className={`mt-1 block text-[10px] font-semibold tracking-[0.24em] ${sub}`}>SANAL KART HİZMETLERİ</span>
+      <span className={`mt-1 block text-[10px] font-semibold tracking-[0.24em] ${sub}`}>
+        <span className="clay-tr">SANAL KART HİZMETLERİ</span>
+        <span className="clay-en">VIRTUAL CARD SERVICES</span>
+      </span>
     </span>
   );
 }

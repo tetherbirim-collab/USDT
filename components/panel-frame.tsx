@@ -11,8 +11,10 @@ import { AnnounceBar } from "./announce-bar";
 import { PayRail } from "./pay-rail";
 import { Mark, Wordmark } from "./mark";
 import { TrustLine } from "./trust-line";
+import { ChromePair, useChrome } from "@/components/chrome-controls";
 import { siteText } from "@/lib/copy";
 import type { CopyKey } from "@/lib/copy";
+import { uiText } from "@/lib/ui";
 import { useSiteSettings } from "@/lib/live";
 
 const PLAN_EMOJI = { bronze: "🥉", silver: "🥈", gold: "🥇" } as const;
@@ -28,8 +30,9 @@ const LINKS = [
 ] as const;
 
 function Bell({ unread }: { unread: number }) {
+  const { lang } = useChrome();
   return (
-    <Link href="/panel/bildirimler" className="bell" aria-label={unread > 0 ? `${unread} okunmamış bildirim` : "Bildirimler"}>
+    <Link href="/panel/bildirimler" className="bell" aria-label={unread > 0 ? `${unread} ${uiText(lang, "unread")}` : uiText(lang, "notifications")}>
       <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
         <path
           d="M12 3.2a5.2 5.2 0 0 0-5.2 5.2v2.1c0 .7-.2 1.4-.6 2L4.6 14.6A1.2 1.2 0 0 0 5.6 16.5h12.8a1.2 1.2 0 0 0 1-1.9l-1.6-2.1a3.6 3.6 0 0 1-.6-2V8.4A5.2 5.2 0 0 0 12 3.2Z"
@@ -48,10 +51,11 @@ function Bell({ unread }: { unread: number }) {
 function NavLinks({ path, metal, stacked = false }: { path: string; metal: keyof typeof PLAN_EMOJI; stacked?: boolean }) {
   const emoji = PLAN_EMOJI[metal];
   const settings = useSiteSettings();
+  const { lang } = useChrome();
   return (
     <>
       {LINKS.map(([href, key]) => {
-        const label = siteText(settings, key as CopyKey);
+        const label = siteText(settings, key as CopyKey, lang);
         const active = href === "/panel" ? path === href : path.startsWith(href);
         return (
           <Link
@@ -93,6 +97,8 @@ export function PanelFrame({
 }) {
   const path = (usePathname() || "/").replace(/\/$/, "") || "/";
   const [planOpen, setPlanOpen] = useState(false);
+  const { lang } = useChrome();
+  const say = (key: Parameters<typeof uiText>[1]) => uiText(lang, key);
   const metal = PLANS[planId]?.metal ?? "bronze";
   const emoji = PLAN_EMOJI[metal];
   const days = daysUntil(planUntil);
@@ -105,10 +111,11 @@ export function PanelFrame({
             <Mark />
             <Wordmark />
           </Link>
-          <div className="flex flex-wrap items-center gap-2 text-sm">
+          <div className="flex max-w-full flex-wrap items-center justify-end gap-2 text-sm">
+            <ChromePair />
             <Bell unread={unread} />
             <Link href="/panel/yukle" className="rounded-full bg-black/30 px-3 py-2">
-              <span className="text-white/55">Bakiye </span>
+              <span className="text-white/55">{say("balance")} </span>
               <span className="font-bold text-gold">{balanceLabel}</span>
             </Link>
             <button
@@ -125,7 +132,7 @@ export function PanelFrame({
             <span className="hidden text-white/70 sm:inline">{name}</span>
             {name !== username && <span className="hidden text-white/40 md:inline">{username}</span>}
             <form action={logoutAction}>
-              <button className="btn btn-ghost px-3 py-2 text-sm">Çıkış</button>
+              <button className="btn btn-ghost px-3 py-2 text-sm">{say("logout")}</button>
             </form>
           </div>
         </div>
@@ -144,7 +151,7 @@ export function PanelFrame({
         </nav>
         <details className="mt-4 sm:hidden">
           <summary className="btn btn-ghost w-full cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-            Menü
+            {say("menu")}
           </summary>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <NavLinks path={path} metal={metal} stacked />

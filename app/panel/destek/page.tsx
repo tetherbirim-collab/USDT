@@ -3,6 +3,7 @@
 import { Notice } from "@/components/notice";
 import { ticketAction } from "@/lib/actions";
 import { formatWhen } from "@/lib/format";
+import { useChrome } from "@/components/chrome-controls";
 import { siteText } from "@/lib/copy";
 import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import { listTickets } from "@/lib/store";
@@ -17,6 +18,7 @@ export default function SupportPage() {
   const user = useUser();
   const query = useQuery();
   const settings = useSiteSettings();
+  const { lang } = useChrome();
   if (!user || !query) return <Boot />;
   const tickets = listTickets(user.id);
 
@@ -24,8 +26,8 @@ export default function SupportPage() {
     <div className="grid gap-5">
       <div>
         <p className="text-xs font-bold tracking-[0.22em] text-gold">DESTEK</p>
-        <h1 className="font-display text-4xl font-extrabold">{siteText(settings, "supportTitle")}</h1>
-        <p className="mt-2 max-w-xl text-white/70">{siteText(settings, "supportLede")}</p>
+        <h1 className="font-display text-4xl font-extrabold">{siteText(settings, "supportTitle", lang)}</h1>
+        <p className="mt-2 max-w-xl text-white/70">{siteText(settings, "supportLede", lang)}</p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />
       <form action={ticketAction} className="glass grid max-w-xl gap-3 rounded-[28px] p-5">

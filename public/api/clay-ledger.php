@@ -387,9 +387,6 @@ function clay_sweep_fees(array &$db): bool
     $fee = (int) ($db["settings"]["issueFeeKurus"] ?? 30000);
     $dirty = false;
     foreach ($db["cards"] as $i => $card) {
-        if (str_starts_with((string) ($card["id"] ?? ""), "crd_pst_")) {
-            continue;
-        }
         if (($card["status"] ?? "") === "kapali") {
             continue;
         }
@@ -500,9 +497,6 @@ function clay_sweep_spend(array &$db): bool
     }
     $dirty = false;
     foreach ($db["cards"] as $i => $card) {
-        if (str_starts_with((string) ($card["id"] ?? ""), "crd_pst_")) {
-            continue;
-        }
         if (($card["status"] ?? "") !== "aktif") {
             continue;
         }
@@ -567,6 +561,88 @@ function clay_sweep_spend(array &$db): bool
     return $dirty;
 }
 
+function clay_drop_imported(array &$db): bool
+{
+    $dirty = false;
+    if (isset($db["settings"]["pst"])) {
+        unset($db["settings"]["pst"]);
+        $dirty = true;
+    }
+    if (!isset($db["cards"]) || !is_array($db["cards"])) {
+        $db["cards"] = [];
+    }
+    foreach (["orders", "transactions", "notices"] as $key) {
+        if (!isset($db[$key]) || !is_array($db[$key])) {
+            $db[$key] = [];
+        }
+    }
+    $drop = [];
+    foreach ($db["cards"] as $card) {
+        $id = (string) ($card["id"] ?? "");
+        $pan = (string) ($card["pan"] ?? "");
+        if ($id !== "" && (str_starts_with($id, "crd_pst_") || preg_match("/^\\d{6}\\*{6}\\d{4}$/", $pan))) {
+            $drop[$id] = true;
+        }
+    }
+    if ($drop) {
+        $db["cards"] = array_values(array_filter(
+            $db["cards"],
+            static function ($card) use ($drop): bool {
+                return !isset($drop[(string) ($card["id"] ?? "")]);
+            }
+        ));
+        $dirty = true;
+    }
+    $orderCount = count($db["orders"]);
+    $db["orders"] = array_values(array_filter(
+        $db["orders"],
+        static function ($order) use ($drop): bool {
+            $id = (string) ($order["id"] ?? "");
+            $cardId = (string) ($order["cardId"] ?? "");
+            return !str_starts_with($id, "ord_pst_") && !isset($drop[$cardId]);
+        }
+    ));
+    if (count($db["orders"]) !== $orderCount) {
+        $dirty = true;
+    }
+    $txCount = count($db["transactions"]);
+    $db["transactions"] = array_values(array_filter(
+        $db["transactions"],
+        static function ($entry) use ($drop): bool {
+            $cardId = (string) ($entry["cardId"] ?? "");
+            $ref = (string) ($entry["ref"] ?? "");
+            $title = (string) ($entry["title"] ?? "");
+            $note = (string) ($entry["note"] ?? "");
+            if ($cardId !== "" && isset($drop[$cardId])) {
+                return false;
+            }
+            if (str_starts_with($ref, "pst:")) {
+                return false;
+            }
+            if (str_contains($title, "PST") || str_contains($note, "PST")) {
+                return false;
+            }
+            return true;
+        }
+    ));
+    if (count($db["transactions"]) !== $txCount) {
+        $dirty = true;
+    }
+    $noteCount = count($db["notices"]);
+    $db["notices"] = array_values(array_filter(
+        $db["notices"],
+        static function ($note) : bool {
+            $title = (string) ($note["title"] ?? "");
+            $ref = (string) ($note["ref"] ?? "");
+            return !str_contains($title, "PST") && !str_contains($ref, "pst");
+        }
+    ));
+    if (count($db["notices"]) !== $noteCount) {
+        $dirty = true;
+    }
+    return $dirty;
+}
+
 function clay_normalize(array &$db): bool
 {
     $dirty = false;
@@ -611,7 +687,7 @@ function clay_normalize(array &$db): bool
             }
         }
     }
-    if (clay_pst_ensure($db["settings"])) {
+    if (clay_drop_imported($db)) {
         $dirty = true;
     }
     $hasAdmin = false;
@@ -801,14 +877,10 @@ function clay_assert(array $db): bool
     foreach ($db["cards"] as $card) {
         $pan = (string) ($card["pan"] ?? "");
         $bin = (string) ($card["bin"] ?? "");
-        $pstMask = str_starts_with((string) ($card["id"] ?? ""), "crd_pst_")
-            && preg_match("/^\\d{6}\\*{6}\\d{4}$/", $pan)
-            && str_starts_with($pan, $bin);
-        if (!$pstMask && (!preg_match("/^\\d{16}$/", $pan) || !clay_luhn_ok($pan) || !str_starts_with($pan, $bin))) {
+        if (!preg_match("/^\\d{16}$/", $pan) || !clay_luhn_ok($pan) || !str_starts_with($pan, $bin)) {
             return false;
         }
-        $pstCard = str_starts_with((string) ($card["id"] ?? ""), "crd_pst_");
-        if (($card["spent"] ?? 0) < 0 || (!$pstCard && ($card["spent"] ?? 0) > ($card["limit"] ?? 0))) {
+        if (($card["spent"] ?? 0) < 0 || ($card["spent"] ?? 0) > ($card["limit"] ?? 0)) {
             return false;
         }
     }
@@ -955,9 +1027,6 @@ function clay_view(array $db, ?array $me): array
     }
     if (($me["role"] ?? "") === "yonetici") {
         return $db;
-    }
-    if (isset($db["settings"]["pst"]) && is_array($db["settings"]["pst"])) {
-        unset($db["settings"]["pst"]["queue"], $db["settings"]["pst"]["wallets"]);
     }
     $id = (string) $me["id"];
     $mine = static function (array $rows) use ($id): array {
@@ -1359,7 +1428,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
     }
 
     $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "purge", "plan", "spend", "ticket", "refund", "renew", "transfer", "address", "name", "password", "notice-read", "notice-read-all", "yildiz", "cek", "soru"];
-    $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-ticket-close", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup", "admin-issue", "admin-close", "admin-purge", "admin-transfer", "admin-notice-save", "admin-notice-remove", "admin-announce", "admin-copy", "admin-pst", "admin-cek"];
+    $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-ticket-close", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup", "admin-issue", "admin-close", "admin-purge", "admin-transfer", "admin-notice-save", "admin-notice-remove", "admin-announce", "admin-copy", "admin-cek"];
     if (in_array($action, $memberActions, true)) {
         $gate = clay_member($me);
         if ($gate) {
@@ -1667,10 +1736,6 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             return clay_ok("iptal");
         }
         clay_notice($db, $me["id"], "Kart kapatıldı", $db["cards"][$cardIndex]["label"] . " kapatıldı. Basım ücreti bakiyeye geri yazıldı.");
-        if (str_starts_with((string) $db["cards"][$cardIndex]["id"], "crd_pst_")) {
-            clay_pst_queue_close($db, $db["cards"][$cardIndex]);
-            clay_pst_run_queue($db);
-        }
         return clay_ok("kapatildi");
     }
 
@@ -2572,10 +2637,6 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         $db["cards"][$cardIndex]["status"] = "kapali";
         $db["cards"][$cardIndex]["readyAt"] = null;
         clay_notice($db, $db["cards"][$cardIndex]["userId"], "Kart kapatıldı", $db["cards"][$cardIndex]["label"] . " yönetim masasında kapatıldı. Basım ücreti bakiyeye geri yazıldı.");
-        if (str_starts_with((string) $db["cards"][$cardIndex]["id"], "crd_pst_")) {
-            clay_pst_queue_close($db, $db["cards"][$cardIndex]);
-            clay_pst_run_queue($db);
-        }
         return clay_ok("kapatildi");
     }
 
@@ -2890,28 +2951,5 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         return clay_ok($decision === "gitti" ? "cekim-gitti" : "cekim-iptal");
     }
 
-    if ($action === "admin-pst") {
-        $clear = clay_in($in, "sil") === "on";
-        $token = trim(clay_in($in, "anahtar"));
-        $token = (string) preg_replace("/^Bearer\\s+/i", "", $token);
-        if ($clear) {
-            if (!pst_save_token("")) {
-                return clay_fail("e-pst");
-            }
-        } elseif ($token !== "") {
-            if (!preg_match("/^[A-Za-z0-9._|\\-]{16,400}$/", $token) || !pst_save_token($token)) {
-                return clay_fail("e-pst-anahtar");
-            }
-        }
-        clay_pst_sync($db, true);
-        $err = (string) ($db["settings"]["pst"]["error"] ?? "");
-        if ($err !== "") {
-            return ["code" => "e-pst", "save" => true];
-        }
-        return clay_ok($clear ? "pst-kapandi" : "pst");
-    }
-
     return clay_fail("e-yok");
 }
-
-require_once __DIR__ . "/pst-sync.php";

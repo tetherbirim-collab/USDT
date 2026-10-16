@@ -1,17 +1,19 @@
 "use client";
 
+import { useChrome } from "@/components/chrome-controls";
 import { siteText } from "@/lib/copy";
 import { useSiteSettings } from "@/lib/live";
 
 export function TrustLine({ className = "" }: { className?: string }) {
   const settings = useSiteSettings();
+  const { lang } = useChrome();
   return (
     <p className={`trust-line ${className}`.trim()}>
-      <span>{siteText(settings, "sloganKyc")}</span>
+      <span>{siteText(settings, "sloganKyc", lang)}</span>
       <span aria-hidden="true"> · </span>
-      <span className="trust-hot">{siteText(settings, "sloganLog")}</span>
+      <span className="trust-hot">{siteText(settings, "sloganLog", lang)}</span>
       <span aria-hidden="true"> · </span>
-      <span>{siteText(settings, "sloganSafe")}</span>
+      <span>{siteText(settings, "sloganSafe", lang)}</span>
     </p>
   );
 }

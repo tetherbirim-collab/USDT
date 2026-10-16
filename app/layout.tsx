@@ -8,7 +8,10 @@ import "@fontsource/inter/latin-ext-600.css";
 import "@fontsource/inter/latin-700.css";
 import "@fontsource/inter/latin-ext-700.css";
 import "./globals.css";
+import { ChromeProvider } from "@/components/chrome-controls";
 import { TelegramButton } from "@/components/telegram-button";
+
+const themeBoot = `(function(){try{var t=localStorage.getItem("clay-theme");var l=localStorage.getItem("clay-lang");var root=document.documentElement;if(t==="light")root.classList.add("light");if(l==="en")root.lang="en";}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: {
@@ -22,8 +25,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr">
+    <html lang="tr" suppressHydrationWarning>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
+        <ChromeProvider>
         <div
           className="pointer-events-none fixed inset-0 z-[70] opacity-[0.14]"
           style={{
@@ -34,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         {children}
         <TelegramButton />
+        </ChromeProvider>
       </body>
     </html>
   );

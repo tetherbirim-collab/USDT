@@ -3,6 +3,8 @@ import type { SiteSettings } from "./types";
 /** Built-in trust line. Pieces stay editable; this exact line is the default. */
 export const TRUST_SLOGAN = "KYC YOK · LOG YOK · TAMAMEN GÜVENLİ VE ANONİM";
 
+export type UiLang = "tr" | "en";
+
 export type CopyKey =
   | "sloganKyc"
   | "sloganLog"
@@ -157,9 +159,64 @@ export const COPY: Record<CopyKey, { group: string; label: string; fallback: str
   },
 };
 
+/** Display dictionary for the English chrome. Admin copy stays Turkish. */
+export const COPY_EN: Record<CopyKey, string> = {
+  sloganKyc: "NO KYC",
+  sloganLog: "NO LOG",
+  sloganSafe: "FULLY SAFE AND ANONYMOUS",
+  phraseFacebook: "NO KYC NEEDED",
+  phraseTiktok: "ANONYMOUS VIRTUAL CARD",
+  phraseGoogle: "CREATE AND SPEND NOW",
+  phraseUltima: "CLAY VIRTUAL CARD",
+  heroKicker: "CLAY VIRTUAL CARD",
+  heroTitle: "VIRTUAL CARD SERVICE",
+  heroLede:
+    "Keep Facebook Ads, TikTok, Google Ads, and Ultima cards in one wallet. CLAY prints the card, writes the available balance, freezes it, and keeps the ledger. Balance is the lira value of a fixed dollar rate.",
+  navTypes: "Types",
+  navHow: "How it works",
+  navPlans: "Plans",
+  navFaq: "Questions",
+  typesKicker: "TYPES",
+  typesTitle: "Separate scenes",
+  typesLede: "Each card is 300₺. 7.3% comes off the amount you set aside. The amount is in dollars; the screen shows the lira value.",
+  stepsTitle: "Four steps",
+  step1Title: "Open an account",
+  step1Text: "A username, a password, and a security question are enough. No identity document is asked.",
+  step2Title: "Add balance",
+  step2Text: "Enter the amount in dollars. When the Heleket payment clears, the lira value of the fixed rate sits in the balance.",
+  step3Title: "Print a card",
+  step3Text: "Name the card, choose the available balance, then mark a row from that type’s BIN list.",
+  step4Title: "Watch and freeze",
+  step4Text: "Spending counts against the limit. Freeze or close the card whenever you want.",
+  plansKicker: "PLANS",
+  plansTitle: "Plans",
+  faqTitle: "Questions",
+  faq1q: "How is a card created?",
+  faq1a: "You choose the type, the name, and the available balance. The name on the card is the name you give.",
+  faq2q: "How does the balance sit?",
+  faq2a: "The amount is entered in dollars. The screen shows only the lira value of the fixed rate.",
+  faq3q: "When does the number show?",
+  faq3a: "Before purchase the BIN stays and the rest is X. When the card is created, 16 digits are written. You reveal the CVV.",
+  footerLine: "CLAY Virtual Card Services. Balance is the lira value of a fixed dollar rate.",
+  loginTitle: "Welcome",
+  loginLede: "Sign in with your username and password. If you forgot it, set a new password with your security answer.",
+  signupTitle: "Create account",
+  signupLede: "Write a username, a password, and a security question. If you forget the password, you renew it with this answer.",
+  panelOzet: "Overview",
+  panelKart: "My cards",
+  panelSiparis: "Orders",
+  panelOdeme: "Payments",
+  panelCuzdan: "Wallet",
+  panelDestek: "Support",
+  panelHesap: "Account",
+  supportTitle: "New request",
+  supportLede: "Write your complaint. The request lands on the admin desk. The reply shows on the bell and in this list.",
+};
+
 export const COPY_KEYS = Object.keys(COPY) as CopyKey[];
 
-export function siteText(settings: SiteSettings | null | undefined, key: CopyKey): string {
+export function siteText(settings: SiteSettings | null | undefined, key: CopyKey, lang: UiLang = "tr"): string {
+  if (lang === "en") return COPY_EN[key];
   const raw = settings?.copy?.[key];
   if (typeof raw === "string" && raw.trim()) return raw.trim();
   return COPY[key].fallback;

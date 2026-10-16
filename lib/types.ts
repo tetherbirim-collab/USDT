@@ -72,7 +72,7 @@ export type Card = {
   createdAt: string;
   /** Next card-fee slot, or the unpaid one when the wallet was short. */
   feeDueAt?: string | null;
-  /** Member pin. Survives a PST refresh. */
+  /** Member pin. */
   starred?: boolean;
 };
 
@@ -159,24 +159,6 @@ export type Announcement = {
   on: boolean;
 };
 
-export type PstLink = {
-  on: boolean;
-  markup: number;
-  syncedAt: string;
-  cards: number;
-  transactions: number;
-  orders: number;
-  loadSource: number;
-  issueSourceUsd: number;
-  transferSource: number;
-  error: string;
-  tokenTail: string;
-  /** Last time the VPS watcher read PST. Empty until cron is running. */
-  watchedAt: string;
-  wallets?: { id: number; minor: number }[];
-  queue?: { id: string; op: string; cardId: string; pstId?: string; status: string; tries?: number; error?: string; at?: string }[];
-};
-
 export type PayoutStatus = "bekliyor" | "gitti" | "iptal";
 
 export type Payout = {
@@ -201,8 +183,6 @@ export type SiteSettings = {
   announcement: Announcement;
   /** Admin overrides. Empty or missing keys keep the built-in Turkish line. */
   copy: Record<string, string>;
-  /** PST.NET mirror. The bearer token never sits in this object. */
-  pst: PstLink;
 };
 
 export type InboxNote = {

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
+import { useChrome } from "@/components/chrome-controls";
 import { loginAction, registerAction, resetPasswordAction } from "@/lib/actions";
+import { uiText } from "@/lib/ui";
 import { SECURITY_QUESTIONS, WELCOME_BONUS_KURUS } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
 import { Boot } from "@/lib/live";
@@ -31,6 +33,7 @@ function QuestionFields() {
 }
 
 export function LoginForm() {
+  const { lang } = useChrome();
   const [state, action, pending] = useActionState(loginAction, { error: "" });
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -72,16 +75,17 @@ export function LoginForm() {
       </p>
       {state.error && <p className="banner-bad">{state.error}</p>}
       <button className="auth-primary mt-2" type="submit" disabled={pending}>
-        Giriş yap
+        {uiText(lang, "signInLong")}
       </button>
       <Link href="/sifre" className="auth-outline">
-        Şifremi unuttum
+        {uiText(lang, "forgot")}
       </Link>
     </form>
   );
 }
 
 export function RegisterForm() {
+  const { lang } = useChrome();
   const [state, action, pending] = useActionState(registerAction, { error: "" });
   return (
     <form action={action} className="grid gap-3">
@@ -109,10 +113,10 @@ export function RegisterForm() {
       <QuestionFields />
       {state.error && <p className="banner-bad">{state.error}</p>}
       <button className="auth-primary mt-1" type="submit" disabled={pending}>
-        Kayıt ol
+        {uiText(lang, "register")}
       </button>
       <Link href="/sifre" className="auth-outline">
-        Şifremi unuttum
+        {uiText(lang, "forgot")}
       </Link>
     </form>
   );

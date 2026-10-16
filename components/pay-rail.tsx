@@ -1,70 +1,31 @@
-const STREAM =
-  "Settle(txId, acquirer, amount)   emit Authorize(card)   function settle(bytes32 txid)   require(settled[txid] == false)   return true;   ";
+import { CARD_TYPES } from "@/lib/catalog";
+import type { CardFace, CardTypeId } from "@/lib/types";
+import { VirtualCard } from "./virtual-card";
 
-function CodeStream({ reverse = false }: { reverse?: boolean }) {
-  const line = `${STREAM}${STREAM}`;
-  return (
-    <div className={`pay-stream ${reverse ? "pay-stream-back" : ""}`} aria-hidden>
-      <p>{line}</p>
-    </div>
-  );
-}
+const SLIDES: { type: CardTypeId; label: string; caption: string; tail: string; bin: string }[] = [
+  { type: "facebook_ads", label: "Akış kartı", caption: "Akış reklam kartı", tail: "1842", bin: "510000" },
+  { type: "tiktok", label: "Kısa video", caption: "Kısa video kartı", tail: "2907", bin: "520000" },
+  { type: "google_ads", label: "Arama kartı", caption: "Arama reklam kartı", tail: "4418", bin: "400000" },
+  { type: "ultima", label: "Metal kart", caption: "Metal salon kartı", tail: "7731", bin: "411111" },
+  { type: "facebook_ads", label: "Kampanya", caption: "Kampanya kartı", tail: "5520", bin: "530000" },
+  { type: "tiktok", label: "Nota akışı", caption: "Nota akış kartı", tail: "6184", bin: "540000" },
+  { type: "google_ads", label: "Kelime vitrini", caption: "Kelime vitrin kartı", tail: "8033", bin: "422222" },
+  { type: "ultima", label: "Gece salonu", caption: "Gece salon kartı", tail: "9166", bin: "433333" },
+];
 
-function Waves({ tone }: { tone: "gold" | "violet" }) {
-  const stroke = tone === "gold" ? "rgba(255,236,190,0.82)" : "rgba(186,120,255,0.8)";
-  return (
-    <svg className="pay-waves" viewBox="0 0 280 180" aria-hidden>
-      {Array.from({ length: 8 }, (_, index) => (
-        <path
-          key={index}
-          d={`M${-30 + index * 10} 190 C ${50 + index * 8} ${130 - index * 8}, ${150 + index * 6} ${36 + index * 5}, 320 ${-16 - index * 6}`}
-          fill="none"
-          stroke={stroke}
-          strokeWidth={1.35}
-        />
-      ))}
-    </svg>
-  );
-}
-
-function SeamCode() {
-  const bits = ["settle(tx)", "emit card", "amount", "txid", "return", "auth"];
-  const rows = Array.from({ length: 8 }, (_, index) => bits[index % bits.length]);
-  return (
-    <span className="pay-seam" aria-hidden>
-      <span className="pay-seam-code">
-        {[...rows, ...rows].map((row, index) => (
-          <i key={index}>{row}</i>
-        ))}
-      </span>
-    </span>
-  );
-}
-
-function BornCard({
-  coin,
-  name,
-  tone,
-  reverse = false,
-}: {
-  coin: "XMR" | "BTC";
-  name: string;
-  tone: "gold" | "violet";
-  reverse?: boolean;
-}) {
-  return (
-    <article className={`pay-birth pay-birth-${tone} ${reverse ? "pay-birth-back" : ""}`}>
-      <div className="pay-card-face">
-        <Waves tone={tone} />
-        <span className="pay-contact" aria-hidden />
-        <p className="pay-card-brand">CLAY</p>
-        <p className="pay-card-coin">{coin}</p>
-        <p className="pay-card-name">{name}</p>
-        <strong>VISA</strong>
-      </div>
-      <SeamCode />
-    </article>
-  );
+function face(slide: (typeof SLIDES)[number]): CardFace {
+  return {
+    type: slide.type,
+    label: slide.label,
+    holder: "CLAY",
+    pan: `${slide.bin}0000000000`.slice(0, 16),
+    panLine: `•••• •••• •••• ${slide.tail}`,
+    bin: slide.bin,
+    expiry: "09/29",
+    cvv: "•••",
+    status: "aktif",
+    hideCvv: true,
+  };
 }
 
 function Mark({ kind }: { kind: "usdt" | "btc" | "xmr" | "eth" | "ltc" }) {
@@ -123,13 +84,30 @@ const LOGOS = [
   ["ltc", "LTC"],
 ] as const;
 
+function MarqueeSet({ copy }: { copy: "a" | "b" }) {
+  return (
+    <ul className="clay-marquee-set" aria-hidden={copy === "b" ? true : undefined}>
+      {SLIDES.map((slide) => (
+        <li key={`${copy}-${slide.type}-${slide.tail}`} className="clay-marquee-item">
+          <VirtualCard card={face(slide)} />
+          <p className="clay-marquee-caption">
+            <span>{CARD_TYPES[slide.type].name}</span>
+            <span>{slide.caption}</span>
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function PayRail() {
   return (
-    <section className="pay-rail" aria-label="CLAY Sanal Kart Hizmetleri. Kod akarken karta dönüşür.">
+    <section className="pay-rail" aria-label="CLAY sanal kartlar. Facebook Ads, TikTok, Google Ads ve Ultima kayar.">
       <div className="pay-rail-stage">
-        <CodeStream />
-        <BornCard coin="XMR" name="Monero" tone="violet" />
-        <BornCard coin="BTC" name="Bitcoin" tone="gold" reverse />
+        <div className="clay-marquee-track">
+          <MarqueeSet copy="a" />
+          <MarqueeSet copy="b" />
+        </div>
       </div>
       <div className="pay-rail-foot">
         <p className="pay-rail-line">CLAY Sanal Kart Hizmetleri</p>

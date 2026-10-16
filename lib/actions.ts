@@ -1318,14 +1318,6 @@ export async function adminFeesAction(formData: FormData) {
   return bounce(back, "ucret");
 }
 
-export async function adminPstAction(formData: FormData) {
-  await requireAdmin();
-  const back = "/clayadm!nxx/ucretler";
-  const remote = await remoteCall("admin-pst", pack(formData, ["anahtar", "sil"]));
-  if (remote) return bounce(back, remote.code || "pst");
-  return bounce(back, "e-defter");
-}
-
 export async function adminPlanSaveAction(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("plan") || "");

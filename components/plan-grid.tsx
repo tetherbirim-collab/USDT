@@ -2,52 +2,63 @@
 
 import Link from "next/link";
 import { PLANS, usdMinorToKurus } from "@/lib/catalog";
+import { FeeRows, packageLines, percentText } from "@/components/fee-sheet";
 import { formatTL } from "@/lib/format";
 import { useSiteSettings } from "@/lib/live";
 import type { PlanId } from "@/lib/types";
 
+const PACKAGE_NAME: Record<PlanId, string> = {
+  kivilcim: "Kıvılcım",
+  atolye: "Atölye",
+  galeri: "Galeri",
+};
+
 export function PlanGrid() {
   const settings = useSiteSettings();
   const ids = Object.keys(PLANS) as PlanId[];
+  const issue = formatTL(settings.issueFeeKurus);
+  const load = percentText(settings.loadFeePercent);
+  const transfer = percentText(settings.transferFeePercent);
   return (
     <>
-      <p className="mt-3 text-white/70">
-        {ids.map((id) => `${settings.plans[id].name} ${settings.plans[id].priceUsdMinor / 100} USD`).join(", ")}. Ekranda sabit kurun TL karşılığı durur. Kart bedeli yönetimden değişir. Kart hakkı dolunca plan yükselir.
+      <p className="mt-3 max-w-3xl text-white/75">
+        Üç paket. Basım ücreti, yükleme komisyonu, 30 günlük kart bedeli ve aktarım her pakette aynıdır. Değişen, aylık paket ücreti ve açık kart hakkıdır. Kartı oluşturmadan önce aynı satırlar, o an kesilecek tutarla birlikte durur.
       </p>
       <div className="plan-grid mt-8">
         {ids.map((id) => {
           const plan = settings.plans[id];
-          const metal = PLANS[id].metal;
-          const chips = Math.min(plan.cardLimit, 4);
+          const featured = id === "atolye";
           return (
-            <article key={id} className={`plan-card plan-${metal}`}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold tracking-[0.18em] text-white/70">{metal === "silver" ? "ÖNE ÇIKAN" : "VİTRİN"}</p>
-                  <h3 className="font-display mt-2 text-2xl font-bold">{plan.name}</h3>
-                </div>
-                <div className="plan-medal" aria-hidden>
-                  <span className="font-display text-xl font-extrabold">{plan.cardLimit}</span>
-                </div>
-              </div>
-              <p className="mt-5 font-display text-4xl font-extrabold">{plan.priceUsdMinor / 100} USD</p>
-              <p className="text-sm font-semibold text-[#ffe7c2]">
-                {formatTL(usdMinorToKurus(plan.priceUsdMinor))} · {PLANS[id].period}
+            <article key={id} className={`pkg-card${featured ? " pkg-card-on" : ""}`}>
+              <p className="pkg-kicker">{featured ? "ÖNE ÇIKAN" : "PAKET"}</p>
+              <h3 className="pkg-name">{PACKAGE_NAME[id]}</h3>
+              <p className="pkg-metal">{plan.name}</p>
+              <p className="pkg-price">
+                {plan.priceUsdMinor / 100} <span>USD</span>
               </p>
-              <p className="mt-4 text-sm text-white/80">{plan.blurb}</p>
-              <div className="plan-fan" aria-hidden>
-                {Array.from({ length: chips }, (_, index) => (
-                  <span key={index} className="plan-chip" />
-                ))}
-              </div>
-              <p className="mt-3 text-sm font-semibold">En fazla {plan.cardLimit} açık kart</p>
-              <Link href="/kayit" className="btn btn-gold relative z-[1] mt-6 w-full">
+              <p className="pkg-sub">{formatTL(usdMinorToKurus(plan.priceUsdMinor))} · ay</p>
+              <FeeRows lines={packageLines(settings, plan)} withNotes={false} />
+              <Link href="/kayit" className="btn btn-gold mt-5 w-full">
                 Hesap aç
               </Link>
             </article>
           );
         })}
       </div>
+      <section className="fee-sheet mt-6" id="paket-ucret">
+        <p className="fee-kicker">KART OLUŞTURURKEN</p>
+        <h3 className="fee-title">Ne kesilir, ne kalır</h3>
+        <ul className="fee-sentences">
+          <li>Basım ücreti {issue}. Kartı oluşturunca hesaptan bir kez kesilir. Bu para karta yazılmaz.</li>
+          <li>Karta ayırdığın tutar da hesaptan düşer. Bunun {load} kadarı yükleme komisyonu olarak kesilir, kalan karta yazılır.</li>
+          <li>30 günlük kart bedeli yine {issue}. Kart açık kaldıkça her 30 günde bir kesilir. Oluşturma anında bu ikinci kez düşmez.</li>
+          <li>Aktarımda karşı karta geçen tutardan {transfer} kesilir. Ana bakiye değişmez.</li>
+          <li>
+            Aylık paket ücreti yalnız plan değişince düşer. Kıvılcım {settings.plans.kivilcim.priceUsdMinor / 100} USD, Atölye{" "}
+            {settings.plans.atolye.priceUsdMinor / 100} USD, Galeri {settings.plans.galeri.priceUsdMinor / 100} USD.
+          </li>
+        </ul>
+      </section>
     </>
   );
 }

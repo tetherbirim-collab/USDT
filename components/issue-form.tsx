@@ -10,6 +10,7 @@ import {
   loadFeeAt,
   usdMinorToKurus,
 } from "@/lib/catalog";
+import { percentText } from "@/components/fee-sheet";
 import { formatTL, holderLine, parseTryToKurus } from "@/lib/format";
 import { useSiteSettings } from "@/lib/live";
 import { networkOf, previewPan } from "@/lib/pan";
@@ -151,9 +152,7 @@ export function IssueForm({
                 onChange={(event) => setLimit(event.target.value)}
                 required
               />
-              <span className="text-white/50">
-                10–10.000 USD. Karşılığı {formatTL(gross)}. Bunun %{String(settings.loadFeePercent).replace(".", ",")} kadarı komisyon olarak kesilir.
-              </span>
+              <span className="text-white/50">10–10.000 USD. Aşağıdaki tablo, göndermeden önce kesileni ve karta yazılanı gösterir.</span>
             </label>
             {localError && <p className="banner-bad">{localError}</p>}
             {slotsLeft <= 0 && (
@@ -162,34 +161,61 @@ export function IssueForm({
             {short && (
               <p className="banner-bad">Hesap {formatTL(due)} için yetersiz. Önce ana bakiyeyi yükle.</p>
             )}
-            <div className="grid gap-2 rounded-[24px] border border-gold/30 bg-black/25 p-4 text-sm">
-              <p className="text-xs font-bold tracking-[0.18em] text-gold">HESAPTAN DÜŞECEK</p>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-white/70">Kart bedeli</span>
-                <span className="font-semibold">{formatTL(settings.issueFeeKurus)}</span>
+            <section className="fee-sheet" id="kesinti">
+              <p className="fee-kicker">GÖNDERMEDEN ÖNCE</p>
+              <h2 className="fee-title">Ne kesilir, ne kalır</h2>
+              <p className="fee-lede">Kartı oluşturunca hesaptan düşecek tutar ve karta yazılacak bakiye. Onaylamadan önce oku.</p>
+              <dl className="fee-rows">
+                <div className="fee-row">
+                  <dt>
+                    <span className="fee-label">Basım ücreti</span>
+                    <span className="fee-note">Kartı oluşturunca hesaptan bir kez kesilir. Karta yazılmaz.</span>
+                  </dt>
+                  <dd className="fee-value fee-cut">{formatTL(settings.issueFeeKurus)}</dd>
+                </div>
+                <div className="fee-row">
+                  <dt>
+                    <span className="fee-label">Karta ayrılan</span>
+                    <span className="fee-note">Bu tutar da ana bakiyeden düşer. 10 ile 10.000 USD arasında.</span>
+                  </dt>
+                  <dd className="fee-value">{formatTL(gross)}</dd>
+                </div>
+                <div className="fee-row">
+                  <dt>
+                    <span className="fee-label">Yükleme komisyonu {percentText(settings.loadFeePercent)}</span>
+                    <span className="fee-note">Ayrılan tutarın içinden kesilir.</span>
+                  </dt>
+                  <dd className="fee-value fee-cut">{formatTL(commission)}</dd>
+                </div>
+                <div className="fee-row">
+                  <dt>
+                    <span className="fee-label">Karta yazılacak</span>
+                    <span className="fee-note">Komisyondan sonra kartta kalan kullanılabilir bakiye.</span>
+                  </dt>
+                  <dd className="fee-value fee-keep">{formatTL(net)}</dd>
+                </div>
+                <div className="fee-row">
+                  <dt>
+                    <span className="fee-label">30 gün sonra</span>
+                    <span className="fee-note">Kart açık kalırsa kart bedeli yeniden kesilir. Şimdi düşmez.</span>
+                  </dt>
+                  <dd className="fee-value">{formatTL(settings.issueFeeKurus)}</dd>
+                </div>
+              </dl>
+              <div className="fee-total">
+                <div>
+                  <p className="fee-label">Şimdi hesaptan düşecek</p>
+                  <p className="fee-note">
+                    {accountId !== account.id
+                      ? "Düşüşü hesabına bağlamak için ödeme hesabını seç."
+                      : short
+                        ? `Ana bakiye ${formatTL(balance)}. Bu düşüşü karşılamıyor.`
+                        : `İşlem sonrası ana bakiyede ${formatTL(balance - due)} kalır.`}
+                  </p>
+                </div>
+                <p className="fee-total-num">{formatTL(due)}</p>
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-white/70">Karta ayrılan</span>
-                <span className="font-semibold">{formatTL(gross)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-white/70">Komisyon %{String(settings.loadFeePercent).replace(".", ",")}</span>
-                <span className="font-semibold text-[#ffb4a2]">{formatTL(commission)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-white/70">Kullanılabilir bakiye</span>
-                <span className="font-semibold text-mint">{formatTL(net)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-2">
-                <span>Toplam düşüş</span>
-                <span className="font-display text-xl font-bold text-gold">{formatTL(due)}</span>
-              </div>
-              <p className="text-xs text-white/55">
-                {accountId === account.id
-                  ? `İşlem sonrası ana bakiye ${formatTL(Math.max(0, balance - due))}.`
-                  : "Düşüşü görmek için ödeme hesabını seç."}
-              </p>
-            </div>
+            </section>
             <section id="bin-sec" className="grid gap-3 rounded-[24px] border border-gold/30 bg-black/20 p-4">
               <div>
                 <p className="text-xs font-bold tracking-[0.18em] text-gold">BIN SEÇ</p>

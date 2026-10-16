@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { IssueForm } from "@/components/issue-form";
 import { Notice } from "@/components/notice";
+import { percentText } from "@/components/fee-sheet";
+import { formatTL } from "@/lib/format";
 import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import { listCards, snapshot } from "@/lib/store";
 
@@ -22,7 +24,7 @@ export default function NewCardPage() {
         </Link>
         <h1 className="font-display mt-3 text-4xl font-bold tracking-tight">Kart oluştur</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Önce ödemenin düşeceği hesabı, sonra BIN’i seç. Kart bedeli 300₺. Karta ayırdığın tutardan %7,3 komisyon kesilir, kalan kullanılabilir bakiye olarak yazılır.
+          Göndermeden önce basım ücreti {formatTL(settings.issueFeeKurus)}, yükleme komisyonu {percentText(settings.loadFeePercent)} ve karta yazılacak tutar tabloda durur. 30 günlük kart bedeli oluşturma anında ikinci kez düşmez.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />

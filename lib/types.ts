@@ -27,6 +27,8 @@ export type User = {
   /** Salted SHA-256 of the recovery seed. The phrase itself is never stored. */
   seedSalt?: string;
   seedHash?: string;
+  /** Set on the desk view when the seed hash exists but was stripped from the payload. */
+  hasSeed?: boolean;
   /** Question id chosen at signup. The answer stays off the public profile. */
   securityQuestion?: string;
   securityAnswer?: string;

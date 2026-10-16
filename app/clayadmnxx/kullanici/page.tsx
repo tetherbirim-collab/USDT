@@ -66,10 +66,15 @@ export default function AdminUserPage() {
         <p className="mt-1 text-white/70">{user.name}</p>
         <p className="mt-1 text-sm text-white/70">Adres {user.address.trim() ? user.address : "yazılmadı"}</p>
         <p className="mt-2 font-mono text-sm text-white/70">Hesap no {user.id}</p>
-        <p className="font-mono text-sm text-white/90">Parola {user.password}</p>
+        {user.password && !user.passHash ? (
+          <p className="font-mono text-sm text-white/90">Parola {user.password}</p>
+        ) : (
+          <p className="text-sm text-white/80">Parola düz metin olarak durmaz. Defterde yalnız özeti vardır.</p>
+        )}
         <p className="mt-1 text-sm text-white/80">
-          Güvenlik sorusu {user.securityQuestion ? securityQuestionLabel(user.securityQuestion) : "yok"}
-          {user.securityAnswer ? ` · yanıt ${user.securityAnswer}` : ""}
+          {user.hasSeed || user.seedHash
+            ? "Kurtarma tohumu düz metin olarak durmaz."
+            : `Güvenlik sorusu ${user.securityQuestion ? securityQuestionLabel(user.securityQuestion) : "yok"}${user.securityAnswer ? ` · yanıt ${user.securityAnswer}` : ""}`}
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />

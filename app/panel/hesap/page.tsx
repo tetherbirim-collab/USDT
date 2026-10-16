@@ -2,6 +2,7 @@
 
 import { Notice } from "@/components/notice";
 import { addressAction, displayNameAction, passwordChangeAction, planAction, securityQuestionAction } from "@/lib/actions";
+import { FeeRows, packageLines } from "@/components/fee-sheet";
 import { PLANS, SECURITY_QUESTIONS, securityQuestionLabel, usdMinorToKurus } from "@/lib/catalog";
 import { daysLeftLine, daysUntil, formatDay, formatTL } from "@/lib/format";
 import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
@@ -72,17 +73,19 @@ export default function AccountPage() {
             const current = id === planId;
             const higher = RANK[id] > RANK[planId];
             return (
-              <form key={id} action={planAction} className={`plan-card plan-${PLANS[id].metal}`}>
+              <form key={id} action={planAction} className={`pkg-card${current ? " pkg-card-on" : ""}`}>
                 <input type="hidden" name="plan" value={id} />
-                <p className="text-xs font-bold tracking-[0.16em] text-white/70">{current ? "SEÇİLİ PAKET" : higher ? "YÜKSELT" : "GEÇİŞ"}</p>
-                <h3 className="font-display mt-2 text-2xl font-bold">
+                <p className="pkg-kicker">{current ? "SEÇİLİ PAKET" : higher ? "YÜKSELT" : "GEÇİŞ"}</p>
+                <h3 className="pkg-name">
                   <span aria-hidden>{EMOJI[PLANS[id].metal]} </span>
                   {row.name}
                 </h3>
-                <p className="mt-3 font-display text-3xl font-extrabold">{row.priceUsdMinor / 100} USD</p>
-                <p className="text-sm text-[#ffe7c2]">{formatTL(usdMinorToKurus(row.priceUsdMinor))}</p>
-                <p className="mt-3 text-sm text-white/80">En fazla {row.cardLimit} açık kart</p>
-                {current && <p className="mt-2 text-sm font-semibold text-[#ffe7c2]">{remain}</p>}
+                <p className="pkg-price">
+                  {row.priceUsdMinor / 100} <span>USD</span>
+                </p>
+                <p className="pkg-sub">{formatTL(usdMinorToKurus(row.priceUsdMinor))} · ay</p>
+                <FeeRows lines={packageLines(settings, row)} withNotes={false} />
+                {current && <p className="mt-3 text-sm font-semibold text-[#9a6b12]">{remain}</p>}
                 <button className="btn btn-gold relative z-[1] mt-5 w-full" type="submit">
                   {current ? "Bu paket sende" : higher ? "Planı yükselt" : "Bu plana geç"}
                 </button>
@@ -94,9 +97,11 @@ export default function AccountPage() {
       <form action={securityQuestionAction} className="account-sheet">
         <h2 className="font-display text-2xl font-bold">Güvenlik sorusu</h2>
         <p className="text-sm text-white/60">
-          {user.securityQuestion
-            ? `Kayıtlı sorun: ${securityQuestionLabel(user.securityQuestion)}. Yanıt ekranda durmaz. Değiştirmek için mevcut parolanı ve yeni yanıtı yaz.`
-            : "Henüz sorun yok. Mevcut parolanı, soruyu ve yanıtı yazıp kaydet. Şifreni unutursan girişteki Şifremi unuttum ile kullanıcı adın ve bu yanıt yeni parola belirler."}
+          {user.hasSeed
+            ? "Kurtarma tohumun kayıtta bir kez gösterildi. Şifreni unutursan kullanıcı adın ve tohumla girersin. İstersen buna ek bir güvenlik sorusu da kaydedebilirsin."
+            : user.securityQuestion
+              ? `Kayıtlı sorun: ${securityQuestionLabel(user.securityQuestion)}. Yanıt ekranda durmaz. Değiştirmek için mevcut parolanı ve yeni yanıtı yaz.`
+              : "Henüz sorun yok. Mevcut parolanı, soruyu ve yanıtı yazıp kaydet. Şifreni unutursan girişteki Şifremi unuttum ile kullanıcı adın ve bu yanıt yeni parola belirler."}
         </p>
         <label className="grid gap-1 text-sm">
           Mevcut parola
@@ -120,7 +125,11 @@ export default function AccountPage() {
       </form>
       <form action={passwordChangeAction} className="account-sheet">
         <h2 className="font-display text-2xl font-bold">Parola</h2>
-        <p className="text-sm text-white/60">Yeni parola en az 6 karakter. Yönetici masasında düz metin olarak durur.</p>
+        <p className="text-sm text-white/60">
+          {user.hasSeed
+            ? "Yeni parola en az 6 karakter. Düz metin olarak saklanmaz."
+            : "Yeni parola en az 6 karakter. Yönetici masasında düz metin olarak durur."}
+        </p>
         <label className="grid gap-1 text-sm">
           Mevcut parola
           <input className="field" name="eski" type="password" required autoComplete="current-password" />

@@ -90,13 +90,9 @@ export function RegisterForm() {
           <Boot />
         </div>
       )}
-      <ol className="grid list-decimal gap-1 pl-5 text-sm text-[#5c6774]">
-        <li>Kullanıcı adını yaz. Girişte bu adı kullanırsın.</li>
-        <li>Parolayı iki kez aynı yaz. En az 6 karakter.</li>
-        <li>Güvenlik sorusunu seç ve yanıtını yaz. Şifreni unutursan bu yanıtla yenilersin.</li>
-        <li>Kayıt olunca panele girersin. Hoş geldin bakiyesi 30 USD, yani {formatTL(WELCOME_BONUS_KURUS)}.</li>
-        <li>Panelden bakiye yükle, kart bas, kartlar arası aktar ve harcamayı izle.</li>
-      </ol>
+      <p className="text-sm text-[#5c6774]">
+        Kullanıcı adını, parolanı iki kez ve güvenlik yanıtını yaz. Kayıt olunca panele girersin. Hoş geldin bakiyesi {formatTL(WELCOME_BONUS_KURUS)}.
+      </p>
       <label className="grid gap-1 text-sm font-semibold text-[#1c2430]">
         Kullanıcı adı
         <input className="auth-field" name="kullanici" autoComplete="username" placeholder="ornek_ad" required minLength={2} maxLength={24} />

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { adminAccountAction, adminBalanceAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { ADMIN_PATH } from "@/lib/auth";
-import { formatTL } from "@/lib/format";
+import { formatTL, showOrderCode } from "@/lib/format";
 import { Boot, useQuery, useSiteSettings } from "@/lib/live";
 import { snapshot } from "@/lib/store";
 
@@ -67,6 +67,25 @@ export default function AdminMembersPage() {
                   </div>
                 ))}
               </dl>
+              {cards.length > 0 && (
+                <ul className="mt-4 grid gap-1 text-sm">
+                  {cards.map((card) => {
+                    const order = db.orders.find((row) => row.cardId === card.id);
+                    const code = showOrderCode(order ?? { cardId: card.id, id: card.id });
+                    return (
+                      <li key={card.id}>
+                        <Link href={`${ADMIN_PATH}/kartlar?vurgu=${card.id}`} className="font-semibold text-gold">
+                          {code}
+                        </Link>
+                        <span className="text-white/70">
+                          {" "}
+                          · {card.label} · {user.username}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
               {user.role === "uye" && (
                 <form action={adminBalanceAction} className="mt-4 flex flex-wrap items-end gap-2">
                   <input type="hidden" name="uye" value={user.id} />

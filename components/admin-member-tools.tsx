@@ -9,7 +9,7 @@ export function AdminIssueForm({ userId, bins, back }: { userId: string; bins: B
   const [type, setType] = useState<(typeof CARD_TYPE_ORDER)[number]>("facebook_ads");
   const choices = bins.filter((row) => row.type === type);
   return (
-    <form action={adminIssueAction} className="glass grid gap-3 rounded-[28px] p-5">
+    <form id="kart-ver" action={adminIssueAction} className="glass grid gap-3 rounded-[28px] p-5">
       <p className="text-xs font-bold tracking-[0.18em] text-gold">KART VER</p>
       <h2 className="font-display text-2xl font-bold">Bu üyeye kart bas</h2>
       <p className="text-sm text-white/70">Kart bedeli ve yüklenecek tutar üyenin bakiyesinden düşer. Plan hakkı doluysa basım olmaz.</p>
@@ -52,9 +52,17 @@ export function AdminIssueForm({ userId, bins, back }: { userId: string; bins: B
 
 export function AdminTransferForm({ userId, cards, back }: { userId: string; cards: Card[]; back: string }) {
   const open = cards.filter((card) => card.status === "aktif" || card.status === "donduruldu");
-  if (open.length < 2) return null;
+  if (open.length < 2) {
+    return (
+      <article id="aktarim" className="glass grid gap-3 rounded-[28px] p-5">
+        <p className="text-xs font-bold tracking-[0.18em] text-gold">AKTARIM</p>
+        <h2 className="font-display text-2xl font-bold">Karttan karta</h2>
+        <p className="text-sm text-white/70">Aktarım için bu üyede en az iki açık veya dondurulmuş kart gerekir. Ana bakiye bu işte değişmez.</p>
+      </article>
+    );
+  }
   return (
-    <form action={adminTransferAction} className="glass grid gap-3 rounded-[28px] p-5">
+    <form id="aktarim" action={adminTransferAction} className="glass grid gap-3 rounded-[28px] p-5">
       <p className="text-xs font-bold tracking-[0.18em] text-gold">AKTARIM</p>
       <h2 className="font-display text-2xl font-bold">Karttan karta</h2>
       <p className="text-sm text-white/70">Tutar kaynak kartın tavanından düşer. Karşı karta %4 sonrası yazılır. Ana bakiye değişmez.</p>

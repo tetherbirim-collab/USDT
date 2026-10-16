@@ -11,18 +11,21 @@ import { Mark, Wordmark } from "@/components/mark";
 import { TrustLine } from "@/components/trust-line";
 import { snapshot } from "@/lib/store";
 
-const LINKS = [
-  ["", "Özet"],
+const WORK = [
+  ["", "Masa"],
   ["/canli", "Canlı"],
   ["/uyeler", "Üyeler"],
   ["/kartlar", "Kartlar"],
-  ["/bin", "BIN"],
-  ["/destek", "Destek"],
   ["/islemler", "İşlemler"],
+  ["/destek", "Destek"],
   ["/bildirimler", "Bildirimler"],
-  ["/metinler", "Yazılar"],
+] as const;
+
+const STUDIO = [
+  ["/bin", "BIN"],
   ["/planlar", "Planlar"],
   ["/ucretler", "Ücretler"],
+  ["/metinler", "Yazılar"],
   ["/telegram", "Telegram"],
   ["/hesap", "Hesap"],
 ] as const;
@@ -44,7 +47,28 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     if (user && user.role !== "yonetici") window.location.replace(`${deskPath(user.role)}/`);
   }, [user]);
   if (!user || user.role !== "yonetici") return <Boot />;
-  const openTickets = snapshot().tickets.filter((ticket) => ticket.status === "acik").length;
+  const db = snapshot();
+  const counts: Record<string, number> = {
+    "/canli": db.payouts.filter((row) => row.status === "bekliyor").length,
+    "/kartlar": db.cards.filter((card) => card.status === "donduruldu").length,
+    "/islemler": db.orders.filter((order) => order.status === "hazirlaniyor").length,
+    "/destek": db.tickets.filter((ticket) => ticket.status === "acik").length,
+  };
+  const pill = (href: string, label: string) => {
+    const full = `${ADMIN_PATH}${href}`;
+    const active = href === "" ? path === ADMIN_PATH : path.startsWith(full) || (href === "/uyeler" && path.startsWith(`${ADMIN_PATH}/kullanici`));
+    const count = counts[href] ?? 0;
+    return (
+      <Link
+        key={full}
+        href={full}
+        className={`nav-pill rounded-full px-3 py-2 text-sm font-bold ${active ? "nav-on" : "bg-white/5 text-white/80"}`}
+      >
+        {label}
+        {count > 0 ? ` ${count}` : ""}
+      </Link>
+    );
+  };
   return (
     <div className="desk-root">
       <div className="desk-bg" aria-hidden>
@@ -66,21 +90,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </form>
           </div>
         </div>
-        <nav className="mt-4 flex flex-wrap gap-2">
-          {LINKS.map(([href, label]) => {
-            const full = `${ADMIN_PATH}${href}`;
-            const active = href === "" ? path === ADMIN_PATH : path.startsWith(full) || (href === "/uyeler" && path.startsWith(`${ADMIN_PATH}/kullanici`));
-            return (
-              <Link
-                key={full}
-                href={full}
-                className={`nav-pill rounded-full px-3 py-2 text-sm font-bold ${active ? "nav-on" : "bg-white/5 text-white/80"}`}
-              >
-                {label}
-                {href === "/destek" && openTickets > 0 ? ` ${openTickets}` : ""}
-              </Link>
-            );
-          })}
+        <nav className="mt-4 grid gap-2">
+          <div className="flex flex-wrap gap-2">{WORK.map(([href, label]) => pill(href, label))}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="px-1 text-[11px] font-bold tracking-[0.16em] text-white/40">AYAR</span>
+            {STUDIO.map(([href, label]) => pill(href, label))}
+          </div>
         </nav>
         <TrustLine />
       </header>

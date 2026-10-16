@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { adminTicketCloseAction, adminTicketReplyAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
+import { ADMIN_PATH } from "@/lib/auth";
 import { formatWhen } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
 import { snapshot } from "@/lib/store";
@@ -33,7 +35,14 @@ export default function AdminSupportPage() {
               </div>
               <p className="mt-1 text-white/70">{ticket.body}</p>
               <p className="mt-1 text-xs text-white/45">
-                {formatWhen(ticket.createdAt)} · {owner?.username ?? "üye"}
+                {formatWhen(ticket.createdAt)} ·{" "}
+                {owner ? (
+                  <Link href={`${ADMIN_PATH}/kullanici?id=${owner.id}`} className="font-semibold text-gold">
+                    {owner.username}
+                  </Link>
+                ) : (
+                  "üye"
+                )}
               </p>
               {ticket.reply && <p className="mt-2 text-mint">Yanıt: {ticket.reply}</p>}
               <form action={adminTicketReplyAction} className="mt-3 grid gap-2">

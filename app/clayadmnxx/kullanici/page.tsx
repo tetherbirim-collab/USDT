@@ -56,6 +56,13 @@ export default function AdminUserPage() {
         </Link>
         <p className="mt-3 text-xs font-bold tracking-[0.22em] text-gold">ÜYE</p>
         <h1 className="font-display text-4xl font-extrabold">{user.username}</h1>
+        <nav className="mt-3 flex flex-wrap gap-2 text-sm font-semibold">
+          <a href="#bakiye" className="text-gold">Bakiye</a>
+          {member && <a href="#kart-ver" className="text-gold">Kart ver</a>}
+          {member && <a href="#aktarim" className="text-gold">Aktarım</a>}
+          <a href="#kartlar" className="text-gold">Kartlar</a>
+          <a href="#islemler" className="text-gold">İşlemler</a>
+        </nav>
         <p className="mt-1 text-white/70">{user.name}</p>
         <p className="mt-1 text-sm text-white/70">Adres {user.address.trim() ? user.address : "yazılmadı"}</p>
         <p className="mt-2 font-mono text-sm text-white/70">Hesap no {user.id}</p>
@@ -67,7 +74,7 @@ export default function AdminUserPage() {
       </div>
       <Notice code={query.get("bildirim") || undefined} />
 
-      <section className="glass rounded-[28px] p-5">
+      <section id="bakiye" className="glass scroll-mt-24 rounded-[28px] p-5">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-white/45">Bakiye</p>
@@ -112,7 +119,7 @@ export default function AdminUserPage() {
         </div>
       )}
 
-      <section className="grid gap-3">
+      <section id="kartlar" className="grid scroll-mt-24 gap-3">
         <h2 className="font-display text-2xl font-bold">Kartlar</h2>
         {cards.length === 0 && <p className="text-sm text-white/55">Bu hesapta kart yok.</p>}
         {cards.map((card) => (
@@ -184,7 +191,7 @@ export default function AdminUserPage() {
         )}
       </section>
 
-      <section className="grid gap-3">
+      <section id="islemler" className="grid scroll-mt-24 gap-3">
         <h2 className="font-display text-2xl font-bold">İşlemler</h2>
         {txs.length === 0 && <p className="text-sm text-white/55">İşlem yok.</p>}
         {txs.map((entry) => (

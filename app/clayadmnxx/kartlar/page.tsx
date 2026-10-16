@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminCardOps } from "@/components/admin-member-tools";
 import { adminCardAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
@@ -27,10 +27,22 @@ const TABS = [
 
 export default function AdminCardsPage() {
   const query = useQuery();
+  const highlight = query?.get("vurgu") ?? null;
+  const sekme = query?.get("sekme") ?? null;
   const [tab, setTab] = useState<(typeof TABS)[number][0]>("acik");
   const [ask, setAsk] = useState<string | null>(null);
+  useEffect(() => {
+    const card = highlight ? snapshot().cards.find((row) => row.id === highlight) : undefined;
+    if (card?.status === "donduruldu") setTab("donuk");
+    else if (card?.status === "kapali") setTab("kapali");
+    else if (card) setTab("acik");
+    else if (sekme === "donuk" || sekme === "kapali" || sekme === "acik") setTab(sekme);
+  }, [highlight, sekme]);
+  useEffect(() => {
+    if (!highlight) return;
+    document.getElementById(highlight)?.scrollIntoView({ block: "center" });
+  }, [highlight, tab]);
   if (!query) return <Boot />;
-  const highlight = query.get("vurgu");
   const db = snapshot();
   const rank = { hazirlaniyor: 0, aktif: 1, donduruldu: 2, kapali: 3 };
   const cards = [...db.cards].sort(
@@ -77,7 +89,8 @@ export default function AdminCardsPage() {
           return (
             <article
               key={card.id}
-              className={`order-slip ${highlight === card.id ? "ring-2 ring-gold" : ""}`}
+              id={card.id}
+              className={`order-slip scroll-mt-24 ${highlight === card.id ? "ring-2 ring-gold" : ""}`}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
               <div>

@@ -1,22 +1,35 @@
 import type { CardTypeId, PlanId, SiteSettings, TxKind } from "./types";
 
-export const TEST_BIN = "";
-/** Owner-supplied Kripicard service BIN. The only BIN this site ships. */
-export const SERVICE_BIN = "537872";
+export const TEST_BIN = "400000";
 /** How long a new card stays on the order slip before it becomes active. */
 export const CARD_PREP_MS = 15_000;
+/**
+ * Fixed selling rate, 15 Eki 2026. Not a live feed.
+ * One US dollar converts to this many lira. Amounts are entered in dollars.
+ * The screen shows only that conversion.
+ */
+export const USD_SELL_RATE = 49.3929;
+export const USD_RATE_AS_OF = "15 Eki 2026";
 
-/** USD only. A stored quote is ignored so lira rates cannot change balances. */
-export function bindFx(_fx?: { rate?: number; asOf?: string } | null) {}
+let activeRate = USD_SELL_RATE;
+let activeAsOf = "";
+
+export function bindFx(fx?: { rate?: number; asOf?: string } | null) {
+  const rate = Number(fx?.rate);
+  if (Number.isFinite(rate) && rate > 1 && rate < 500) {
+    activeRate = rate;
+    activeAsOf = typeof fx?.asOf === "string" ? fx.asOf : "";
+  }
+}
 
 export function fxRate(): number {
-  return 1;
+  return activeRate;
 }
 
 export function fxAsOf(): string {
-  return "";
+  return activeAsOf;
 }
-export const WELCOME_USD_MINOR = 0;
+export const WELCOME_USD_MINOR = 3_000;
 export const MIN_USD_MINOR = 100;
 export const MAX_USD_MINOR = 500_000;
 export const MAX_BALANCE_USD_MINOR = 2_000_000;
@@ -25,22 +38,11 @@ export const MAX_SPEND_USD_MINOR = 200_000;
 export const MIN_LIMIT_USD_MINOR = 1_000;
 export const MAX_LIMIT_USD_MINOR = 1_000_000;
 export const MIN_TRANSFER_USD_MINOR = 100;
-/** Kripicard publishes no card-to-card transfer fee, so none is added. */
-export const TRANSFER_FEE_PERCENT = 0;
-/**
- * Opening shelf is 750 TL, not 750 USD.
- * Frankfurter 2026-10-16: 1 USD = 49.527 TRY.
- * 750 / 49.527 = 15.1426… USD, rounded to cents: $15.14.
- */
-export const ISSUE_FX_RATE = 49.527;
-export const ISSUE_FEE_KURUS = 1_514;
-export const OPENING_FEE_NOTE = "750 TL = $15.14 · kur 1 USD = 49,527 TL · Frankfurter · 16 Eki 2026";
-/**
- * Kripicard funding fee is 4% (home.kripicard.com/fees). 12% on that fee is 4.48%.
- * Processing fee is $1; 12% on it is $1.12, charged on top of a card load.
- */
-export const LOAD_FEE_PERCENT = 4.48;
-export const FUND_PROCESSING_USD_MINOR = 112;
+export const TRANSFER_FEE_PERCENT = 4;
+/** Card price, exactly 750₺. Not converted from dollars. */
+export const ISSUE_FEE_KURUS = 75_000;
+/** Cut when money moves from the main balance onto a card. */
+export const LOAD_FEE_PERCENT = 7.3;
 
 export function loadFeeAt(percent: number, amount: number): number {
   return Math.round((amount * Math.round(percent * 100)) / 10_000);
@@ -57,12 +59,6 @@ export function transferFee(amount: number): number {
 /** Largest dollar entry that still fits the card ceiling after the transfer cut. */
 export function allTransferInput(kalanKurus: number, percent: number): string {
   let cents = kurusToUsdMinor(kalanKurus);
-  if (percent <= 0) {
-    if (cents < MIN_TRANSFER_USD_MINOR || cents > kalanKurus) return "";
-    const whole = Math.floor(cents / 100);
-    const frac = String(cents % 100).padStart(2, "0");
-    return `${whole},${frac}`;
-  }
   let guard = 0;
   while (cents >= MIN_TRANSFER_USD_MINOR && guard < 40) {
     guard += 1;
@@ -83,11 +79,11 @@ export function loadFee(amount: number): number {
 }
 
 export function usdMinorToKurus(minor: number): number {
-  return Math.round(minor);
+  return Math.round(minor * activeRate);
 }
 
 export function kurusToUsdMinor(kurus: number): number {
-  return Math.round(kurus);
+  return Math.round(kurus / activeRate);
 }
 
 export const WELCOME_BONUS_KURUS = usdMinorToKurus(WELCOME_USD_MINOR);
@@ -146,26 +142,26 @@ export const PLANS: Record<
   kivilcim: {
     name: "Clay Bronze",
     metal: "bronze",
-    priceUsdMinor: 4_900,
+    priceUsdMinor: 1_000,
     period: "ay",
     cardLimit: 2,
-    blurb: "Ayda 49 USD. En fazla 2 kart. Her kartın açılışı 750 TL = $15.14.",
+    blurb: "En fazla 2 kart. Her kart 750₺. İkisinden fazlası için plan yükselir.",
   },
   atolye: {
     name: "Clay Silver",
     metal: "silver",
-    priceUsdMinor: 14_900,
+    priceUsdMinor: 2_500,
     period: "ay",
     cardLimit: 8,
-    blurb: "Ayda 149 USD. En fazla 8 kart. Her kartın açılışı 750 TL = $15.14.",
+    blurb: "En fazla 8 kart. Her kart 750₺. Bronze dolunca buraya geçilir.",
   },
   galeri: {
     name: "Clay Gold",
     metal: "gold",
-    priceUsdMinor: 39_900,
+    priceUsdMinor: 5_000,
     period: "ay",
     cardLimit: 25,
-    blurb: "Ayda 399 USD. En fazla 25 kart. Her kartın açılışı 750 TL = $15.14.",
+    blurb: "En fazla 25 kart. Her kart 750₺. Bu sayının üstü açılmaz.",
   },
 };
 
@@ -259,7 +255,7 @@ export const NOTICES: Record<string, string> = {
   yenilendi: "Kullanılabilir bakiye yenilendi. Harcama sayacı sıfırlandı. Cüzdan tutarı değişmedi.",
   transfer: "Kullanılabilir bakiye aktarıldı. Karşı karta %4 komisyon kesildi. Ana bakiye değişmedi.",
   "ana-hesap": "Ana hesaba aktarıldı. Tutar karttan ana bakiyeye yazıldı. Komisyon yok.",
-  yuklendi_kart: "Karta tutar yazıldı. Üzerine %4,48 fonlama ve 1,12 USD işlem ücreti eklendi.",
+  yuklendi_kart: "Hesaptan karta yükleme yazıldı. %7,3 komisyon kesildi. Ana bakiyeye bu kesinti uygulanmaz.",
   iade: "İade cüzdana ve kullanılabilir bakiyeye işlendi.",
   ad: "Görünen ad güncellendi.",
   adres: "Kart adresi güncellendi. Yalnızca bu hesabın kart detaylarında görünür.",

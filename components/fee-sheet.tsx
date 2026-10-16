@@ -1,4 +1,4 @@
-import { OPENING_FEE_NOTE, usdMinorToKurus } from "@/lib/catalog";
+import { usdMinorToKurus } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
 import type { SiteSettings } from "@/lib/types";
 
@@ -34,7 +34,7 @@ export function packageLines(
     {
       label: "Basım ücreti",
       value: issue,
-      note: `Kartı oluşturunca hesaptan bir kez kesilir. Bu tutar karta yazılmaz. ${OPENING_FEE_NOTE}`,
+      note: "Kartı oluşturunca hesaptan bir kez kesilir. Bu tutar karta yazılmaz.",
     },
     {
       label: "Yükleme komisyonu",

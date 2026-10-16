@@ -55,7 +55,12 @@ function clay_iso(int $ms): string
 
 function clay_fx_rate(): float
 {
-    return 1.0;
+    global $CLAY_FX_RATE;
+    $rate = isset($CLAY_FX_RATE) ? (float) $CLAY_FX_RATE : 49.3929;
+    if ($rate <= 1 || $rate >= 500) {
+        return 49.3929;
+    }
+    return $rate;
 }
 
 function clay_fx_asof(): string
@@ -145,8 +150,42 @@ function clay_fx_tcmb(): ?array
 
 function clay_fx_sync(array &$db): bool
 {
-    unset($db);
-    return false;
+    $dirty = false;
+    if (!isset($db["settings"]["fx"]) || !is_array($db["settings"]["fx"])) {
+        $db["settings"]["fx"] = ["rate" => 49.3929, "asOf" => "", "source" => "yedek", "fetchedAt" => ""];
+        $dirty = true;
+    }
+    clay_fx_apply($db);
+    $fx = $db["settings"]["fx"];
+    $fetchedRaw = (string) ($fx["fetchedAt"] ?? "");
+    $fetched = preg_match("/^\\d{4}-\\d{2}-\\d{2}T/", $fetchedRaw) ? clay_ms($fetchedRaw) : 0;
+    $now = (int) round(microtime(true) * 1000);
+    if ($fetched > 0 && ($now - $fetched) < 20 * 60 * 1000 && (float) ($fx["rate"] ?? 0) > 1) {
+        return $dirty;
+    }
+    $quote = clay_fx_frankfurter();
+    if ($quote === null) {
+        $quote = clay_fx_tcmb();
+    }
+    if ($quote === null) {
+        if (!isset($fx["rate"]) || !is_numeric($fx["rate"]) || (float) $fx["rate"] <= 1) {
+            $db["settings"]["fx"]["rate"] = 49.3929;
+            $db["settings"]["fx"]["asOf"] = "";
+            $db["settings"]["fx"]["source"] = "yedek";
+            $dirty = true;
+        }
+        $db["settings"]["fx"]["fetchedAt"] = clay_now();
+        clay_fx_apply($db);
+        return true;
+    }
+    $db["settings"]["fx"] = [
+        "rate" => $quote["rate"],
+        "asOf" => $quote["asOf"],
+        "source" => $quote["source"],
+        "fetchedAt" => clay_now(),
+    ];
+    clay_fx_apply($db);
+    return true;
 }
 
 function clay_kurus(int $minor): int
@@ -166,7 +205,7 @@ function clay_tl(int $kurus): string
     $neg = $kurus < 0;
     $abs = abs($kurus);
     $text = number_format(intdiv($abs, 100), 0, ",", ".") . "," . str_pad((string) ($abs % 100), 2, "0", STR_PAD_LEFT);
-    return ($neg ? "-" : "") . "$" . $text;
+    return ($neg ? "-" : "") . "₺" . $text;
 }
 
 function clay_usd(int $minor): string
@@ -189,12 +228,6 @@ function clay_percent(float $value): string
 function clay_load_fee(float $percent, int $amount): int
 {
     return (int) round(($amount * (int) round($percent * 100)) / 10000);
-}
-
-/** $1 processing fee plus 12% = $1.12, charged on top of a card load. */
-function clay_processing_fee(): int
-{
-    return 112;
 }
 
 function clay_xfer_fee(float $percent, int $amount): int
@@ -480,27 +513,27 @@ function clay_merchants(string $type): array
 function clay_default_settings(): array
 {
     return [
-        "issueFeeKurus" => 1514,
-        "loadFeePercent" => 4.48,
-        "transferFeePercent" => 0.0,
+        "issueFeeKurus" => 75000,
+        "loadFeePercent" => 7.3,
+        "transferFeePercent" => 4.0,
         "plans" => [
             "kivilcim" => [
                 "name" => "Clay Bronze",
-                "priceUsdMinor" => 4900,
+                "priceUsdMinor" => 1000,
                 "cardLimit" => 2,
-                "blurb" => "Ayda 49 USD. En fazla 2 kart. Her kartın açılışı 750 TL = $15.14.",
+                "blurb" => "En fazla 2 kart. Her kart 750₺. İkisinden fazlası için plan yükselir.",
             ],
             "atolye" => [
                 "name" => "Clay Silver",
-                "priceUsdMinor" => 14900,
+                "priceUsdMinor" => 2500,
                 "cardLimit" => 8,
-                "blurb" => "Ayda 149 USD. En fazla 8 kart. Her kartın açılışı 750 TL = $15.14.",
+                "blurb" => "En fazla 8 kart. Her kart 750₺. Bronze dolunca buraya geçilir.",
             ],
             "galeri" => [
                 "name" => "Clay Gold",
-                "priceUsdMinor" => 39900,
+                "priceUsdMinor" => 5000,
                 "cardLimit" => 25,
-                "blurb" => "Ayda 399 USD. En fazla 25 kart. Her kartın açılışı 750 TL = $15.14.",
+                "blurb" => "En fazla 25 kart. Her kart 750₺. Bu sayının üstü açılmaz.",
             ],
         ],
         "telegram" => "",
@@ -596,7 +629,7 @@ function clay_sweep_fees(array &$db): bool
 {
     $now = (int) round(microtime(true) * 1000);
     $step = 30 * 86400000;
-    $fee = (int) ($db["settings"]["issueFeeKurus"] ?? 1514);
+    $fee = (int) ($db["settings"]["issueFeeKurus"] ?? 75000);
     $dirty = false;
     foreach ($db["cards"] as $i => $card) {
         if (($card["status"] ?? "") === "kapali") {
@@ -1079,33 +1112,10 @@ function clay_normalize(array &$db): bool
             $db["settings"]["copy"] = [];
             $dirty = true;
         }
-        $openNow = (int) $db["settings"]["issueFeeKurus"];
-        if ($openNow === 30000 || $openNow === 75000) {
-            $db["settings"]["issueFeeKurus"] = 1514;
-            $dirty = true;
-        }
-        if ((float) $db["settings"]["loadFeePercent"] == 7.3) {
-            $db["settings"]["loadFeePercent"] = 4.48;
-            $dirty = true;
-        }
-        if ((float) $db["settings"]["transferFeePercent"] == 4.0) {
-            $db["settings"]["transferFeePercent"] = 0.0;
-            $dirty = true;
-        }
-        $oldPlanPrice = ["kivilcim" => 1000, "atolye" => 2500, "galeri" => 5000];
         foreach (["kivilcim", "atolye", "galeri"] as $id) {
             $row = $db["settings"]["plans"][$id] ?? null;
             if (!is_array($row) || !isset($row["name"], $row["priceUsdMinor"], $row["cardLimit"], $row["blurb"])) {
                 $db["settings"]["plans"][$id] = $fresh["plans"][$id];
-                $dirty = true;
-                continue;
-            }
-            if ((int) $row["priceUsdMinor"] === $oldPlanPrice[$id]) {
-                $db["settings"]["plans"][$id]["priceUsdMinor"] = $fresh["plans"][$id]["priceUsdMinor"];
-                $db["settings"]["plans"][$id]["blurb"] = $fresh["plans"][$id]["blurb"];
-                $dirty = true;
-            } elseif (is_string($row["blurb"] ?? null) && str_contains((string) $row["blurb"], "750 USD")) {
-                $db["settings"]["plans"][$id]["blurb"] = $fresh["plans"][$id]["blurb"];
                 $dirty = true;
             }
         }
@@ -1248,12 +1258,23 @@ function clay_normalize(array &$db): bool
     $db["bins"] = $bins;
     foreach ($db["bins"] as $i => $row) {
         $digits = (string) ($row["digits"] ?? "");
-        if (!preg_match("/^\\d{4,8}$/", $digits) || $digits === "400000" || $digits === "411111") {
+        if (!preg_match("/^\\d{4,8}$/", $digits)) {
             unset($db["bins"][$i]);
             $dirty = true;
         }
     }
     $db["bins"] = array_values($db["bins"]);
+    if ((int) ($db["settings"]["issueFeeKurus"] ?? 0) === 30000) {
+        $db["settings"]["issueFeeKurus"] = 75000;
+        $dirty = true;
+    }
+    foreach (["kivilcim", "atolye", "galeri"] as $planId) {
+        $blurb = (string) ($db["settings"]["plans"][$planId]["blurb"] ?? "");
+        if (str_contains($blurb, "300₺")) {
+            $db["settings"]["plans"][$planId]["blurb"] = str_replace("300₺", "750₺", $blurb);
+            $dirty = true;
+        }
+    }
     foreach (["facebook_ads", "tiktok", "google_ads", "ultima"] as $type) {
         $found = false;
         foreach ($db["bins"] as $row) {
@@ -1284,7 +1305,7 @@ function clay_normalize(array &$db): bool
     }
     if ($db["orders"] === []) {
         foreach ($db["cards"] as $card) {
-            $fee = 1514;
+            $fee = 75000;
             foreach ($db["transactions"] as $entry) {
                 if (($entry["cardId"] ?? "") === $card["id"] && ($entry["kind"] ?? "") === "basim") {
                     $fee = abs((int) $entry["amount"]);
@@ -1714,6 +1735,11 @@ function clay_issuer_id(array $card): string
     return $id;
 }
 
+function clay_issuer_act(array $card, string $action): ?array
+{
+    return null;
+}
+
 function clay_issuer_close(array $card): ?array
 {
     $id = clay_issuer_id($card);
@@ -1943,7 +1969,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
                 return clay_fail("e-var");
             }
         }
-        $bonus = 0;
+        $bonus = clay_kurus(3000);
         $id = "usr_" . clay_rid();
         $record = [
             "id" => $id,
@@ -1986,8 +2012,20 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             clay_answer_put($record, $answer);
         }
         $db["users"][] = $record;
-        $open = (int) ($db["settings"]["issueFeeKurus"] ?? 1514);
-        clay_notice($db, $id, "Hoş geldin", "Hesap açıldı. Başlangıç bakiyesi " . clay_tl(0) . ". Kart açılışı " . clay_tl($open) . ". 750 TL = $15.14 · kur 1 USD = 49,527 TL · Frankfurter · 16 Eki 2026.");
+        $db["transactions"][] = [
+            "id" => "tx_" . clay_rid(),
+            "userId" => $id,
+            "cardId" => null,
+            "kind" => "yukleme",
+            "title" => "Hoş geldin bakiyesi",
+            "note" => "30 USD kur karşılığı. " . clay_fx_note() . ".",
+            "amount" => $bonus,
+            "usdMinor" => 3000,
+            "status" => "tamamlandi",
+            "createdAt" => clay_now(),
+            "ref" => null,
+        ];
+        clay_notice($db, $id, "Hoş geldin", clay_tl($bonus) . " bakiyen hazır. İlk kartını basabilirsin.");
         session_regenerate_id(true);
         $_SESSION["uid"] = $id;
         return clay_ok("ok");
@@ -2200,11 +2238,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
                 return clay_fail("e-kripicard-tutar", "Kripicard tutarı en az 10 USD olmalı.");
             }
             $gross = clay_kurus($cents);
-            $percent = (float) $db["settings"]["loadFeePercent"];
-            $commission = clay_load_fee($percent, $gross);
-            $processing = clay_processing_fee();
-            $due = $gross + $commission + $processing;
-            if ($db["users"][$userIndex]["balance"] < $due) {
+            if ($db["users"][$userIndex]["balance"] < $gross) {
                 return clay_fail("e-bakiye");
             }
             if ($card["limit"] + $gross > clay_max_limit()) {
@@ -2223,9 +2257,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
                 }
             }
             $gross = clay_kurus($landedCents);
-            $commission = clay_load_fee($percent, $gross);
-            $due = $gross + $commission + $processing;
-            $db["users"][$userIndex]["balance"] -= $due;
+            $db["users"][$userIndex]["balance"] -= $gross;
             $db["cards"][$cardIndex]["limit"] += $gross;
             $db["transactions"][] = [
                 "id" => "tx_" . clay_rid(),
@@ -2233,46 +2265,45 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
                 "cardId" => $card["id"],
                 "kind" => "yukleme",
                 "title" => "Karta yükleme · " . $card["label"],
-                "note" => "Karta " . clay_tl($gross) . " yazıldı. Fonlama %" . clay_percent($percent) . " (" . clay_tl($commission) . ") ve işlem " . clay_tl($processing) . ". Hesaptan " . clay_tl($due) . " düştü.",
-                "amount" => -$due,
-                "usdMinor" => -($landedCents + $commission + $processing),
+                "note" => "Kripicard kartına " . clay_usd($landedCents) . " yüklendi. Yükleme komisyonu alınmadı. Hesaptan " . clay_tl($gross) . " düştü.",
+                "amount" => -$gross,
+                "usdMinor" => -$landedCents,
                 "status" => "tamamlandi",
                 "createdAt" => clay_now(),
                 "ref" => null,
             ];
-            clay_notice($db, $me["id"], "Karta yükleme düştü", $card["label"] . " kartına " . clay_usd($landedCents) . " yazıldı. Fonlama " . clay_tl($commission) . ", işlem " . clay_tl($processing) . ". Hesaptan " . clay_tl($due) . " düştü. Kalan bakiye " . clay_tl($db["users"][$userIndex]["balance"]) . ".");
+            clay_notice($db, $me["id"], "Karta yükleme düştü", $card["label"] . " kartına " . clay_usd($landedCents) . " yazıldı. Yükleme komisyonu yok. Hesaptan " . clay_tl($gross) . " düştü. Kalan bakiye " . clay_tl($db["users"][$userIndex]["balance"]) . ".");
             return clay_ok("yuklendi_kart");
         }
         $gross = clay_kurus($cents);
         $percent = (float) $db["settings"]["loadFeePercent"];
         $commission = clay_load_fee($percent, $gross);
-        $processing = clay_processing_fee();
-        $due = $gross + $commission + $processing;
-        if ($gross < 1) {
+        $net = $gross - $commission;
+        if ($net < 1) {
             return clay_fail("e-tutar");
         }
-        if ($db["users"][$userIndex]["balance"] < $due) {
+        if ($db["users"][$userIndex]["balance"] < $gross) {
             return clay_fail("e-bakiye");
         }
-        if ($card["limit"] + $gross > clay_max_limit()) {
+        if ($card["limit"] + $net > clay_max_limit()) {
             return clay_fail("e-limit");
         }
-        $db["users"][$userIndex]["balance"] -= $due;
-        $db["cards"][$cardIndex]["limit"] += $gross;
+        $db["users"][$userIndex]["balance"] -= $gross;
+        $db["cards"][$cardIndex]["limit"] += $net;
         $db["transactions"][] = [
             "id" => "tx_" . clay_rid(),
             "userId" => $me["id"],
             "cardId" => $card["id"],
             "kind" => "yukleme",
             "title" => "Karta yükleme · " . $card["label"],
-                "note" => "Karta " . clay_tl($gross) . " yazıldı. Fonlama %" . clay_percent($percent) . " (" . clay_tl($commission) . ") ve işlem " . clay_tl($processing) . ". Hesaptan " . clay_tl($due) . " düştü.",
-                "amount" => -$due,
+            "note" => "Hesaptan " . clay_tl($gross) . " ayrıldı. %" . clay_percent($percent) . " komisyon " . clay_tl($commission) . ". Karta " . clay_tl($net) . " yazıldı.",
+            "amount" => -$gross,
             "usdMinor" => -$cents,
             "status" => "tamamlandi",
             "createdAt" => clay_now(),
             "ref" => null,
         ];
-        clay_notice($db, $me["id"], "Karta yükleme düştü", $card["label"] . " kartına " . clay_tl($gross) . " yazıldı. Fonlama " . clay_tl($commission) . ", işlem " . clay_tl($processing) . ". Hesaptan " . clay_tl($due) . " düştü. Kalan bakiye " . clay_tl($db["users"][$userIndex]["balance"]) . ".");
+        clay_notice($db, $me["id"], "Karta yükleme düştü", $card["label"] . " kartına " . clay_tl($net) . " yazıldı. Hesaptan " . clay_tl($gross) . " düştü, komisyon " . clay_tl($commission) . ". Kalan bakiye " . clay_tl($db["users"][$userIndex]["balance"]) . ".");
         return clay_ok("yuklendi_kart");
     }
 
@@ -2289,6 +2320,10 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             if ($db["cards"][$cardIndex]["status"] !== "aktif") {
                 return clay_fail("e-durum");
             }
+            $gate = clay_issuer_act($db["cards"][$cardIndex], "freeze");
+            if ($gate) {
+                return $gate;
+            }
             $db["cards"][$cardIndex]["status"] = "donduruldu";
             clay_notice($db, $me["id"], "Kart donduruldu", $db["cards"][$cardIndex]["label"] . " donduruldu. Harcama kapalı. Kartı aktif et dersen yeniden açılır.");
             return clay_ok("donduruldu");
@@ -2296,6 +2331,10 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if ($mode === "coz") {
             if ($db["cards"][$cardIndex]["status"] !== "donduruldu") {
                 return clay_fail("e-durum");
+            }
+            $gate = clay_issuer_act($db["cards"][$cardIndex], "unfreeze");
+            if ($gate) {
+                return $gate;
             }
             $db["cards"][$cardIndex]["status"] = "aktif";
             clay_notice($db, $me["id"], "Kart aktif", $db["cards"][$cardIndex]["label"] . " yeniden açık. Harcama devam edebilir.");
@@ -2319,6 +2358,12 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         }
         if ($db["users"][$userIndex]["balance"] < $fee) {
             return clay_fail("e-bakiye");
+        }
+        if ($status === "donduruldu") {
+            $gate = clay_issuer_act($db["cards"][$cardIndex], "unfreeze");
+            if ($gate) {
+                return $gate;
+            }
         }
         $db["users"][$userIndex]["balance"] -= $fee;
         $db["cards"][$cardIndex]["status"] = "aktif";
@@ -2355,17 +2400,23 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if ($action === "cancel" && $status !== "hazirlaniyor") {
             return clay_fail("e-durum");
         }
-        $code = clay_shut_card($db, $userIndex, $cardIndex, $action === "cancel" ? "cancel" : "close");
-        if (is_array($code)) {
-            return $code;
-        }
-        if ($code === "tavan") {
+        $refund = clay_refund_fee($db, $userIndex, $db["cards"][$cardIndex]);
+        if ($refund === "tavan") {
             return clay_fail("e-tavan");
         }
-        if ($code !== "ok") {
-            return clay_fail("e-durum");
+        $gate = clay_issuer_close($db["cards"][$cardIndex]);
+        if ($gate) {
+            return $gate;
         }
+        $db["cards"][$cardIndex]["status"] = "kapali";
+        $db["cards"][$cardIndex]["readyAt"] = null;
         if ($action === "cancel") {
+            foreach ($db["orders"] as $n => $order) {
+                if (($order["cardId"] ?? "") === $db["cards"][$cardIndex]["id"]) {
+                    $db["orders"][$n]["status"] = "iptal";
+                    $db["orders"][$n]["readyAt"] = null;
+                }
+            }
             clay_notice($db, $me["id"], "Sipariş iptal edildi", $db["cards"][$cardIndex]["label"] . " siparişi iptal edildi. Basım ücreti bakiyeye döndü.");
             return clay_ok("iptal");
         }
@@ -2545,7 +2596,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         $percent = (float) $db["settings"]["transferFeePercent"];
         $fee = clay_xfer_fee($percent, $amount);
         $credit = $amount - $fee;
-        if ($credit < 1 || ($percent > 0 && $fee < 1)) {
+        if ($fee < 1 || $credit < 1) {
             return clay_fail("e-transfer");
         }
         $source = $db["cards"][$sourceIndex];
@@ -2793,6 +2844,10 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             if ($db["cards"][$cardIndex]["status"] !== "aktif") {
                 return clay_fail("e-durum");
             }
+            $gate = clay_issuer_act($db["cards"][$cardIndex], "freeze");
+            if ($gate) {
+                return $gate;
+            }
             $db["cards"][$cardIndex]["status"] = "donduruldu";
             clay_notice($db, $db["cards"][$cardIndex]["userId"], "Kart donduruldu", $db["cards"][$cardIndex]["label"] . " donduruldu. Harcama kapalı. Kartı aktif et dersen yeniden açılır.");
             return clay_ok("donduruldu");
@@ -2800,6 +2855,10 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if ($mode === "coz") {
             if ($db["cards"][$cardIndex]["status"] !== "donduruldu") {
                 return clay_fail("e-durum");
+            }
+            $gate = clay_issuer_act($db["cards"][$cardIndex], "unfreeze");
+            if ($gate) {
+                return $gate;
             }
             $db["cards"][$cardIndex]["status"] = "aktif";
             clay_notice($db, $db["cards"][$cardIndex]["userId"], "Kart aktif", $db["cards"][$cardIndex]["label"] . " yeniden açık. Harcama devam edebilir.");
@@ -2947,6 +3006,17 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         $was = $db["cards"][$cardIndex]["status"];
         if ($was !== "kapali" && $status === "kapali") {
             $gate = clay_issuer_close($db["cards"][$cardIndex]);
+            if ($gate) {
+                return $gate;
+            }
+        }
+        if ($was !== "donduruldu" && $status === "donduruldu") {
+            $gate = clay_issuer_act($db["cards"][$cardIndex], "freeze");
+            if ($gate) {
+                return $gate;
+            }
+        } elseif ($was === "donduruldu" && $status === "aktif") {
+            $gate = clay_issuer_act($db["cards"][$cardIndex], "unfreeze");
             if ($gate) {
                 return $gate;
             }
@@ -3256,16 +3326,16 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if ($owner < 0 || $status === "kapali" || $status === "hazirlaniyor") {
             return clay_fail("e-durum");
         }
-        $code = clay_shut_card($db, $owner, $cardIndex, "close");
-        if (is_array($code)) {
-            return $code;
-        }
-        if ($code === "tavan") {
+        $refund = clay_refund_fee($db, $owner, $db["cards"][$cardIndex]);
+        if ($refund === "tavan") {
             return clay_fail("e-tavan");
         }
-        if ($code !== "ok") {
-            return clay_fail("e-durum");
+        $gate = clay_issuer_close($db["cards"][$cardIndex]);
+        if ($gate) {
+            return $gate;
         }
+        $db["cards"][$cardIndex]["status"] = "kapali";
+        $db["cards"][$cardIndex]["readyAt"] = null;
         clay_notice($db, $db["cards"][$cardIndex]["userId"], "Kart kapatıldı", $db["cards"][$cardIndex]["label"] . " yönetim masasında kapatıldı. Basım ücreti bakiyeye geri yazıldı.");
         return clay_ok("kapatildi");
     }
@@ -3307,7 +3377,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         $percent = (float) $db["settings"]["transferFeePercent"];
         $fee = clay_xfer_fee($percent, $amount);
         $credit = $amount - $fee;
-        if ($credit < 1 || ($percent > 0 && $fee < 1)) {
+        if ($fee < 1 || $credit < 1) {
             return clay_fail("e-transfer");
         }
         $source = $db["cards"][$sourceIndex];

@@ -1,8 +1,8 @@
 import { usdMinorToKurus } from "./catalog";
 
-const money = new Intl.NumberFormat("en-US", {
+const money = new Intl.NumberFormat("tr-TR", {
   style: "currency",
-  currency: "USD",
+  currency: "TRY",
   minimumFractionDigits: 2,
 });
 

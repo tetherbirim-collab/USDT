@@ -2,7 +2,7 @@
 
 CLAY, Facebook Ads, TikTok, Google Ads ve Ultima kartları için sanal kart panelidir. Tam ad **CLAY Sanal Kart Hizmetleri**.
 
-Tutar ve bakiye ABD dolarıdır. Bakiye yükleme Heleket faturası açar. Ödeme onaylanınca aynı USD tutarı bakiyeye yazılır.
+Tutar dolar olarak girilir. Bakiye yükleme Heleket faturası açar. Ödeme onaylanınca bakiyede canlı USD/TRY kurunun TL karşılığı durur. Kur Frankfurter veya TCMB’den alınır, defter ayarlarında saatle saklanır. Alınamazsa son iyi kur, o da yoksa 49,3929 kalır. Bu bakiye kart harcamasında kullanılır.
 
 Heleket anahtarları `heleket.config.php` içine yazılır. `merchant` Heleket ayarlarındaki UUID, `payment_key` ödeme API anahtarıdır. Ödeme anahtarı tarayıcıya gitmez. Dosya web’den kapalıdır. Anahtarlar boşsa yükleme sayfası fatura açmaz.
 
@@ -48,6 +48,6 @@ Her kart türünün listesinde etiket «Standart» ve rakam `400000` hazırdır.
 
 ## Kartlar
 
-Kart açılışı 750 TL. Frankfurter 16 Eki 2026 kuru 1 USD = 49,527 TL. Yuvarlanmış borç 15,14 USD. Kripicard fonlama ücreti %4, üzerine %12 ile %4,48. İşlem ücreti 1 USD, üzerine %12 ile 1,12 USD. Aktarım ve çekim için yayımlanmış Kripicard ücreti yoktur. Ana bakiyeye Heleket yüklemesinde bu kesintiler yoktur.
+Türler: Facebook Ads, TikTok, Google Ads ve Ultima. Kart bedeli 750₺. Karta ayrılan tutardan %7,3 komisyon kesilir. Kartlar arası aktarımda karşı karta %4 yazılır. Ana bakiyeye Heleket yüklemesinde bu komisyonlar yoktur.
 
 Numaralar `400000` öneki ile üretilir. Kartın ad yerinde, oluşturulurken verilen ad yazar. Harcama, basım ve yükleme yalnızca işlemi yapan kullanıcının bakiyesinden düşer.

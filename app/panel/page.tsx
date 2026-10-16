@@ -5,8 +5,8 @@ import { Notice } from "@/components/notice";
 import { SpendChart } from "@/components/spend-chart";
 import { VirtualCard } from "@/components/virtual-card";
 import { remainLeft, remainMood } from "@/lib/remain";
-import { OPENING_FEE_NOTE } from "@/lib/catalog";
-import { formatSigned, formatTL, formatWhen } from "@/lib/format";
+import { fxAsOf, fxRate } from "@/lib/catalog";
+import { formatRate, formatSigned, formatTL, formatWhen } from "@/lib/format";
 import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import { last7Spend, monthSpend, monthTopup } from "@/lib/stats";
 import { listCards, listNotices, listTransactions } from "@/lib/store";
@@ -35,7 +35,7 @@ export default function PanelHome() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">CÜZDAN</p>
         <h1 className="font-display mt-3 text-4xl font-extrabold sm:text-6xl">{formatTL(user.balance)}</h1>
         <p className="mt-2 max-w-lg text-white/70">
-          Bakiye ABD dolarıdır. {settings.plans?.[user.plan]?.name ?? "Plan"} planında {open}/{settings.plans?.[user.plan]?.cardLimit ?? 0} açık kart var. Kart açılışı {formatTL(settings.issueFeeKurus)}. {OPENING_FEE_NOTE}.
+          Dolar bakiyesinin canlı kur karşılığı. 1 USD = {formatRate(fxRate())} TL · {fxAsOf() ? formatWhen(fxAsOf()) : "yedek kur"}. {settings.plans?.[user.plan]?.name ?? "Plan"} planında {open}/{settings.plans?.[user.plan]?.cardLimit ?? 0} açık kart var.
         </p>
         {walletMood?.line && tightest && (
           <p className={`remain-note mt-4 max-w-lg ${walletMood.urgent ? "remain-note-hot" : ""}`}>

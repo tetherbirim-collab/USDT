@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { issueAction } from "@/lib/actions";
-import { CARD_TYPE_ORDER, CARD_TYPES, OPENING_FEE_NOTE } from "@/lib/catalog";
+import { CARD_TYPE_ORDER, CARD_TYPES } from "@/lib/catalog";
 import { formatTL, holderLine } from "@/lib/format";
 import { useSiteSettings } from "@/lib/live";
 import { networkOf, previewPan } from "@/lib/pan";
@@ -111,7 +111,7 @@ export function IssueForm({
                     />
                     <span className="font-semibold">{CARD_TYPES[id].name}</span>
                     <span className="mt-1 block text-sm text-white/60">{CARD_TYPES[id].pitch}</span>
-                    <span className="mt-1 block text-xs text-gold">Kart bedeli {formatTL(settings.issueFeeKurus)}. {OPENING_FEE_NOTE}</span>
+                    <span className="mt-1 block text-xs text-gold">Kart bedeli {formatTL(settings.issueFeeKurus)}</span>
                   </label>
                 ))}
               </div>
@@ -159,7 +159,7 @@ export function IssueForm({
                 <div className="fee-row">
                   <dt>
                     <span className="fee-label">Basım ücreti</span>
-                    <span className="fee-note">Kartı oluşturunca hesaptan bir kez kesilir. Karta yazılmaz. {OPENING_FEE_NOTE}</span>
+                    <span className="fee-note">Kartı oluşturunca hesaptan bir kez kesilir. Karta yazılmaz.</span>
                   </dt>
                   <dd className="fee-value fee-cut">{formatTL(settings.issueFeeKurus)}</dd>
                 </div>
@@ -196,12 +196,12 @@ export function IssueForm({
               <div>
                 <p className="text-xs font-bold tracking-[0.18em] text-gold">BIN SEÇ</p>
                 <p className="mt-2 text-sm text-white/65">
-                  Hizmet BIN’i 537872. Önizleme X ile durur; numara sağlayıcıdan gelmeden yazılmaz.
+                  Yönetim masasının bu türe eklediği satırlar. Satın alırken kalan haneler X durur. Örnek: 42330 seçilirse önizleme 4233 0XXX XXXX XXXX olur.
                 </p>
               </div>
               {choices.length === 0 ? (
                 <p className="rounded-2xl bg-black/30 px-3 py-3 text-sm text-white/75">
-                  Bu türde 537872 satırı yok. Yönetim BIN listesine yazınca burada görünür.
+                  Bu türün listesinde satır yok. Yönetim masası bir satır ekleyince burada görünür.
                 </p>
               ) : (
                 <fieldset className="grid gap-2">
@@ -250,8 +250,8 @@ export function IssueForm({
         />
         <p className="mt-3 text-sm text-white/60">
           {chosen
-            ? `${networkName} işareti bu BIN’e göre durur. Numara Kripicard döndürürse açılır. Yerel numara üretilmez.`
-            : "BIN seçilince önizleme X ile durur. Numara sağlayıcıdan gelmeden yazılmaz."}
+            ? `${networkName} işareti bu BIN’e göre durur. Satın alınca X’lerin yerine 16 hane yazılır.`
+            : "BIN seçilince önek kalır, kalan haneler X olur. Satın alınca numara açılır."}
         </p>
       </div>
     </form>

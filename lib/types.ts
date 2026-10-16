@@ -35,7 +35,7 @@ export type User = {
   securityQuestion?: string;
   securityAnswer?: string;
   balance: number;
-  /** Dollar pocket in US cents. The ledger balance is the same USD cents. */
+  /** Dollar pocket in US cents. Spending still uses the lira balance. */
   usdMinor: number;
   plan: PlanId;
   role: UserRole;

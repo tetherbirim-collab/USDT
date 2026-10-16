@@ -41,30 +41,13 @@ function clay_shut_card(array &$db, int $userIndex, int $cardIndex, string $mode
     if ($mode === "close" && ($status === "kapali" || $status === "hazirlaniyor")) {
         return "durum";
     }
-    $card = $db["cards"][$cardIndex];
-    $fee = 0;
-    foreach ($db["transactions"] as $entry) {
-        if (($entry["cardId"] ?? null) === ($card["id"] ?? null) && ($entry["kind"] ?? "") === "basim" && ($entry["status"] ?? "") === "tamamlandi" && ($entry["amount"] ?? 0) < 0) {
-            $fee = -((int) $entry["amount"]);
-            break;
-        }
-    }
-    foreach ($db["transactions"] as $entry) {
-        if (($entry["cardId"] ?? null) === ($card["id"] ?? null) && str_starts_with((string) ($entry["title"] ?? ""), "Basım iadesi")) {
-            $fee = 0;
-            break;
-        }
-    }
-    if ($fee > 0 && (int) $db["users"][$userIndex]["balance"] + $fee > clay_max_balance()) {
-        return "tavan";
-    }
-    $gate = clay_issuer_close($card);
-    if ($gate) {
-        return $gate;
-    }
     $refund = clay_refund_fee($db, $userIndex, $db["cards"][$cardIndex]);
     if ($refund === "tavan") {
         return "tavan";
+    }
+    $gate = clay_issuer_close($db["cards"][$cardIndex]);
+    if ($gate) {
+        return $gate;
     }
     $db["cards"][$cardIndex]["status"] = "kapali";
     $db["cards"][$cardIndex]["readyAt"] = null;
@@ -92,7 +75,7 @@ function clay_tx_find(array $db, string $id): int
 
 function clay_parse_tl(string $text): ?int
 {
-    if (!preg_match("/(?:₺|\\$)\\s*(-?)([0-9.]+),([0-9]{2})/u", $text, $match)) {
+    if (!preg_match("/₺\\s*(-?)([0-9.]+),([0-9]{2})/u", $text, $match)) {
         return null;
     }
     $kurus = ((int) str_replace(".", "", $match[2])) * 100 + (int) $match[3];
@@ -173,7 +156,7 @@ function clay_tx_undo(array &$db, int $txIndex): string
     if ($kind === "yukleme" && $cardIndex >= 0 && $amount < 0) {
         $gross = abs($amount);
         $net = null;
-        if (preg_match("/Karta\\s+((?:₺|\\$)\\s*-?[0-9.,]+)/u", (string) ($tx["note"] ?? ""), $match)) {
+        if (preg_match("/Karta\\s+(₺\\s*-?[0-9.,]+)/u", (string) ($tx["note"] ?? ""), $match)) {
             $net = clay_parse_tl($match[1]);
         }
         if ($net === null || $net < 1 || $net > $gross) {
@@ -441,6 +424,13 @@ function clay_desk_act(array &$db, ?array $me, string $action, array $in): ?arra
                 continue;
             }
             if ($mode === "dondur" && ($db["cards"][$cardIndex]["status"] ?? "") === "aktif") {
+                $gate = clay_issuer_act($db["cards"][$cardIndex], "freeze");
+                if ($gate) {
+                    if ($count > 0) {
+                        $gate["save"] = true;
+                    }
+                    return $gate;
+                }
                 $db["cards"][$cardIndex]["status"] = "donduruldu";
                 clay_notice($db, (string) $db["cards"][$cardIndex]["userId"], "Kart donduruldu", $db["cards"][$cardIndex]["label"] . " donduruldu. Harcama kapalı.");
                 $count++;

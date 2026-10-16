@@ -27,7 +27,7 @@ export default function AdminMembersPage() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">ÜYELER</p>
         <h1 className="font-display text-4xl font-extrabold">Üye listesi</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Bakiye ABD dolarıdır. Parola düz metin görünür. Kart dondurma Kartlar sekmesindedir.
+          Bakiye dolar olarak yazılır, ekranda canlı kurun TL karşılığı durur. Parola düz metin görünür. Kart dondurma Kartlar sekmesindedir.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} />

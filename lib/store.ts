@@ -1,6 +1,6 @@
-import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, SERVICE_BIN, bindFx, defaultSettings, merchantsFor, usdMinorToKurus } from "./catalog";
+import { CARD_PREP_MS, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, WELCOME_USD_MINOR, bindFx, defaultSettings, fxAsOf, fxRate, merchantsFor, usdMinorToKurus } from "./catalog";
 import { payoutNote } from "./coins";
-import { formatTL, formatUsd, holderLine, istanbulKey, orderCodeFrom } from "./format";
+import { formatRate, formatTL, formatUsd, holderLine, istanbulKey, orderCodeFrom } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
 import type { Card, CardTypeId, DB, Order, PublicUser, Tx, User } from "./types";
 
@@ -469,16 +469,11 @@ function createSeed(): DB {
 
   const db: DB = {
     users: [user, adminRecord()],
-    cards: [reklam, alisveris, abonelik, ultima].slice(0, 0),
-    transactions: transactions.slice(0, 0),
+    cards: [reklam, alisveris, abonelik, ultima],
+    transactions,
     notices: [],
     tickets: [],
-    bins: CARD_TYPE_ORDER.map((type) => ({
-      id: `bin_${SERVICE_BIN}_${type}`,
-      type,
-      label: SERVICE_BIN,
-      digits: SERVICE_BIN,
-    })),
+    bins: [],
     orders: [],
     payouts: [],
     settings: defaultSettings(),
@@ -932,17 +927,6 @@ function normalize(db: DB): DB {
       db.settings.transferFeePercent = fresh.transferFeePercent;
       dirty = true;
     }
-    if (db.settings.issueFeeKurus === 30_000 || db.settings.issueFeeKurus === 75_000) {
-      db.settings.issueFeeKurus = fresh.issueFeeKurus;
-      dirty = true;
-    }
-    for (const id of ["kivilcim", "atolye", "galeri"] as const) {
-      const row = db.settings.plans[id];
-      if (row && typeof row.blurb === "string" && row.blurb.includes("750 USD")) {
-        db.settings.plans[id] = { ...row, blurb: fresh.plans[id].blurb };
-        dirty = true;
-      }
-    }
     if (typeof db.settings.telegram !== "string") {
       db.settings.telegram = "";
       dirty = true;
@@ -1004,11 +988,22 @@ function normalize(db: DB): DB {
   db.cards = db.cards.filter((card) => kept.has(card.type));
   if (db.cards.length !== cardCount) dirty = true;
   const binCount = db.bins.length;
-  db.bins = db.bins.filter((row) => kept.has(row.type) && row.digits !== "400000" && row.digits !== "411111");
+  db.bins = db.bins.filter((row) => kept.has(row.type));
   if (db.bins.length !== binCount) dirty = true;
-  for (const type of CARD_TYPE_ORDER) {
-    if (!db.bins.some((row) => row.type === type && row.digits === SERVICE_BIN)) {
-      db.bins.push({ id: `bin_${SERVICE_BIN}_${type}`, type, label: SERVICE_BIN, digits: SERVICE_BIN });
+  if (db.settings.issueFeeKurus === 30_000) {
+    db.settings.issueFeeKurus = defaultSettings().issueFeeKurus;
+    dirty = true;
+  }
+  for (const id of ["kivilcim", "atolye", "galeri"] as const) {
+    const row = db.settings.plans[id];
+    if (row && typeof row.blurb === "string" && row.blurb.includes("300₺")) {
+      db.settings.plans[id] = { ...row, blurb: row.blurb.replaceAll("300₺", "750₺") };
+      dirty = true;
+    }
+  }
+  for (const type of ["facebook_ads", "tiktok", "google_ads", "ultima"] as const) {
+    if (!db.bins.some((row) => row.type === type && row.digits === "537872")) {
+      db.bins.push({ id: `bin_537872_${type}`, type, label: "537872", digits: "537872" });
       dirty = true;
     }
   }
@@ -1165,7 +1160,7 @@ export async function creditHeleketPayment(input: {
       cardId: null,
       kind: "yukleme",
       title: "Heleket yüklemesi",
-      note: `${formatUsd(input.cents)} Heleket ödemesi. Ana bakiyeye aynı USD tutarı yazıldı.`,
+      note: `${formatUsd(input.cents)} × ${formatRate(fxRate())} = ${formatTL(credit)}. Heleket ödemesi. Kur ${fxAsOf() || "yedek"}.`,
       amount: credit,
       usdMinor: input.cents,
       status: "tamamlandi",
@@ -1260,7 +1255,7 @@ export function createUser(input: {
             securityQuestion: input.securityQuestion,
             securityAnswer: input.securityAnswer,
           }),
-      balance: 0,
+      balance: usdMinorToKurus(WELCOME_USD_MINOR),
       usdMinor: 0,
       plan: "kivilcim",
       role: "uye",
@@ -1269,10 +1264,22 @@ export function createUser(input: {
       createdAt: new Date().toISOString(),
     };
     db.users.push(user);
+    db.transactions.push({
+      id: `tx_${rid()}`,
+      userId: user.id,
+      cardId: null,
+      kind: "yukleme",
+      title: "Hoş geldin bakiyesi",
+      note: `30 USD · 1 USD = ${fxRate().toFixed(4)} TL.`,
+      amount: usdMinorToKurus(WELCOME_USD_MINOR),
+      usdMinor: WELCOME_USD_MINOR,
+      status: "tamamlandi",
+      createdAt: new Date().toISOString(),
+    });
     pushNotice(db, {
       userId: user.id,
       title: "Hoş geldin",
-      body: "Hesap açıldı. Başlangıç bakiyesi $0.00. Kart açılışı 750 TL = $15.14. Kur 1 USD = 49,527 TL, Frankfurter, 16 Eki 2026.",
+      body: `${formatTL(usdMinorToKurus(WELCOME_USD_MINOR))} bakiyen hazır. İlk kartını basabilirsin.`,
     });
     return user;
   });

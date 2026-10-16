@@ -10,8 +10,9 @@
  * Freeze is not part of this contract.
  */
 
-const KRIPICARD_KEY_MISSING = "Kart sağlayıcı anahtarı yok. Yönetim ücretler ekranından Kripicard anahtarı yapıştırılmalı. Kart numarası üretilmedi.";
 const KRIPICARD_DEFAULT_BIN = "537872";
+
+const KRIPICARD_KEY_MISSING = "Kart sağlayıcı anahtarı yok. Yönetim ücretler ekranından Kripicard anahtarı yapıştırılmalı. Kart numarası üretilmedi.";
 
 function kripicard_config_path(): string
 {
@@ -195,9 +196,6 @@ function kripicard_request(string $endpoint, array $fields): array
         if ($message === "") {
             $message = "Kart sağlayıcı isteği kabul etmedi.";
         }
-        if ($code >= 400) {
-            $message .= " (" . $code . ")";
-        }
         return kripicard_fail($message);
     }
     return ["ok" => true, "message" => kripicard_redact((string) ($decoded["message"] ?? "")), "body" => $decoded, "http" => $code];
@@ -300,17 +298,25 @@ function kripicard_expiry($raw): string
 
 function kripicard_details(array $body): array
 {
-    $pan = kripicard_pan(kripicard_pick($body, ["card_number", "cardNumber", "card_no", "cardNo", "pan", "cc_number", "ccNumber"]));
-    $cvv = kripicard_cvv(kripicard_pick($body, ["cvv", "cvc", "card_cvv", "cardCvv", "CVV", "security_code", "securityCode"]));
-    $expiry = kripicard_expiry(kripicard_pick($body, ["expiry", "expiration", "exp", "card_expires", "cardExpires", "expiry_date", "expiryDate", "valid_thru", "validThru", "expiration_date"]));
+    $data = $body["data"] ?? [];
+    if (!is_array($data)) {
+        $data = [];
+    }
+    $details = $data["details"] ?? $data["Details"] ?? [];
+    if (!is_array($details)) {
+        $details = [];
+    }
+    $pan = kripicard_pan(kripicard_pick($details, ["card_number", "cardNumber", "card_no", "cardNo", "pan", "cc_number", "ccNumber"]));
+    $cvv = kripicard_cvv(kripicard_pick($details, ["cvv", "cvc", "card_cvv", "cardCvv", "CVV", "security_code", "securityCode"]));
+    $expiry = kripicard_expiry(kripicard_pick($details, ["expiry", "expiration", "exp", "card_expires", "cardExpires", "expiry_date", "expiryDate", "valid_thru", "validThru", "expiration_date"]));
     if ($expiry === "") {
-        $month = kripicard_pick($body, ["exp_month", "expMonth", "expiry_month", "expiryMonth"]);
-        $year = kripicard_pick($body, ["exp_year", "expYear", "expiry_year", "expiryYear"]);
+        $month = kripicard_pick($details, ["exp_month", "expMonth", "expiry_month", "expiryMonth"]);
+        $year = kripicard_pick($details, ["exp_year", "expYear", "expiry_year", "expiryYear"]);
         if ($month !== null && $year !== null) {
             $expiry = kripicard_expiry(str_pad((string) $month, 2, "0", STR_PAD_LEFT) . "/" . $year);
         }
     }
-    $balance = kripicard_pick($body, ["balance", "available_balance", "availableBalance", "card_balance", "cardBalance", "current_balance"]);
+    $balance = kripicard_pick($details, ["balance", "available_balance", "availableBalance", "card_balance", "cardBalance", "current_balance"]);
     $limit = 0;
     if (is_numeric($balance) && (float) $balance > 0 && function_exists("clay_kurus")) {
         $cents = (int) round(((float) $balance) * 100);
@@ -318,11 +324,22 @@ function kripicard_details(array $body): array
             $limit = clay_kurus($cents);
         }
     }
-    $last4 = kripicard_last4($body);
-    if ($last4 === "" && $pan !== "") {
-        $last4 = substr($pan, -4);
+    return ["pan" => $pan, "cvv" => $cvv, "expiry" => $expiry, "limit" => $limit];
+}
+
+function kripicard_person(string $name): array
+{
+    $name = trim((string) preg_replace("/\\s+/u", " ", $name));
+    if ($name === "") {
+        return [];
     }
-    return ["pan" => $pan, "cvv" => $cvv, "expiry" => $expiry, "limit" => $limit, "last_4" => $last4];
+    $parts = explode(" ", $name, 2);
+    $out = ["first_name" => function_exists("mb_substr") ? mb_substr($parts[0], 0, 50) : substr($parts[0], 0, 50)];
+    if (isset($parts[1]) && trim($parts[1]) !== "") {
+        $last = trim($parts[1]);
+        $out["last_name"] = function_exists("mb_substr") ? mb_substr($last, 0, 50) : substr($last, 0, 50);
+    }
+    return $out;
 }
 
 function kripicard_email(string $username): string
@@ -372,17 +389,16 @@ function kripicard_create(float $amount, string $bin, string $nameOnCard, string
         return kripicard_fail("Kart sağlayıcı kart kimliği döndürmedi.");
     }
     $last4 = kripicard_last4($created["body"]);
-    $face = ["pan" => "", "cvv" => "", "expiry" => "", "limit" => 0, "last_4" => $last4];
+    $face = ["pan" => "", "cvv" => "", "expiry" => "", "limit" => 0];
     $detailNote = "";
     $details = kripicard_request("cards/carddetails", ["card_id" => $cardId]);
     if ($details["ok"]) {
-        $parsed = kripicard_details($details["body"]);
-        $face["pan"] = $parsed["pan"];
-        $face["cvv"] = $parsed["cvv"];
-        $face["expiry"] = $parsed["expiry"];
-        $face["limit"] = $parsed["limit"];
-        if ($face["last_4"] === "" && $parsed["last_4"] !== "") {
-            $face["last_4"] = $parsed["last_4"];
+        $face = kripicard_details($details["body"]);
+        if ($last4 === "") {
+            $last4 = kripicard_last4($details["body"]);
+        }
+        if ($last4 === "" && $face["pan"] !== "") {
+            $last4 = substr($face["pan"], -4);
         }
     } else {
         $detailNote = $details["message"];
@@ -391,7 +407,7 @@ function kripicard_create(float $amount, string $bin, string $nameOnCard, string
         "ok" => true,
         "message" => $created["message"],
         "card_id" => $cardId,
-        "last_4" => $face["last_4"],
+        "last_4" => $last4,
         "pan" => $face["pan"],
         "cvv" => $face["cvv"],
         "expiry" => $face["expiry"],

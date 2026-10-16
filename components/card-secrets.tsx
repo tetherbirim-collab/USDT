@@ -108,7 +108,7 @@ export function CardSecrets({
           <div className="rounded-2xl bg-black/25 px-3 py-2">
             <p className="text-xs text-white/50">No</p>
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-              <p className="font-mono text-sm tracking-wide">{hasPan ? (open ? pan : `•••• •••• •••• ${digits.slice(-4)}`) : /^\d{4}$/.test(digits) ? `•••• •••• •••• ${digits}` : open ? "Numara sağlayıcıdan gelmedi" : "Numara yok"}</p>
+              <p className="font-mono text-sm tracking-wide">{open ? (hasPan ? pan : "Numara sağlayıcıdan gelmedi") : hasPan ? `•••• •••• •••• ${digits.slice(-4)}` : "Numara yok"}</p>
               {open && hasPan && <CopyButton copied={copied === "pan"} onCopy={() => copy("pan", pan)} />}
             </div>
           </div>

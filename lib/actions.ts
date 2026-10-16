@@ -12,11 +12,11 @@ import {
   MIN_TRANSFER_KURUS,
   MIN_TRANSFER_USD_MINOR,
   MIN_USD_MINOR,
+  fxRate,
   isCardType,
   noticeText,
   isMerchantForType,
   isPlan,
-  FUND_PROCESSING_USD_MINOR,
   loadFeeAt,
   SECURITY_QUESTIONS,
   transferFeeAt,
@@ -292,9 +292,8 @@ export async function fundCardAction(formData: FormData) {
   const gross = usdMinorToKurus(cents);
   const tuned = readSettings();
   const commission = loadFeeAt(tuned.loadFeePercent, gross);
-  const processing = FUND_PROCESSING_USD_MINOR;
-  const due = gross + commission + processing;
-  if (gross < 1) return bounce("/panel/kartlar", "e-tutar");
+  const net = gross - commission;
+  if (net < 1) return bounce("/panel/kartlar", "e-tutar");
   const known = snapshot().cards.find((item) => item.id === id && item.userId === user.id);
   if (known?.issuerCardId && (cents === null || cents < 1000)) return bounce("/panel/kartlar", "e-kripicard-tutar");
   const remote = await remoteCall("fund", pack(formData, ["id", "tutar"]));
@@ -305,10 +304,10 @@ export async function fundCardAction(formData: FormData) {
     if (card?.issuerCardId) return "e-kripicard-anahtar" as const;
     if (!row || !card) return "e-yok" as const;
     if (card.status === "kapali") return "e-durum" as const;
-    if (row.balance < due) return "e-bakiye" as const;
-    if (card.limit + gross > MAX_LIMIT_KURUS) return "e-limit" as const;
-    row.balance -= due;
-    card.limit += gross;
+    if (row.balance < gross) return "e-bakiye" as const;
+    if (card.limit + net > MAX_LIMIT_KURUS) return "e-limit" as const;
+    row.balance -= gross;
+    card.limit += net;
     const now = new Date().toISOString();
     db.transactions.push({
       id: `tx_${rid()}`,
@@ -316,16 +315,16 @@ export async function fundCardAction(formData: FormData) {
       cardId: card.id,
       kind: "yukleme",
       title: `Karta yükleme · ${card.label}`,
-      note: `Karta ${formatTL(gross)} yazıldı. Fonlama ${formatTL(commission)} ve işlem ${formatTL(processing)}. Hesaptan ${formatTL(due)} düştü.`,
-      amount: -due,
-      usdMinor: -(cents + commission + processing),
+      note: `Hesaptan ${formatTL(gross)} ayrıldı. %${String(db.settings.loadFeePercent).replace(".", ",")} komisyon ${formatTL(commission)}. Karta ${formatTL(net)} yazıldı.`,
+      amount: -gross,
+      usdMinor: -cents,
       status: "tamamlandi",
       createdAt: now,
     });
     pushNotice(db, {
       userId: row.id,
       title: "Karta yükleme düştü",
-      body: `${card.label} kartına ${formatTL(gross)} yazıldı. Hesaptan ${formatTL(due)} düştü. Kalan bakiye ${formatTL(row.balance)}.`,
+      body: `${card.label} kartına ${formatTL(net)} yazıldı. Hesaptan ${formatTL(gross)} düştü, komisyon ${formatTL(commission)}. Kalan bakiye ${formatTL(row.balance)}.`,
     });
     return "yuklendi_kart" as const;
   });
@@ -1148,10 +1147,9 @@ export async function transferAction(formData: FormData) {
   if (hedef === "" || hedef === id) return bounce("/panel/kartlar", "e-transfer-kart");
   if (cents === null || cents < MIN_TRANSFER_USD_MINOR) return bounce("/panel/kartlar", "e-transfer");
   const amount = usdMinorToKurus(cents);
-  const feePercent = readSettings().transferFeePercent;
-  const fee = transferFeeAt(feePercent, amount);
+  const fee = transferFeeAt(readSettings().transferFeePercent, amount);
   const credit = amount - fee;
-  if (credit < 1 || (feePercent > 0 && fee < 1)) return bounce("/panel/kartlar", "e-transfer");
+  if (fee < 1 || credit < 1) return bounce("/panel/kartlar", "e-transfer");
   const remote = await remoteCall("transfer", pack(formData, ["id", "hedef", "tutar"]));
   if (remote) return bounce(`/panel/kartlar?vurgu=${encodeURIComponent(id)}&karsi=${encodeURIComponent(hedef)}`, remote.code);
   const result = mutate((db) => {
@@ -1554,10 +1552,9 @@ export async function adminTransferAction(formData: FormData) {
   if (hedef === "" || hedef === id) return bounce(back, "e-transfer-kart");
   if (cents === null || cents < MIN_TRANSFER_USD_MINOR) return bounce(back, "e-transfer");
   const amount = usdMinorToKurus(cents);
-  const feePercent = readSettings().transferFeePercent;
-  const fee = transferFeeAt(feePercent, amount);
+  const fee = transferFeeAt(readSettings().transferFeePercent, amount);
   const credit = amount - fee;
-  if (credit < 1 || (feePercent > 0 && fee < 1)) return bounce(back, "e-transfer");
+  if (fee < 1 || credit < 1) return bounce(back, "e-transfer");
   const remote = await remoteCall("admin-transfer", pack(formData, ["uye", "id", "hedef", "tutar", "donus"]));
   if (remote) return bounce(back, remote.code);
   const result = mutate((db) => {
@@ -1725,7 +1722,7 @@ export async function withdrawAction(formData: FormData) {
     const row = db.users.find((item) => item.id === user.id);
     if (!Array.isArray(db.payouts)) db.payouts = [];
     if (!row || row.balance < amount) return "e-bakiye" as const;
-    let usd = amount;
+    let usd = Math.round(amount / fxRate());
     if (usd < 1) usd = 1;
     if (row.usdMinor >= usd) row.usdMinor -= usd;
     else usd = 0;

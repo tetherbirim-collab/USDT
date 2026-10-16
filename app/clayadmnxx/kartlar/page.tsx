@@ -7,7 +7,7 @@ import { adminCardAction } from "@/lib/actions";
 import { Notice } from "@/components/notice";
 import { ADMIN_PATH } from "@/lib/auth";
 import { CARD_TYPES } from "@/lib/catalog";
-import { formatTL } from "@/lib/format";
+import { formatTL, showOrderCode } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
 import { snapshot } from "@/lib/store";
 import type { Card } from "@/lib/types";
@@ -32,7 +32,10 @@ export default function AdminCardsPage() {
   if (!query) return <Boot />;
   const highlight = query.get("vurgu");
   const db = snapshot();
-  const cards = [...db.cards].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const rank = { hazirlaniyor: 0, aktif: 1, donduruldu: 2, kapali: 3 };
+  const cards = [...db.cards].sort(
+    (a, b) => (rank[a.status] ?? 9) - (rank[b.status] ?? 9) || b.createdAt.localeCompare(a.createdAt),
+  );
 
   return (
     <div className="grid gap-5">
@@ -69,26 +72,30 @@ export default function AdminCardsPage() {
         if (rows.length === 0) return <p className="text-sm text-white/50">Bu sekmede kart yok.</p>;
         return rows.map((card) => {
           const owner = db.users.find((user) => user.id === card.userId);
+          const order = db.orders.find((row) => row.cardId === card.id);
+          const code = showOrderCode(order ?? { cardId: card.id, id: card.id });
           return (
             <article
               key={card.id}
-              className={`glass flex flex-wrap items-center justify-between gap-3 rounded-[24px] px-4 py-4 ${highlight === card.id ? "ring-2 ring-gold" : ""}`}
+              className={`order-slip ${highlight === card.id ? "ring-2 ring-gold" : ""}`}
             >
+              <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="font-semibold">{card.label}</p>
-                <p className="text-xs text-white/55">
-                  {CARD_TYPES[card.type].name} · BIN {card.bin} · •••• {card.pan.slice(-4)} · {STATUS_LABEL[card.status]}
-                </p>
-                <p className="mt-1 text-sm text-white/70">
-                  {formatTL(card.spent)} / {formatTL(card.limit)}
+                <p className="order-slip-kicker">{STATUS_LABEL[card.status]}</p>
+                <p className="order-slip-code">{code}</p>
+                <p className="order-slip-phrase">
+                  numaralı sipariş ·{" "}
                   {owner ? (
-                    <>
-                      {" · "}
-                      <Link href={`${ADMIN_PATH}/kullanici?id=${owner.id}`} className="text-gold underline decoration-gold/40">
-                        {owner.username}
-                      </Link>
-                    </>
-                  ) : null}
+                    <Link href={`${ADMIN_PATH}/kullanici?id=${owner.id}`} className="text-gold">
+                      {owner.username}
+                    </Link>
+                  ) : (
+                    "üye"
+                  )}
+                </p>
+                <p className="mt-2 font-semibold">{card.label}</p>
+                <p className="text-xs text-white/55">
+                  {CARD_TYPES[card.type].name} · BIN {card.bin} · •••• {String(card.pan ?? "").slice(-4)} · {formatTL(card.spent)} / {formatTL(card.limit)}
                 </p>
               </div>
               {card.status === "aktif" && ask !== card.id && (
@@ -117,6 +124,7 @@ export default function AdminCardsPage() {
                 </form>
               )}
               <AdminCardOps cardId={card.id} userId={card.userId} status={card.status} back={`${ADMIN_PATH}/kartlar`} />
+              </div>
             </article>
           );
         });

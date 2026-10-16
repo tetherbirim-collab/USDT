@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Notice } from "@/components/notice";
 import { ADMIN_PATH } from "@/lib/auth";
 import { KIND_LABEL } from "@/lib/catalog";
-import { formatSigned, formatTL, formatWhen } from "@/lib/format";
+import { formatSigned, formatTL, formatWhen, showOrderCode } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
 import { snapshot } from "@/lib/store";
 
@@ -53,21 +53,29 @@ export default function AdminLedgerPage() {
       <section className="grid gap-3">
         <h2 className="font-display text-2xl font-bold">Siparişler</h2>
         {orders.length === 0 && <p className="text-sm text-white/55">Sipariş yok.</p>}
-        {orders.map((order) => (
-          <article key={order.id} className="glass flex flex-wrap items-center justify-between gap-3 rounded-[24px] px-4 py-3 text-sm">
-            <div>
-              <p className="font-semibold">{order.label}</p>
-              <p className="text-xs text-white/50">
-                <Link href={`${ADMIN_PATH}/kullanici?id=${order.userId}`} className="text-gold">
-                  {name(order.userId)}
-                </Link>
-                {" · "}
-                {ORDER_STATUS[order.status]} · {formatWhen(order.createdAt)}
-              </p>
+        {orders.map((order) => {
+          const code = showOrderCode(order);
+          return (
+          <article key={order.id} className="order-slip">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="order-slip-kicker">{ORDER_STATUS[order.status]}</p>
+                <p className="order-slip-code">{code}</p>
+                <p className="order-slip-phrase">
+                  numaralı sipariş ·{" "}
+                  <Link href={`${ADMIN_PATH}/kullanici?id=${order.userId}`} className="text-gold">
+                    {name(order.userId)}
+                  </Link>
+                </p>
+                <p className="mt-2 text-sm text-white/70">
+                  {order.label} · {formatWhen(order.createdAt)}
+                </p>
+              </div>
+              <p className="font-semibold">Basım {formatTL(order.fee)}</p>
             </div>
-            <p className="font-semibold">Basım {formatTL(order.fee)}</p>
           </article>
-        ))}
+          );
+        })}
       </section>
     </div>
   );

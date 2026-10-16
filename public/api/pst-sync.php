@@ -530,8 +530,10 @@ function clay_pst_apply(array &$db, array $cards, array $transactions, array $ta
         $fee = $price === null ? 0 : clay_kurus((int) round($price * 100));
         $orderId = "ord_pst_" . preg_replace("/\\D/", "", $pstId);
         $orderStatus = $row["status"] === "kapali" ? "iptal" : "hazir";
+        $keptCode = isset($orderIndex[$orderId]) ? (string) ($db["orders"][$orderIndex[$orderId]]["code"] ?? "") : "";
         $order = [
             "id" => $orderId,
+            "code" => preg_match("/^Clay-\\d{6}$/", $keptCode) ? $keptCode : clay_order_code($db, $id),
             "userId" => $owner,
             "cardId" => $id,
             "type" => $row["type"],

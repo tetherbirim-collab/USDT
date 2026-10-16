@@ -2,11 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { CARD_TYPES } from "@/lib/catalog";
-import { formatTL } from "@/lib/format";
-import { touchLedger } from "@/lib/store";
+import { formatTL, showOrderCode } from "@/lib/format";
+import { useUser } from "@/lib/live";
+import { orderForCard, touchLedger } from "@/lib/store";
 import type { Card } from "@/lib/types";
 
 export function OrderSlip({ card }: { card: Card }) {
+  const owner = useUser();
+  const order = orderForCard(card.id);
+  const code = showOrderCode(order ?? { cardId: card.id, id: card.id });
+  const fee = order?.fee ?? CARD_TYPES[card.type]?.fee ?? 0;
   const ready = card.readyAt ? Date.parse(card.readyAt) : Date.now();
   const [left, setLeft] = useState(() => Math.max(0, ready - Date.now()));
 
@@ -20,20 +25,28 @@ export function OrderSlip({ card }: { card: Card }) {
   }, [ready]);
 
   const seconds = Math.ceil(left / 1000);
+  const name = CARD_TYPES[card.type]?.name ?? "Kart";
   return (
-    <div className="rounded-2xl border border-gold/40 bg-black/25 p-4">
-      <p className="text-xs font-bold tracking-[0.18em] text-gold">SİPARİŞ</p>
-      <p className="font-display mt-1 text-2xl font-bold">{card.label}</p>
-      <p className="mt-1 text-sm text-white/70">
-        {CARD_TYPES[card.type].name} · kullanılabilir bakiye {formatTL(card.limit)}
-      </p>
-      <p className="mt-2 font-mono text-xs text-white/55">Sipariş no {card.id}</p>
-      <p className="mt-2 text-sm text-white/75">
-        Basım ücreti {formatTL(CARD_TYPES[card.type].fee)} deftere yazıldı.
-      </p>
-      <p className="mt-3 font-semibold text-gold">
+    <article className="order-slip">
+      <p className="order-slip-kicker">SİPARİŞ</p>
+      <p className="order-slip-code">{code}</p>
+      <p className="order-slip-phrase">numaralı sipariş</p>
+      <p className="order-slip-owner">{owner?.username || "Üye"}</p>
+      <div className="order-slip-row">
+        <span>{name}</span>
+        <span>{card.label}</span>
+      </div>
+      <div className="order-slip-row">
+        <span>Kullanılabilir bakiye</span>
+        <span>{formatTL(card.limit)}</span>
+      </div>
+      <div className="order-slip-row">
+        <span>Basım ücreti</span>
+        <span>{formatTL(fee)}</span>
+      </div>
+      <p className="order-slip-wait">
         {seconds > 0 ? `Hazırlanıyor · ${seconds} sn` : "Kartınız tamamlandı. Kartlar bölümünden bakabilirsiniz."}
       </p>
-    </div>
+    </article>
   );
 }

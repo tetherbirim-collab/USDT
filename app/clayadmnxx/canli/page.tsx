@@ -6,7 +6,7 @@ import { ADMIN_PATH } from "@/lib/auth";
 import { CARD_TYPES } from "@/lib/catalog";
 import { Notice } from "@/components/notice";
 import { Boot, useQuery, useSiteSettings } from "@/lib/live";
-import { formatSigned, formatTL, formatUsd, formatWhen } from "@/lib/format";
+import { formatSigned, formatTL, formatUsd, formatWhen, showOrderCode } from "@/lib/format";
 import { snapshot } from "@/lib/store";
 import type { CardTypeId } from "@/lib/types";
 
@@ -58,6 +58,31 @@ export default function LiveDesk() {
           </article>
         ))}
       </div>
+      <section className="grid gap-3">
+        <h2 className="font-display text-2xl font-bold">Yeni basımlar</h2>
+        {db.orders.length === 0 && <p className="text-sm text-white/55">Henüz sipariş yok.</p>}
+        {[...db.orders]
+          .sort((a, b) => Number(b.status === "hazirlaniyor") - Number(a.status === "hazirlaniyor") || b.createdAt.localeCompare(a.createdAt))
+          .slice(0, 6)
+          .map((order) => {
+            const owner = db.users.find((user) => user.id === order.userId);
+            const code = showOrderCode(order);
+            return (
+              <article key={order.id} className="order-slip">
+                <p className="order-slip-code">{code}</p>
+                <p className="order-slip-phrase">
+                  numaralı sipariş ·{" "}
+                  <Link href={`${ADMIN_PATH}/kullanici?id=${order.userId}`} className="text-gold">
+                    {owner?.username ?? "üye"}
+                  </Link>
+                </p>
+                <p className="mt-1 text-sm text-white/65">
+                  {order.label} · {formatWhen(order.createdAt)}
+                </p>
+              </article>
+            );
+          })}
+      </section>
       <section className="grid gap-3 lg:grid-cols-2">
         <article className="glass rounded-[28px] p-5">
           <h2 className="font-display text-2xl font-bold">PST cüzdanı</h2>

@@ -12,7 +12,7 @@ import { AdminCardOps, AdminIssueForm, AdminTransferForm } from "@/components/ad
 import { Notice } from "@/components/notice";
 import { ADMIN_PATH } from "@/lib/auth";
 import { CARD_TYPES, KIND_LABEL, kurusToUsdMinor, securityQuestionLabel } from "@/lib/catalog";
-import { formatSigned, formatTL, formatWhen, isoToIstanbulInput, kurusToInput } from "@/lib/format";
+import { formatSigned, formatTL, formatWhen, isoToIstanbulInput, kurusToInput, showOrderCode } from "@/lib/format";
 import { Boot, useQuery } from "@/lib/live";
 import { snapshot } from "@/lib/store";
 
@@ -119,7 +119,9 @@ export default function AdminUserPage() {
           <article key={card.id} className="glass rounded-[28px] p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="font-display text-xl font-bold">{card.label}</p>
+                <p className="order-slip-code text-3xl">{showOrderCode(db.orders.find((row) => row.cardId === card.id) ?? { cardId: card.id })}</p>
+                <p className="order-slip-phrase">numaralı sipariş · {user.username}</p>
+                <p className="mt-2 font-display text-xl font-bold">{card.label}</p>
                 <p className="text-sm text-white/60">
                   {CARD_TYPES[card.type].name} · {STATUS_LABEL[card.status]} · BIN {card.bin} · •••• {card.pan.slice(-4)}
                 </p>

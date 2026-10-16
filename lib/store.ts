@@ -1,5 +1,5 @@
 import { CARD_PREP_MS, CARD_TYPE_ORDER, CARD_TYPES, MAX_BALANCE_KURUS, MAX_USD_MINOR, MIN_USD_MINOR, TEST_BIN, USD_RATE_AS_OF, USD_SELL_RATE, WELCOME_BONUS_KURUS, WELCOME_USD_MINOR, defaultSettings, merchantsFor, usdMinorToKurus } from "./catalog";
-import { formatRate, formatTL, formatUsd, holderLine, istanbulKey } from "./format";
+import { formatRate, formatTL, formatUsd, holderLine, istanbulKey, orderCodeFrom } from "./format";
 import { luhnOk, makeCvv, makeExpiry, makePan } from "./pan";
 import type { BinRow, Card, CardTypeId, DB, Order, PublicUser, Tx, User } from "./types";
 
@@ -475,6 +475,7 @@ function ordersFromCards(db: DB): Order[] {
     const feeTx = db.transactions.find((entry) => entry.cardId === card.id && entry.kind === "basim");
     return {
       id: `ord_${card.id}`,
+      code: orderCodeFrom(card.id),
       userId: card.userId,
       cardId: card.id,
       type: card.type,
@@ -908,6 +909,7 @@ function normalize(db: DB): DB {
     db.orders = ordersFromCards(db);
     dirty = true;
   }
+  if (fillOrderCodes(db)) dirty = true;
   if (sweepCardFees(db)) dirty = true;
   if (sweepAutoSpend(db)) dirty = true;
   if (dirty) {
@@ -1118,6 +1120,25 @@ export function unreadNoticeCount(userId: string) {
   return asRows<DB["notices"][number]>(read().notices).filter((note) => note && note.userId === userId && !note.readAt).length;
 }
 
+function fillOrderCodes(db: DB): boolean {
+  let dirty = false;
+  const seen = new Set<string>();
+  for (const order of db.orders) {
+    const code = order.code ?? "";
+    const next = /^Clay-\d{6}$/.test(code) && !seen.has(code) ? code : orderCodeFrom(order.cardId || order.id, seen);
+    if (next !== order.code) {
+      order.code = next;
+      dirty = true;
+    }
+    seen.add(next);
+  }
+  return dirty;
+}
+
+export function orderForCard(cardId: string): Order | undefined {
+  return asRows<Order>(read().orders).find((order) => order && order.cardId === cardId);
+}
+
 export function listOrders(userId: string): Order[] {
   return asRows<Order>(read().orders)
     .filter((order) => order && order.userId === userId)
@@ -1171,8 +1192,10 @@ export function issueCard(
   };
   user.balance -= input.fee;
   db.cards.push(card);
+  const orderCode = orderCodeFrom(card.id, new Set(db.orders.map((order) => order.code).filter((code): code is string => Boolean(code))));
   db.orders.push({
     id: `ord_${rid()}`,
+    code: orderCode,
     userId: user.id,
     cardId: card.id,
     type: card.type,
@@ -1189,7 +1212,7 @@ export function issueCard(
     cardId: card.id,
     kind: "basim",
     title: `Basım · ${card.label}`,
-    note: `Sipariş ${card.id}. Kart hazırlanıyor.`,
+    note: `${orderCode} numaralı sipariş. Kart hazırlanıyor.`,
     amount: -input.fee,
     status: "tamamlandi",
     createdAt: now,

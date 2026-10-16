@@ -120,6 +120,8 @@ export type OrderStatus = "hazirlaniyor" | "hazir" | "iptal";
 
 export type Order = {
   id: string;
+  /** Public number, Clay-444885. The long id stays internal. */
+  code?: string;
   userId: string;
   cardId: string;
   type: CardTypeId;

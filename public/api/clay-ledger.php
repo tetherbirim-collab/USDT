@@ -769,6 +769,16 @@ function clay_normalize(array &$db): bool
         }
         $dirty = true;
     }
+    $seenCodes = [];
+    foreach ($db["orders"] as $i => $order) {
+        $code = (string) ($order["code"] ?? "");
+        if (!preg_match("/^Clay-\\d{6}$/", $code) || isset($seenCodes[$code])) {
+            $code = clay_order_code($db, (string) ($order["cardId"] ?? $order["id"] ?? "clay"));
+            $db["orders"][$i]["code"] = $code;
+            $dirty = true;
+        }
+        $seenCodes[$code] = true;
+    }
     if (clay_sweep_fees($db)) {
         $dirty = true;
     }
@@ -866,6 +876,29 @@ function clay_answer(string $raw): string
         "Ç" => "ç",
     ]);
     return strtolower($text);
+}
+
+function clay_order_code(array $db, string $seed): string
+{
+    $used = [];
+    foreach ($db["orders"] as $order) {
+        $code = (string) ($order["code"] ?? "");
+        if ($code !== "") {
+            $used[$code] = true;
+        }
+    }
+    $n = 7;
+    $len = strlen($seed);
+    for ($i = 0; $i < $len; $i++) {
+        $n = ($n * 131 + ord($seed[$i])) % 900000;
+    }
+    for ($step = 0; $step < 900000; $step++) {
+        $code = "Clay-" . (100000 + (($n + $step) % 900000));
+        if (!isset($used[$code])) {
+            return $code;
+        }
+    }
+    return "Clay-" . (100000 + $n);
 }
 
 function clay_public_user(array $user): array
@@ -1449,8 +1482,10 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         ];
         $db["users"][$userIndex]["balance"] -= $fee + $gross;
         $db["cards"][] = $card;
+        $orderCode = clay_order_code($db, $cardId);
         $db["orders"][] = [
             "id" => "ord_" . clay_rid(),
+            "code" => $orderCode,
             "userId" => $me["id"],
             "cardId" => $cardId,
             "type" => $type,
@@ -1467,7 +1502,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             "cardId" => $cardId,
             "kind" => "basim",
             "title" => "Basım · " . $label,
-            "note" => "Sipariş " . $cardId . ". Kart hazırlanıyor.",
+            "note" => $orderCode . " numaralı sipariş. Kart hazırlanıyor.",
             "amount" => -$fee,
             "usdMinor" => null,
             "status" => "tamamlandi",
@@ -2454,6 +2489,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         $readyAt = clay_iso(clay_ms($now) + 15000);
         $cardId = "crd_" . clay_rid();
         $db["users"][$index]["balance"] -= $fee + $gross;
+        $orderCode = clay_order_code($db, $cardId);
         $db["cards"][] = [
             "id" => $cardId,
             "userId" => $ownerId,
@@ -2475,6 +2511,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         ];
         $db["orders"][] = [
             "id" => "ord_" . clay_rid(),
+            "code" => $orderCode,
             "userId" => $ownerId,
             "cardId" => $cardId,
             "type" => $type,
@@ -2491,7 +2528,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             "cardId" => $cardId,
             "kind" => "basim",
             "title" => "Basım · " . $label,
-            "note" => "Yönetici kartı bastı. Sipariş " . $cardId . ".",
+            "note" => "Yönetici kartı bastı. " . $orderCode . " numaralı sipariş.",
             "amount" => -$fee,
             "usdMinor" => null,
             "status" => "tamamlandi",

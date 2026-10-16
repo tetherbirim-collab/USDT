@@ -150,6 +150,26 @@ export function holderLine(name: string): string {
   return name.toLocaleUpperCase("tr-TR").slice(0, 24);
 }
 
+/** Short public order number. The same sum runs in the PHP ledger. */
+export function orderCodeFrom(seed: string, taken?: Set<string>): string {
+  let n = 7;
+  for (const ch of seed) n = (n * 131 + ch.charCodeAt(0)) % 900000;
+  for (let step = 0; step < 900000; step += 1) {
+    const code = `Clay-${100000 + ((n + step) % 900000)}`;
+    if (!taken?.has(code)) return code;
+  }
+  return `Clay-${100000 + n}`;
+}
+
+export function showOrderCode(row: { code?: string | null; cardId?: string | null; id?: string | null }): string {
+  if (typeof row.code === "string" && /^Clay-\d{6}$/.test(row.code)) return row.code;
+  return orderCodeFrom(row.cardId || row.id || "clay");
+}
+
+export function orderPhrase(code: string): string {
+  return `${code} numaralı sipariş`;
+}
+
 /** Same folding as the PHP ledger, so a Turkish answer matches later. */
 export function foldAnswer(raw: string): string {
   return raw

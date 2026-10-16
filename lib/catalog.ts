@@ -25,8 +25,14 @@ export const MAX_LIMIT_USD_MINOR = 1_000_000;
 export const MIN_TRANSFER_USD_MINOR = 100;
 /** Kripicard publishes no card-to-card transfer fee, so none is added. */
 export const TRANSFER_FEE_PERCENT = 0;
-/** Shelf price for opening a card: $750. Not marked up by 12%. */
-export const ISSUE_FEE_KURUS = 75_000;
+/**
+ * Opening shelf is 750 TL, not 750 USD.
+ * Frankfurter 2026-10-16: 1 USD = 49.527 TRY.
+ * 750 / 49.527 = 15.1426… USD, rounded to cents: $15.14.
+ */
+export const ISSUE_FX_RATE = 49.527;
+export const ISSUE_FEE_KURUS = 1_514;
+export const OPENING_FEE_NOTE = "750 TL = $15.14 · kur 1 USD = 49,527 TL · Frankfurter · 16 Eki 2026";
 /**
  * Kripicard funding fee is 4% (home.kripicard.com/fees). 12% on that fee is 4.48%.
  * Processing fee is $1; 12% on it is $1.12, charged on top of a card load.
@@ -141,7 +147,7 @@ export const PLANS: Record<
     priceUsdMinor: 4_900,
     period: "ay",
     cardLimit: 2,
-    blurb: "Ayda 49 USD. En fazla 2 kart. Her kartın açılışı 750 USD.",
+    blurb: "Ayda 49 USD. En fazla 2 kart. Her kartın açılışı 750 TL = $15.14.",
   },
   atolye: {
     name: "Clay Silver",
@@ -149,7 +155,7 @@ export const PLANS: Record<
     priceUsdMinor: 14_900,
     period: "ay",
     cardLimit: 8,
-    blurb: "Ayda 149 USD. En fazla 8 kart. Her kartın açılışı 750 USD.",
+    blurb: "Ayda 149 USD. En fazla 8 kart. Her kartın açılışı 750 TL = $15.14.",
   },
   galeri: {
     name: "Clay Gold",
@@ -157,7 +163,7 @@ export const PLANS: Record<
     priceUsdMinor: 39_900,
     period: "ay",
     cardLimit: 25,
-    blurb: "Ayda 399 USD. En fazla 25 kart. Her kartın açılışı 750 USD.",
+    blurb: "Ayda 399 USD. En fazla 25 kart. Her kartın açılışı 750 TL = $15.14.",
   },
 };
 

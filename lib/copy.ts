@@ -83,7 +83,7 @@ export const COPY: Record<CopyKey, { group: string; label: string; fallback: str
   typesLede: {
     group: "Ana sayfa",
     label: "Türler paragrafı",
-    fallback: "Her kart 750 USD. Karta yüklenen tutarın üzerine Kripicard fonlama ücreti %4 ve onun %12’si eklenir (%4,48). İşlem ücreti 1 USD, onun %12’si ile 1,12 USD.",
+    fallback: "Kart açılışı 750 TL = $15.14. Kur 1 USD = 49,527 TL, Frankfurter, 16 Eki 2026. Karta yüklenen tutarın üzerine Kripicard fonlama ücreti %4 ve onun %12’si eklenir (%4,48). İşlem ücreti 1 USD, onun %12’si ile 1,12 USD.",
     max: 240,
   },
   stepsTitle: { group: "Ana sayfa", label: "Adımlar başlığı", fallback: "Dört adım", max: 40 },
@@ -180,7 +180,7 @@ export const COPY_EN: Record<CopyKey, string> = {
   navFaq: "Questions",
   typesKicker: "TYPES",
   typesTitle: "Separate scenes",
-  typesLede: "Each card opens at 750 USD. Card loads add Kripicard's 4% funding fee plus 12% of that fee, and a 1.12 USD processing charge.",
+  typesLede: "Opening a card is 750 TL, charged as $15.14. Rate: 1 USD = 49.527 TL, Frankfurter, 16 Oct 2026. Card loads add Kripicard's 4% funding fee plus 12% of that fee, and a 1.12 USD processing charge.",
   stepsTitle: "Four steps",
   step1Title: "Open an account",
   step1Text: "You choose a username and type an 8-digit password twice. A seed is given once. No identity document is asked.",

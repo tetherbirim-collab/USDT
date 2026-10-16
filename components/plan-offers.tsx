@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { planAction } from "@/lib/actions";
-import { PLANS, usdMinorToKurus } from "@/lib/catalog";
+import { OPENING_FEE_NOTE, PLANS, usdMinorToKurus } from "@/lib/catalog";
 import { percentText } from "@/components/fee-sheet";
 import { daysLeftLine, daysUntil, formatTL } from "@/lib/format";
 import { useSiteSettings } from "@/lib/live";
@@ -144,7 +144,7 @@ function OfferSet({
               <p className="plan-offer-sub">{formatTL(usdMinorToKurus(row.priceUsdMinor))} · ay</p>
               {current && <p className="plan-offer-remain">{remain}</p>}
               <ul className="plan-offer-pills">
-                <li>Basım {issue}</li>
+                <li>Basım {issue}. {OPENING_FEE_NOTE}</li>
                 <li>Yükleme {load}</li>
                 <li>30 gün {issue}</li>
                 <li>Aktarım {transfer}</li>

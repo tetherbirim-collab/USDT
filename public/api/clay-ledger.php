@@ -480,7 +480,7 @@ function clay_merchants(string $type): array
 function clay_default_settings(): array
 {
     return [
-        "issueFeeKurus" => 75000,
+        "issueFeeKurus" => 1514,
         "loadFeePercent" => 4.48,
         "transferFeePercent" => 0.0,
         "plans" => [
@@ -488,19 +488,19 @@ function clay_default_settings(): array
                 "name" => "Clay Bronze",
                 "priceUsdMinor" => 4900,
                 "cardLimit" => 2,
-                "blurb" => "Ayda 49 USD. En fazla 2 kart. Her kartın açılışı 750 USD.",
+                "blurb" => "Ayda 49 USD. En fazla 2 kart. Her kartın açılışı 750 TL = $15.14.",
             ],
             "atolye" => [
                 "name" => "Clay Silver",
                 "priceUsdMinor" => 14900,
                 "cardLimit" => 8,
-                "blurb" => "Ayda 149 USD. En fazla 8 kart. Her kartın açılışı 750 USD.",
+                "blurb" => "Ayda 149 USD. En fazla 8 kart. Her kartın açılışı 750 TL = $15.14.",
             ],
             "galeri" => [
                 "name" => "Clay Gold",
                 "priceUsdMinor" => 39900,
                 "cardLimit" => 25,
-                "blurb" => "Ayda 399 USD. En fazla 25 kart. Her kartın açılışı 750 USD.",
+                "blurb" => "Ayda 399 USD. En fazla 25 kart. Her kartın açılışı 750 TL = $15.14.",
             ],
         ],
         "telegram" => "",
@@ -596,7 +596,7 @@ function clay_sweep_fees(array &$db): bool
 {
     $now = (int) round(microtime(true) * 1000);
     $step = 30 * 86400000;
-    $fee = (int) ($db["settings"]["issueFeeKurus"] ?? 75000);
+    $fee = (int) ($db["settings"]["issueFeeKurus"] ?? 1514);
     $dirty = false;
     foreach ($db["cards"] as $i => $card) {
         if (($card["status"] ?? "") === "kapali") {
@@ -1079,8 +1079,9 @@ function clay_normalize(array &$db): bool
             $db["settings"]["copy"] = [];
             $dirty = true;
         }
-        if ((int) $db["settings"]["issueFeeKurus"] === 30000) {
-            $db["settings"]["issueFeeKurus"] = 75000;
+        $openNow = (int) $db["settings"]["issueFeeKurus"];
+        if ($openNow === 30000 || $openNow === 75000) {
+            $db["settings"]["issueFeeKurus"] = 1514;
             $dirty = true;
         }
         if ((float) $db["settings"]["loadFeePercent"] == 7.3) {
@@ -1101,6 +1102,9 @@ function clay_normalize(array &$db): bool
             }
             if ((int) $row["priceUsdMinor"] === $oldPlanPrice[$id]) {
                 $db["settings"]["plans"][$id]["priceUsdMinor"] = $fresh["plans"][$id]["priceUsdMinor"];
+                $db["settings"]["plans"][$id]["blurb"] = $fresh["plans"][$id]["blurb"];
+                $dirty = true;
+            } elseif (is_string($row["blurb"] ?? null) && str_contains((string) $row["blurb"], "750 USD")) {
                 $db["settings"]["plans"][$id]["blurb"] = $fresh["plans"][$id]["blurb"];
                 $dirty = true;
             }
@@ -1262,7 +1266,7 @@ function clay_normalize(array &$db): bool
     }
     if ($db["orders"] === []) {
         foreach ($db["cards"] as $card) {
-            $fee = 75000;
+            $fee = 1514;
             foreach ($db["transactions"] as $entry) {
                 if (($entry["cardId"] ?? "") === $card["id"] && ($entry["kind"] ?? "") === "basim") {
                     $fee = abs((int) $entry["amount"]);
@@ -1960,8 +1964,8 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             clay_answer_put($record, $answer);
         }
         $db["users"][] = $record;
-        $open = (int) ($db["settings"]["issueFeeKurus"] ?? 75000);
-        clay_notice($db, $id, "Hoş geldin", "Hesap açıldı. Başlangıç bakiyesi " . clay_tl(0) . ". Kart açılışı " . clay_tl($open) . ".");
+        $open = (int) ($db["settings"]["issueFeeKurus"] ?? 1514);
+        clay_notice($db, $id, "Hoş geldin", "Hesap açıldı. Başlangıç bakiyesi " . clay_tl(0) . ". Kart açılışı " . clay_tl($open) . ". 750 TL = $15.14 · kur 1 USD = 49,527 TL · Frankfurter · 16 Eki 2026.");
         session_regenerate_id(true);
         $_SESSION["uid"] = $id;
         return clay_ok("ok");

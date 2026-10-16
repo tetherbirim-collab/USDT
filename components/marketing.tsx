@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CARD_TYPES, CARD_TYPE_ORDER } from "@/lib/catalog";
+import { CARD_TYPES, CARD_TYPE_ORDER, OPENING_FEE_NOTE } from "@/lib/catalog";
 import { ChromePair, useChrome } from "@/components/chrome-controls";
 import { siteText, type CopyKey } from "@/lib/copy";
 import { uiText } from "@/lib/ui";
@@ -233,7 +233,7 @@ export function Marketing({
             </div>
             <dl className="mt-10 grid grid-cols-3 gap-3 text-left text-sm">
               {[
-                ["$750", "kart açılışı"],
+                ["$15.14", "750 TL açılış"],
                 ["$0.00", "başlangıç"],
                 ["USD", "tek para birimi"],
               ].map(([value, label]) => (
@@ -274,6 +274,7 @@ export function Marketing({
                 />
                 <p className="mt-3 text-sm text-white/75">{CARD_TYPES[id].scene}</p>
                 <p className="mt-3 text-sm font-semibold">Basım {formatTL(CARD_TYPES[id].fee)}</p>
+                <p className="mt-1 text-xs text-white/60">{OPENING_FEE_NOTE}</p>
               </article>
             ))}
           </div>

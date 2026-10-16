@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { issueAction } from "@/lib/actions";
-import { CARD_TYPE_ORDER, CARD_TYPES } from "@/lib/catalog";
+import { CARD_TYPE_ORDER, CARD_TYPES, OPENING_FEE_NOTE } from "@/lib/catalog";
 import { formatTL, holderLine } from "@/lib/format";
 import { useSiteSettings } from "@/lib/live";
 import { networkOf, previewPan } from "@/lib/pan";
@@ -111,7 +111,7 @@ export function IssueForm({
                     />
                     <span className="font-semibold">{CARD_TYPES[id].name}</span>
                     <span className="mt-1 block text-sm text-white/60">{CARD_TYPES[id].pitch}</span>
-                    <span className="mt-1 block text-xs text-gold">Kart bedeli {formatTL(settings.issueFeeKurus)}</span>
+                    <span className="mt-1 block text-xs text-gold">Kart bedeli {formatTL(settings.issueFeeKurus)}. {OPENING_FEE_NOTE}</span>
                   </label>
                 ))}
               </div>
@@ -159,7 +159,7 @@ export function IssueForm({
                 <div className="fee-row">
                   <dt>
                     <span className="fee-label">Basım ücreti</span>
-                    <span className="fee-note">Kartı oluşturunca hesaptan bir kez kesilir. Karta yazılmaz.</span>
+                    <span className="fee-note">Kartı oluşturunca hesaptan bir kez kesilir. Karta yazılmaz. {OPENING_FEE_NOTE}</span>
                   </dt>
                   <dd className="fee-value fee-cut">{formatTL(settings.issueFeeKurus)}</dd>
                 </div>

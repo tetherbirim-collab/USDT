@@ -1,5 +1,6 @@
 "use client";
 
+import { OPENING_FEE_NOTE } from "@/lib/catalog";
 import { adminFeesAction, adminResetAction } from "@/lib/actions";
 import { ADMIN_PATH } from "@/lib/auth";
 import { Notice } from "@/components/notice";
@@ -25,7 +26,7 @@ export default function AdminFeesPage() {
         <p className="text-xs font-bold tracking-[0.22em] text-gold">ÜCRETLER</p>
         <h1 className="font-display text-4xl font-extrabold">Ücretler</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Kart bedeli ABD doları olarak yazılır. Yükleme ve aktarım yüzde olarak yazılır. Ana bakiyeye Heleket yüklemesinde bu kesintiler yoktur.
+          Kayıtlı kart bedeli cüzdandan USD olarak düşer. Raf fiyatı 750 TL’dir. {OPENING_FEE_NOTE}. Yükleme ve aktarım yüzde olarak yazılır. Ana bakiyeye Heleket yüklemesinde bu kesintiler yoktur.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} text={query.get("metin") || undefined} />

@@ -927,6 +927,17 @@ function normalize(db: DB): DB {
       db.settings.transferFeePercent = fresh.transferFeePercent;
       dirty = true;
     }
+    if (db.settings.issueFeeKurus === 30_000 || db.settings.issueFeeKurus === 75_000) {
+      db.settings.issueFeeKurus = fresh.issueFeeKurus;
+      dirty = true;
+    }
+    for (const id of ["kivilcim", "atolye", "galeri"] as const) {
+      const row = db.settings.plans[id];
+      if (row && typeof row.blurb === "string" && row.blurb.includes("750 USD")) {
+        db.settings.plans[id] = { ...row, blurb: fresh.plans[id].blurb };
+        dirty = true;
+      }
+    }
     if (typeof db.settings.telegram !== "string") {
       db.settings.telegram = "";
       dirty = true;
@@ -1250,7 +1261,7 @@ export function createUser(input: {
     pushNotice(db, {
       userId: user.id,
       title: "Hoş geldin",
-      body: "Hesap açıldı. Başlangıç bakiyesi $0.00. Kart açılışı bakiyeden 750 USD düşer.",
+      body: "Hesap açıldı. Başlangıç bakiyesi $0.00. Kart açılışı 750 TL = $15.14. Kur 1 USD = 49,527 TL, Frankfurter, 16 Eki 2026.",
     });
     return user;
   });

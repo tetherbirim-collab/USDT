@@ -77,7 +77,7 @@ export default function LiveDesk() {
             ))}
           </ul>
           <p className="mt-3 text-sm text-white/60">
-            Kart bedeli {formatTL(settings.issueFeeKurus)} · yükleme %{String(settings.loadFeePercent).replace(".", ",")} · aktarım %{settings.transferFeePercent}
+            Kart bedeli {formatTL(settings.issueFeeKurus)} · 750 TL = $15.14 · kur 1 USD = 49,527 TL · Frankfurter · 16 Eki 2026 · yükleme %{String(settings.loadFeePercent).replace(".", ",")} · aktarım %{settings.transferFeePercent}
           </p>
           <Link href={`${ADMIN_PATH}/ucretler`} className="mt-3 inline-block text-sm font-semibold text-gold">
             Ücret masası

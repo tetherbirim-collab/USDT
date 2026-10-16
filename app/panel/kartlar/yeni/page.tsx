@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { IssueForm } from "@/components/issue-form";
 import { Notice } from "@/components/notice";
+import { OPENING_FEE_NOTE } from "@/lib/catalog";
 import { formatTL } from "@/lib/format";
 import { Boot, useQuery, useSiteSettings, useUser } from "@/lib/live";
 import { listCards, snapshot } from "@/lib/store";
@@ -23,7 +24,7 @@ export default function NewCardPage() {
         </Link>
         <h1 className="font-display mt-3 text-4xl font-bold tracking-tight">Kart oluştur</h1>
         <p className="mt-2 max-w-2xl text-white/70">
-          Hesaptan kart açılışı {formatTL(settings.issueFeeKurus)} düşer. Kripicard tutarı en az 10 USD olarak ayrıca yazılır. Yüklemede %4,48 ve 1,12 USD işlem ücreti tutarın üzerine eklenir. Anahtar yoksa kart numarası üretilmez.
+          Hesaptan kart açılışı {formatTL(settings.issueFeeKurus)} düşer. {OPENING_FEE_NOTE}. Kripicard tutarı en az 10 USD olarak ayrıca yazılır. Yüklemede %4,48 ve 1,12 USD işlem ücreti tutarın üzerine eklenir. Anahtar yoksa kart numarası üretilmez.
         </p>
       </div>
       <Notice code={query.get("bildirim") || undefined} text={query.get("metin") || undefined} />

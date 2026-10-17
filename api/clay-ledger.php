@@ -986,6 +986,37 @@ function clay_payout_coin($value): string
     return "";
 }
 
+function clay_payout_wallet(string $coin, string $wallet): bool
+{
+    $wallet = trim($wallet);
+    if ($wallet === "" || preg_match("/\\s/u", $wallet)) {
+        return false;
+    }
+    if ($coin === "usdt") {
+        return preg_match("/^T[1-9A-HJ-NP-Za-km-z]{33}$/", $wallet) === 1
+            || preg_match("/^0x[0-9a-fA-F]{40}$/", $wallet) === 1;
+    }
+    if ($coin === "btc") {
+        return preg_match("/^bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{14,74}$/i", $wallet) === 1
+            || preg_match("/^[13][1-9A-HJ-NP-Za-km-z]{25,34}$/", $wallet) === 1;
+    }
+    if ($coin === "xmr") {
+        return preg_match("/^[48][1-9A-HJ-NP-Za-km-z]{94}$/", $wallet) === 1;
+    }
+    return false;
+}
+
+function clay_payout_wallet_error(string $coin): string
+{
+    if ($coin === "btc") {
+        return "Bu Bitcoin adresi durmuyor.";
+    }
+    if ($coin === "xmr") {
+        return "Bu Monero adresi durmuyor. 4 ya da 8 ile 95 karakter.";
+    }
+    return "Bu adres durmuyor. USDT için T ile 34 karakter ya da 0x ile 40 hane yaz.";
+}
+
 function clay_payout_tag(string $coin): string
 {
     if ($coin === "btc") {
@@ -1010,7 +1041,7 @@ function clay_payout_note(string $status, string $mask, string $coin): string
     if ($status === "iptal") {
         return "İptal. Talep durduruldu." . $bit . " Cüzdan " . $mask . ".";
     }
-    return "Bekliyor. Tutar beklemeye alındı. %13 komisyon kesildi." . $bit . " Cüzdan " . $mask . ".";
+    return "Clay'de bekliyor. Gönderilince burada görürsün." . $bit . " Cüzdan " . $mask . ".";
 }
 
 function clay_sync_payouts(array &$db): bool
@@ -1467,6 +1498,27 @@ function clay_normalize(array &$db): bool
     if (clay_sync_payouts($db)) {
         $dirty = true;
     }
+    foreach ($db["notices"] as $i => $note) {
+        $title = (string) ($note["title"] ?? "");
+        $body = (string) ($note["body"] ?? "");
+        $old = $title === "Çekim talebi alındı"
+            || str_contains($body, "Yönetim gönderince")
+            || str_contains($body, "beklemeye alındı")
+            || str_contains($body, "beklemeye yazıldı");
+        if (!$old) {
+            continue;
+        }
+        $amount = "";
+        if (preg_match("/(\\$[0-9.]+,\\d{2}|\\$[0-9,]+\\.\\d{2})/u", $body, $match)) {
+            $amount = $match[1];
+        }
+        $line = ($amount !== "" ? $amount . " " : "") . "bekliyor. Gönderilince burada görürsün.";
+        if ($title !== "Çekim Clay'de" || $body !== $line) {
+            $db["notices"][$i]["title"] = "Çekim Clay'de";
+            $db["notices"][$i]["body"] = $line;
+            $dirty = true;
+        }
+    }
     foreach (["users", "cards", "transactions", "notices", "tickets", "bins", "orders", "payouts"] as $key) {
         $db[$key] = array_values($db[$key]);
     }
@@ -1830,7 +1882,8 @@ function clay_fail(string $code, string $message = ""): array
     $out = ["code" => $code, "save" => false];
     $clean = trim($message);
     if ($clean !== "") {
-        $out["message"] = function_exists("kripicard_redact") ? kripicard_redact($clean) : $clean;
+        $clean = function_exists("kripicard_redact") ? kripicard_redact($clean) : $clean;
+        $out["message"] = function_exists("kripicard_member_line") ? kripicard_member_line($clean) : $clean;
     }
     return $out;
 }
@@ -3685,8 +3738,8 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         if ($coin === "") {
             return clay_fail("e-coin");
         }
-        if (!preg_match("/^[A-Za-z0-9:._@\\-]{8,106}$/", $wallet)) {
-            return clay_fail("e-cuzdan");
+        if (!clay_payout_wallet($coin, $wallet)) {
+            return clay_fail("e-cuzdan", clay_payout_wallet_error($coin));
         }
         $userIndex = clay_user_index($db, $me["id"]);
         $fee = clay_cut_cents($amount);
@@ -3731,7 +3784,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             "createdAt" => clay_now(),
             "ref" => $id,
         ];
-        clay_notice($db, $me["id"], "Çekim talebi alındı", clay_tl($amount) . " bakiyeden düştü. %13 komisyon " . clay_tl($fee) . ". Gönderilecek " . clay_tl($net) . ".");
+        clay_notice($db, $me["id"], "Çekim Clay'de", clay_tl($amount) . " bekliyor. Gönderilince burada görürsün.");
         return clay_ok("cekim");
     }
 

@@ -380,7 +380,7 @@ function clay_desk_act(array &$db, ?array $me, string $action, array $in): ?arra
                 return clay_fail("e-tavan");
             }
             if ($code === "kripicard") {
-                return clay_fail("e-kripicard", "Kart sağlayıcı kartı kapatmadı.");
+                return clay_fail("e-kripicard", "Clay bu kartı kapatamadı. Birazdan tekrar dene.");
             }
             if ($code === "ok") {
                 $count++;
@@ -439,7 +439,7 @@ function clay_desk_act(array &$db, ?array $me, string $action, array $in): ?arra
                     return clay_fail("e-tavan");
                 }
                 if ($code === "kripicard") {
-                    return clay_fail("e-kripicard", "Kart sağlayıcı kartı kapatmadı.");
+                    return clay_fail("e-kripicard", "Clay bu kartı kapatamadı. Birazdan tekrar dene.");
                 }
                 if ($code !== "ok") {
                     continue;
@@ -453,7 +453,7 @@ function clay_desk_act(array &$db, ?array $me, string $action, array $in): ?arra
                     return clay_fail("e-tavan");
                 }
                 if ($code === "kripicard") {
-                    return clay_fail("e-kripicard", "Kart sağlayıcı kartı kapatmadı.");
+                    return clay_fail("e-kripicard", "Clay bu kartı kapatamadı. Birazdan tekrar dene.");
                 }
                 if ($code !== "ok") {
                     continue;
@@ -490,7 +490,7 @@ function clay_desk_act(array &$db, ?array $me, string $action, array $in): ?arra
             return clay_fail("e-tavan");
         }
         if ($code === "kripicard") {
-            return clay_fail("e-kripicard", "Kart sağlayıcı kartı kapatmadı.");
+            return clay_fail("e-kripicard", "Clay bu kartı kapatamadı. Birazdan tekrar dene.");
         }
         if ($code !== "ok") {
             return clay_fail("e-durum");

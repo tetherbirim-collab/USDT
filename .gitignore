@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+.vercel
+api/clay-ledger.json
+api/heleket-payments.json
+*.lock
+*.log
+.DS_Store

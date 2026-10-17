@@ -325,9 +325,12 @@ function heleket_payout_send(array $row): array
     if ($coin === "" || $network === null || $address === "") {
         return ["ok" => false, "error" => "ag-adres"];
     }
-    $usd = (int) ($row["usdMinor"] ?? 0);
+    $gross = (int) ($row["amount"] ?? 0);
+    $fee = (int) ($row["fee"] ?? 0);
+    $send = $fee > 0 ? $gross - $fee : $gross;
+    $usd = (int) round($send / clay_fx_rate());
     if ($usd < 1) {
-        $usd = (int) round(((int) ($row["amount"] ?? 0)) / clay_fx_rate());
+        $usd = (int) ($row["usdMinor"] ?? 0);
     }
     if ($usd < 100) {
         return ["ok" => false, "error" => "tutar"];

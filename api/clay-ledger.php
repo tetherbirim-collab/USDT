@@ -565,6 +565,26 @@ function clay_is_type(string $value): bool
     return in_array($value, ["facebook_ads", "tiktok", "google_ads", "ultima"], true);
 }
 
+function clay_account_bin_catalog(): array
+{
+    return [
+        ["digits" => "441357", "label" => "United States, Visa, Apple Pay / Samsung Pay / Google Pay"],
+        ["digits" => "49387520", "label" => "Hong Kong, B2B"],
+        ["digits" => "493728", "label" => "Visa Business"],
+        ["digits" => "474613", "label" => "United States, Visa, Apple Pay / Samsung Pay / Google Pay"],
+    ];
+}
+
+function clay_account_bin_ok(string $digits): bool
+{
+    foreach (clay_account_bin_catalog() as $row) {
+        if ($row["digits"] === $digits) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function clay_merchants(string $type): array
 {
     $all = [
@@ -1358,30 +1378,39 @@ function clay_normalize(array &$db): bool
         }
     }
     $db["bins"] = array_values($db["bins"]);
-    $issuedBins = [
-        "facebook_ads" => "441357",
-        "tiktok" => "49387520",
-        "google_ads" => "493728",
-        "ultima" => "474613",
-    ];
-    foreach ($issuedBins as $type => $digits) {
-        $found = false;
-        foreach ($db["bins"] as $row) {
-            if (($row["type"] ?? "") === $type && (string) ($row["digits"] ?? "") === $digits) {
-                $found = true;
-                break;
+    $nextBins = [];
+    foreach (["facebook_ads", "tiktok", "google_ads", "ultima"] as $type) {
+        foreach (clay_account_bin_catalog() as $item) {
+            $digits = $item["digits"];
+            $label = $item["label"];
+            $found = null;
+            foreach ($db["bins"] as $row) {
+                if (($row["type"] ?? "") === $type && (string) ($row["digits"] ?? "") === $digits) {
+                    $found = $row;
+                    break;
+                }
             }
-        }
-        if (!$found) {
-            $db["bins"][] = [
-                "id" => "bin_" . $digits . "_" . $type,
-                "type" => $type,
-                "label" => $digits,
-                "digits" => $digits,
-            ];
-            $dirty = true;
+            if (!is_array($found)) {
+                $nextBins[] = [
+                    "id" => "bin_" . $digits . "_" . $type,
+                    "type" => $type,
+                    "label" => $label,
+                    "digits" => $digits,
+                ];
+                $dirty = true;
+                continue;
+            }
+            if ((string) ($found["label"] ?? "") !== $label) {
+                $found["label"] = $label;
+                $dirty = true;
+            }
+            $nextBins[] = $found;
         }
     }
+    if ($nextBins !== $db["bins"]) {
+        $dirty = true;
+    }
+    $db["bins"] = $nextBins;
     foreach ($db["transactions"] as $i => $entry) {
         if (!array_key_exists("usdMinor", $entry)) {
             $db["transactions"][$i]["usdMinor"] = null;
@@ -1856,7 +1885,7 @@ function clay_issue_kripicard(array &$db, int $userIndex, string $type, string $
         return clay_fail("e-kripicard-tutar", "Kripicard tutarı en az 10 USD olmalı.");
     }
     $digits = (string) ($chosen["digits"] ?? "");
-    if (!preg_match("/^\\d{4,8}$/", $digits)) {
+    if (!clay_account_bin_ok($digits)) {
         return clay_fail("e-bin");
     }
     $opening = clay_opening_charge();
@@ -1995,7 +2024,7 @@ function clay_bin_draft(array $in): ?array
 {
     $label = trim((string) preg_replace("/\\s+/u", " ", clay_in($in, "etiket")));
     $digits = (string) preg_replace("/\\s/", "", clay_in($in, "rakam"));
-    if (mb_strlen($label) < 2 || mb_strlen($label) > 40 || !preg_match("/^\\d{4,8}$/", $digits)) {
+    if (mb_strlen($label) < 2 || mb_strlen($label) > 80 || !preg_match("/^\\d{4,8}$/", $digits) || !clay_account_bin_ok($digits)) {
         return null;
     }
     return ["label" => $label, "digits" => $digits];
@@ -2016,7 +2045,7 @@ function clay_paste_line(string $line): ?array
         $digits = (string) preg_replace("/\\s/", "", (string) array_pop($bits));
         $label = trim((string) preg_replace("/\\s+/u", " ", substr($trimmed, 0, strlen($trimmed) - strlen($digits))));
     }
-    if (mb_strlen($label) < 2 || mb_strlen($label) > 40 || !preg_match("/^\\d{4,8}$/", $digits)) {
+    if (mb_strlen($label) < 2 || mb_strlen($label) > 80 || !preg_match("/^\\d{4,8}$/", $digits) || !clay_account_bin_ok($digits)) {
         return null;
     }
     return ["label" => $label, "digits" => $digits];

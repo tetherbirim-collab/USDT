@@ -1244,26 +1244,32 @@ function clay_normalize(array &$db): bool
     $db["bins"] = $bins;
     foreach ($db["bins"] as $i => $row) {
         $digits = (string) ($row["digits"] ?? "");
-        if (!preg_match("/^\\d{4,8}$/", $digits) || $digits === "400000" || $digits === "411111") {
+        if (!preg_match("/^\\d{4,8}$/", $digits) || $digits === "400000" || $digits === "411111" || $digits === "537872" || $digits === "539502") {
             unset($db["bins"][$i]);
             $dirty = true;
         }
     }
     $db["bins"] = array_values($db["bins"]);
-    foreach (["facebook_ads", "tiktok", "google_ads", "ultima"] as $type) {
+    $issuedBins = [
+        "facebook_ads" => "441357",
+        "tiktok" => "49387520",
+        "google_ads" => "493728",
+        "ultima" => "474613",
+    ];
+    foreach ($issuedBins as $type => $digits) {
         $found = false;
         foreach ($db["bins"] as $row) {
-            if (($row["type"] ?? "") === $type && (string) ($row["digits"] ?? "") === "537872") {
+            if (($row["type"] ?? "") === $type && (string) ($row["digits"] ?? "") === $digits) {
                 $found = true;
                 break;
             }
         }
         if (!$found) {
             $db["bins"][] = [
-                "id" => "bin_537872_" . $type,
+                "id" => "bin_" . $digits . "_" . $type,
                 "type" => $type,
-                "label" => "537872",
-                "digits" => "537872",
+                "label" => $digits,
+                "digits" => $digits,
             ];
             $dirty = true;
         }

@@ -3,7 +3,8 @@
  * Kripicard external caller.
  * Base: https://appapi.kripicard.com
  * POST /api/external/cards/createcard   api_key, bin, amount, name_on_card
- * dateOfBirth (YYYY-MM-DD) is added only when bin is 537872 and the member record already has one.
+ * dateOfBirth (YYYY-MM-DD) is added only for a leftover 537872 when the member record already has one.
+ * Issued BINs are 441357, 49387520, 493728, and 474613. An empty bin falls back to 441357.
  * POST /api/external/cards/carddetails  api_key, card_id
  * POST /api/external/cards/fundcard     api_key, card_id, amount
  * POST /api/external/cards/deletecard   api_key, card_id
@@ -13,7 +14,7 @@
 
 const KRIPICARD_KEY_MISSING = "Kart sağlayıcı anahtarı yok. Yönetim ücretler ekranından Kripicard anahtarı yapıştırılmalı. Kart numarası üretilmedi.";
 const KRIPICARD_BIRTH_REQUIRED = "Bu BIN için kart kuruluşu doğum tarihi istiyor. Üyenin kayıtlı doğum tarihi yok.";
-const KRIPICARD_DEFAULT_BIN = "537872";
+const KRIPICARD_DEFAULT_BIN = "441357";
 const KRIPICARD_API_BASE = "https://appapi.kripicard.com";
 
 function kripicard_config_path(): string
@@ -364,7 +365,7 @@ function kripicard_create_fields(float $amount, string $bin, string $nameOnCard,
         "amount" => $amount,
         "name_on_card" => $name,
     ];
-    if ($bin === KRIPICARD_DEFAULT_BIN) {
+    if ($bin === "537872") {
         $birth = kripicard_stored_birth($dateOfBirth);
         if ($birth === "") {
             return kripicard_fail(KRIPICARD_BIRTH_REQUIRED);

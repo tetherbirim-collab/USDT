@@ -29,3 +29,6 @@ body{letter-spacing:-0.011em;line-height:1.5}
 .clay-grain{opacity:0.05!important}
 .banner-ok,.banner-bad{border-radius:12px!important;padding:12px 14px!important;font-size:0.95rem;line-height:1.45}
 .wallet-hero{border-radius:20px!important}
+
+.desk-main{padding:10px 12px;border-radius:16px;background:rgba(240,201,138,.08);border:1px solid rgba(240,201,138,.28)}
+.desk-main .nav-pill{background:rgba(16,12,20,.35)}

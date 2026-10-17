@@ -604,19 +604,19 @@ function clay_default_settings(): array
         "transferFeePercent" => 13.0,
         "plans" => [
             "kivilcim" => [
-                "name" => "Clay Bronze",
+                "name" => "Kıvılcım",
                 "priceUsdMinor" => 4900,
                 "cardLimit" => 2,
                 "blurb" => "Ayda 49 USD. En fazla 2 kart. Her kartın açılışı 750 TL.",
             ],
             "atolye" => [
-                "name" => "Clay Silver",
+                "name" => "Atölye",
                 "priceUsdMinor" => 14900,
                 "cardLimit" => 8,
                 "blurb" => "Ayda 149 USD. En fazla 8 kart. Her kartın açılışı 750 TL.",
             ],
             "galeri" => [
-                "name" => "Clay Gold",
+                "name" => "Galeri",
                 "priceUsdMinor" => 39900,
                 "cardLimit" => 25,
                 "blurb" => "Ayda 399 USD. En fazla 25 kart. Her kartın açılışı 750 TL.",
@@ -1247,6 +1247,15 @@ function clay_normalize(array &$db): bool
             $planBlurb = $db["settings"]["plans"][$planId]["blurb"] ?? "";
             if (is_string($planBlurb) && str_contains($planBlurb, "750 USD")) {
                 $db["settings"]["plans"][$planId]["blurb"] = str_replace("750 USD", "750 TL", $planBlurb);
+                $dirty = true;
+            }
+        }
+        $planNames = ["kivilcim" => "Kıvılcım", "atolye" => "Atölye", "galeri" => "Galeri"];
+        $metalNames = ["Clay Bronze", "Clay Silver", "Clay Gold"];
+        foreach ($planNames as $id => $label) {
+            $current = (string) ($db["settings"]["plans"][$id]["name"] ?? "");
+            if ($current === "" || in_array($current, $metalNames, true)) {
+                $db["settings"]["plans"][$id]["name"] = $label;
                 $dirty = true;
             }
         }

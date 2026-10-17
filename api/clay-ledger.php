@@ -1756,10 +1756,15 @@ function clay_issue_kripicard(array &$db, int $userIndex, string $type, string $
     if ($holderName === "") {
         $holderName = $username;
     }
-    $created = kripicard_create($cents / 100, $digits, $holderName, $username);
+    $storedBirth = $db["users"][$userIndex]["dateOfBirth"] ?? "";
+    if (!is_string($storedBirth)) {
+        $storedBirth = "";
+    }
+    $created = kripicard_create($cents / 100, $digits, $holderName, $storedBirth);
     if (!$created["ok"]) {
-        $code = kripicard_key() === "" ? "e-kripicard-anahtar" : "e-kripicard";
-        return clay_fail($code, (string) ($created["message"] ?? ""));
+        $message = (string) ($created["message"] ?? "");
+        $code = $message === KRIPICARD_BIRTH_REQUIRED || kripicard_key() !== "" ? "e-kripicard" : "e-kripicard-anahtar";
+        return clay_fail($code, $message);
     }
     $now = clay_now();
     $cardId = "crd_" . clay_rid();

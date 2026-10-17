@@ -1,18 +1,20 @@
 <?php
 /**
  * Kripicard external caller.
- * Base: https://kripicard.com/api/external
- * POST /cards/createcard   api_key, bin, amount, name_on_card, email
- * email is a stable address from the username. No birth date is sent.
- * POST /cards/carddetails  api_key, card_id
- * POST /cards/fundcard     api_key, card_id, amount
- * POST /cards/deletecard   api_key, card_id
- * Provider amount is a float, minimum 10. The key is read here and never logged.
+ * Base: https://appapi.kripicard.com
+ * POST /api/external/cards/createcard   api_key, bin, amount, name_on_card
+ * dateOfBirth (YYYY-MM-DD) is added only when bin is 537872 and the member record already has one.
+ * POST /api/external/cards/carddetails  api_key, card_id
+ * POST /api/external/cards/fundcard     api_key, card_id, amount
+ * POST /api/external/cards/deletecard   api_key, card_id
+ * Provider amount is a number, minimum 10. The key is read here and never logged.
  * Freeze is not part of this contract.
  */
 
 const KRIPICARD_KEY_MISSING = "Kart sağlayıcı anahtarı yok. Yönetim ücretler ekranından Kripicard anahtarı yapıştırılmalı. Kart numarası üretilmedi.";
+const KRIPICARD_BIRTH_REQUIRED = "Bu BIN için kart kuruluşu doğum tarihi istiyor. Üyenin kayıtlı doğum tarihi yok.";
 const KRIPICARD_DEFAULT_BIN = "537872";
+const KRIPICARD_API_BASE = "https://appapi.kripicard.com";
 
 function kripicard_config_path(): string
 {
@@ -133,7 +135,7 @@ function kripicard_request(string $endpoint, array $fields): array
     if (!preg_match("#^cards/(createcard|carddetails|fundcard|deletecard)$#", $endpoint)) {
         return kripicard_fail("Kart sağlayıcı isteği kabul etmedi.");
     }
-    $url = "https://kripicard.com/api/external/" . $endpoint;
+    $url = KRIPICARD_API_BASE . "/api/external/" . $endpoint;
     $fields["api_key"] = $key;
     $flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
     if (defined("JSON_PRESERVE_ZERO_FRACTION")) {
@@ -326,20 +328,22 @@ function kripicard_details(array $body): array
     return ["pan" => $pan, "cvv" => $cvv, "expiry" => $expiry, "limit" => $limit, "last_4" => $last4];
 }
 
-function kripicard_email(string $username): string
+function kripicard_stored_birth(string $raw): string
 {
-    $clean = strtolower(trim($username));
-    $clean = preg_replace("/[^a-z0-9._-]/", "", $clean);
-    if (!is_string($clean) || $clean === "") {
-        $clean = "uye";
+    $raw = trim($raw);
+    if (!preg_match("/^\\d{4}-\\d{2}-\\d{2}$/", $raw)) {
+        return "";
     }
-    if (strlen($clean) > 64) {
-        $clean = substr($clean, 0, 64);
+    $year = (int) substr($raw, 0, 4);
+    $month = (int) substr($raw, 5, 2);
+    $day = (int) substr($raw, 8, 2);
+    if (!checkdate($month, $day, $year)) {
+        return "";
     }
-    return $clean . "@users.clay.invalid";
+    return $raw;
 }
 
-function kripicard_create(float $amount, string $bin, string $nameOnCard, string $username): array
+function kripicard_create_fields(float $amount, string $bin, string $nameOnCard, string $dateOfBirth): array
 {
     if ($amount < 10) {
         return kripicard_fail("Kripicard tutarı en az 10 USD olmalı.");
@@ -352,16 +356,31 @@ function kripicard_create(float $amount, string $bin, string $nameOnCard, string
     }
     $name = trim((string) preg_replace("/\\s+/u", " ", $nameOnCard));
     if ($name === "") {
-        $name = trim($username) !== "" ? trim($username) : "CLAY";
+        $name = "CLAY";
     }
     $name = function_exists("mb_substr") ? mb_substr($name, 0, 50) : substr($name, 0, 50);
-    $mail = kripicard_email($username);
-    $created = kripicard_request("cards/createcard", [
+    $fields = [
         "bin" => $bin,
         "amount" => $amount,
         "name_on_card" => $name,
-        "email" => $mail,
-    ]);
+    ];
+    if ($bin === KRIPICARD_DEFAULT_BIN) {
+        $birth = kripicard_stored_birth($dateOfBirth);
+        if ($birth === "") {
+            return kripicard_fail(KRIPICARD_BIRTH_REQUIRED);
+        }
+        $fields["dateOfBirth"] = $birth;
+    }
+    return ["ok" => true, "message" => "", "body" => $fields];
+}
+
+function kripicard_create(float $amount, string $bin, string $nameOnCard, string $dateOfBirth = ""): array
+{
+    $ready = kripicard_create_fields($amount, $bin, $nameOnCard, $dateOfBirth);
+    if (!$ready["ok"]) {
+        return $ready;
+    }
+    $created = kripicard_request("cards/createcard", $ready["body"]);
     if (!$created["ok"]) {
         return $created;
     }

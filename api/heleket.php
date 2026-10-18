@@ -144,7 +144,7 @@ function heleket_create(array $input): void
 {
     $config = heleket_config();
     if ($config["merchant"] === "" || $config["payment_key"] === "") {
-        heleket_json(503, ["error" => "anahtar"]);
+        heleket_json(200, ["error" => "anahtar"]);
         return;
     }
     $amount = (string) ($input["amount"] ?? "");

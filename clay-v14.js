@@ -199,6 +199,16 @@
     }).then(function (res) { return res.json(); }).catch(function () { return { ok: false }; });
   }
 
+  var liveOpening = false;
+  function visitorShell() {
+    var root = document.querySelector(".clay-live");
+    if (root) return root;
+    root = document.createElement("section");
+    root.className = "clay-live";
+    root.innerHTML = '<div class="clay-live-panel" hidden><header class="clay-live-head"><span class="clay-live-avatar" aria-hidden="true"></span><span class="clay-live-id"><strong class="clay-live-name">Canlı destek</strong><span class="clay-live-sub">Çevrimiçi</span></span><button type="button" data-act="live-close" aria-label="Kapat"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button></header><div class="clay-live-log" role="log" aria-live="polite"></div><form class="clay-live-form"><input name="metin" maxlength="400" placeholder="Mesaj yazın" autocomplete="off" enterkeyhint="send"><button class="clay-live-send" type="submit" aria-label="Gönder"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3.2 11.2 20 4.2c.7-.3 1.4.4 1.1 1.1l-7 16.8c-.3.8-1.5.7-1.7-.1l-1.8-6.6-6.6-1.8c-.8-.2-.9-1.4-.1-1.7z"/></svg></button></form></div><button type="button" class="clay-live-btn" data-act="live-open" aria-label="Canlı destek"><svg class="clay-live-icon-chat" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9.2L5 19.4c-.6.5-1.5.1-1.5-.7V5.5z"/></svg><svg class="clay-live-icon-x" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button>';
+    document.body.appendChild(root);
+    return root;
+  }
   function paintVisitor(thread) {
     if (admin()) {
       var gone = document.querySelector(".clay-live");
@@ -206,25 +216,40 @@
       return;
     }
     if (!(publicSite() || member())) return;
-    var root = document.querySelector(".clay-live");
-    if (!root) {
-      root = document.createElement("section");
-      root.className = "clay-live";
-      root.innerHTML = '<button type="button" class="clay-live-btn" data-act="live-open">Canlı destek</button><div class="clay-live-panel" hidden><header><strong>Canlı destek</strong><button type="button" data-act="live-close" aria-label="Kapat">×</button></header><div class="clay-live-log" role="log"></div><form class="clay-live-form"><input name="kullanici" maxlength="32" placeholder="Kullanıcı adı" autocomplete="off" required><input name="metin" maxlength="400" placeholder="Mesaj" autocomplete="off" required><button class="btn btn-gold" type="submit">Gönder</button></form></div>';
-      document.body.appendChild(root);
-    }
+    var root = visitorShell();
     var panel = root.querySelector(".clay-live-panel");
-    if (root.dataset.open !== "1") panel.hidden = true;
+    var open = root.dataset.open === "1";
+    root.classList.toggle("is-open", open);
+    panel.hidden = !open;
+    if (!thread && liveThread) return;
+    var nameNode = root.querySelector(".clay-live-name");
+    if (nameNode) nameNode.textContent = thread && thread.username ? thread.username : "Canlı destek";
     var log = root.querySelector(".clay-live-log");
-    if (!thread) {
-      if (!liveThread) log.innerHTML = '<p class="clay-live-empty">Kullanıcı adını ve mesajını yaz.</p>';
-      return;
+    var messages = thread && thread.messages ? thread.messages : [];
+    var sig = (thread && thread.username ? thread.username : "") + "|" + messages.map(function (row) { return row.at + row.from + row.text; }).join("~");
+    if (log.dataset.sig === sig) return;
+    log.dataset.sig = sig;
+    var html = "";
+    if (!messages.length) {
+      html = '<p class="clay-live-admin clay-live-hello"><span>Destek</span>Merhaba. Mesajınızı yazın, yanıt burada görünür.</p>';
     }
-    log.innerHTML = (thread.messages || []).map(function (row) {
-      var who = row.from === "admin" ? "Masa" : thread.username;
-      return '<p class="clay-live-' + (row.from === "admin" ? "admin" : "mine") + '"><span>' + esc(who) + "</span>" + esc(row.text) + "</p>";
-    }).join("") || '<p class="clay-live-empty">Kullanıcı adını ve mesajını yaz.</p>';
+    html += messages.map(function (row) {
+      var mine = row.from !== "admin";
+      var who = mine ? (thread.username || "Siz") : "Destek";
+      return '<p class="clay-live-' + (mine ? "mine" : "admin") + '"><span>' + esc(who) + "</span>" + esc(row.text) + "</p>";
+    }).join("");
+    log.innerHTML = html;
     log.scrollTop = log.scrollHeight;
+  }
+  function ensureThread() {
+    if (liveThread || liveOpening) return;
+    liveOpening = true;
+    postLive({ op: "open" }).then(function (res) {
+      liveOpening = false;
+      if (!res || !res.ok || !res.thread) return;
+      liveThread = res.thread.id;
+      paintVisitor(res.thread);
+    });
   }
   function refreshVisitor() {
     if (!liveThread || admin()) return;
@@ -233,10 +258,9 @@
     });
   }
   function sendVisitor(form) {
-    var name = String(form.kullanici.value || "").trim().replace(/\s+/g, " ");
     var text = String(form.metin.value || "").trim();
-    if (name.length < 2 || !text) return;
-    postLive({ op: "send", username: name, text: text, thread: liveThread }).then(function (res) {
+    if (!text || !liveThread) return;
+    postLive({ op: "send", text: text, thread: liveThread }).then(function (res) {
       if (!res || !res.ok || !res.thread) return;
       liveThread = res.thread.id;
       form.metin.value = "";
@@ -282,7 +306,7 @@
     }).join("") || "<p>Henüz konuşma yok.</p>";
     var log = active ? (active.messages || []).map(function (row) {
       var who = row.from === "admin" ? "Masa" : active.username;
-      return "<p><strong>" + esc(who) + "</strong> " + esc(row.text) + "</p>";
+      return '<p class="' + (row.from === "admin" ? "is-admin" : "is-visitor") + '"><strong>' + esc(who) + "</strong> " + esc(row.text) + "</p>";
     }).join("") : "<p>Bir konuşma seç.</p>";
     var draft = "";
     var input = box.querySelector("input[name=metin]");
@@ -474,19 +498,17 @@
         if (!root) return;
         var open = root.dataset.open !== "1";
         root.dataset.open = open ? "1" : "";
-        var panel = root.querySelector(".clay-live-panel");
-        if (panel) panel.hidden = !open;
-        if (!open) liveThread = "";
+        paintVisitor(null);
+        if (open) ensureThread();
+        else refreshVisitor();
         return;
       }
       if (name === "live-close") {
         event.preventDefault();
-        liveThread = "";
         var live = document.querySelector(".clay-live");
         if (live) {
           live.dataset.open = "";
-          var pane = live.querySelector(".clay-live-panel");
-          if (pane) pane.hidden = true;
+          paintVisitor(null);
         }
         return;
       }

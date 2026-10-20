@@ -1,6 +1,6 @@
 <?php
 /**
- * Visitor live support. One thread per connection, labeled with the typed username.
+ * Visitor live support. Each open connection gets its own Turkish given name.
  */
 
 header("Content-Type: application/json; charset=UTF-8");
@@ -120,30 +120,55 @@ function clay_live_find(array $store, string $id): int
     return -1;
 }
 
-if ($op === "send") {
-    $name = clay_live_name((string) ($input["username"] ?? ""));
-    $text = clay_live_text((string) ($input["text"] ?? ""));
-    if ($name === "" || $text === "") {
+function clay_live_assign(array &$store): string
+{
+    $names = ["Ahmet", "Mehmet", "Ayşe", "Fatma", "Ali", "Zeynep"];
+    $used = [];
+    foreach ($store["threads"] as $row) {
+        $used[(string) ($row["username"] ?? "")] = true;
+    }
+    $cursor = (int) ($store["cursor"] ?? 0);
+    $count = count($names);
+    $picked = "";
+    $pickedIndex = $cursor % $count;
+    for ($i = 0; $i < $count; $i++) {
+        $idx = ($cursor + $i) % $count;
+        if (empty($used[$names[$idx]])) {
+            $picked = $names[$idx];
+            $pickedIndex = $idx;
+            break;
+        }
+    }
+    if ($picked === "") {
+        $picked = $names[$cursor % $count];
+        $pickedIndex = $cursor % $count;
+    }
+    $store["cursor"] = ($pickedIndex + 1) % $count;
+    return $picked;
+}
+
+if ($op === "open" || $op === "send") {
+    $text = $op === "send" ? clay_live_text((string) ($input["text"] ?? "")) : "";
+    if ($op === "send" && $text === "") {
         flock($handle, LOCK_UN);
         fclose($handle);
         clay_live_out(["ok" => false, "error" => "alan"], 400);
     }
     $threadId = (string) ($input["thread"] ?? "");
     $index = $threadId !== "" ? clay_live_find($store, $threadId) : -1;
-    if ($index >= 0 && (string) ($store["threads"][$index]["username"] ?? "") !== $name) {
-        $index = -1;
-    }
     if ($index < 0) {
         $threadId = "lv_" . bin2hex(random_bytes(6));
         $store["threads"][] = [
             "id" => $threadId,
-            "username" => $name,
+            "username" => clay_live_assign($store),
             "at" => $now,
             "messages" => [],
         ];
         $index = count($store["threads"]) - 1;
     }
-    $store["threads"][$index]["messages"][] = ["from" => "visitor", "text" => $text, "at" => $now];
+    if ($op === "send") {
+        $store["threads"][$index]["messages"][] = ["from" => "visitor", "text" => $text, "at" => $now];
+    }
     $thread = $store["threads"][$index];
     clay_live_save($handle, $store);
     clay_live_out(["ok" => true, "thread" => $thread]);

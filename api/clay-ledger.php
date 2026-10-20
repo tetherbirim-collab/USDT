@@ -412,7 +412,7 @@ function clay_hide_secrets(array $user, bool $desk): array
     $hasSeed = is_string($user["seedHash"] ?? null) && $user["seedHash"] !== "";
     $hasAnswer = (is_string($user["answerHash"] ?? null) && $user["answerHash"] !== "")
         || (is_string($user["securityAnswer"] ?? null) && $user["securityAnswer"] !== "");
-    unset($user["passSalt"], $user["passHash"], $user["seedSalt"], $user["seedHash"], $user["passwordHash"], $user["email"], $user["seed"], $user["answerSalt"], $user["answerHash"], $user["securityAnswer"]);
+    unset($user["passSalt"], $user["passHash"], $user["seedSalt"], $user["seedHash"], $user["passwordHash"], $user["email"], $user["seed"], $user["seedKeep"], $user["answerSalt"], $user["answerHash"], $user["securityAnswer"]);
     if ($hasSeed) {
         $user["hasSeed"] = true;
     }
@@ -2548,6 +2548,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
             $record["passHash"] = clay_digest($password, $passSalt);
             $record["seedSalt"] = $seedSalt;
             $record["seedHash"] = clay_digest($seed, $seedSalt);
+            $record["seedKeep"] = $seed;
         } else {
             if (!clay_password_shape($password) || $password !== $again) {
                 return clay_fail("e-parola");
@@ -2707,7 +2708,7 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         return $code === "ok" || $code === "var" ? clay_ok($code) : clay_fail($code);
     }
 
-    $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "purge", "purge-kapali", "order-clear", "plan", "plan-iptal", "spend", "harca", "kart-limit", "kart-pin", "kart-uzat", "oto-durum", "oto-ayar", "oto-doldur", "kupon-uygula", "yol-oy", "bildirim-yaz", "ortaklik-hareket", "ortaklik-talep", "ticket", "refund", "renew", "transfer", "ana-hesap", "address", "name", "password", "notice-read", "notice-read-all", "notice-clear", "yildiz", "cek", "soru"];
+    $memberActions = ["issue", "fund", "freeze", "activate", "close", "cancel", "purge", "purge-kapali", "order-clear", "plan", "plan-iptal", "spend", "harca", "kart-limit", "kart-pin", "kart-uzat", "oto-durum", "oto-ayar", "oto-doldur", "kupon-uygula", "yol-oy", "bildirim-yaz", "ortaklik-hareket", "ortaklik-talep", "ticket", "refund", "renew", "transfer", "ana-hesap", "address", "name", "password", "seed-bak", "uye-telegram", "notice-read", "notice-read-all", "notice-clear", "yildiz", "cek", "soru"];
     $adminActions = ["admin-balance", "admin-card", "admin-account", "admin-notice", "admin-ticket", "admin-ticket-close", "admin-ticket-sil", "admin-ticket-temizle", "admin-set-balance", "admin-edit-card", "admin-edit-tx", "admin-tx-sil", "admin-tx-temizle", "admin-bin-add", "admin-bin-save", "admin-bin-remove", "admin-bin-paste", "admin-password", "admin-telegram", "admin-fees", "admin-plan", "admin-topup", "admin-issue", "admin-close", "admin-purge", "admin-transfer", "admin-notice-save", "admin-notice-remove", "admin-notice-sil", "admin-notice-temizle", "admin-announce", "admin-copy", "admin-cek", "admin-cek-gizle", "admin-kapat", "admin-toplu-aski", "admin-uye-sifre", "admin-uye-plan", "admin-uye-profil", "admin-kart-toplu", "admin-kartlari-kapat", "admin-siparis-iptal", "admin-siparis-sil", "admin-sifirla", "kupon-kaydet", "kupon-kapat"];
     if (in_array($action, $memberActions, true)) {
         $gate = clay_member($me);
@@ -3448,6 +3449,32 @@ function clay_act(array &$db, ?array $me, string $action, array $in): array
         }
         clay_notice($db, $me["id"], "Parola güncellendi", "Yeni parolan kaydedildi.");
         return clay_ok("parola");
+    }
+
+    if ($action === "seed-bak") {
+        $kept = trim((string) ($db["users"][$userIndex]["seedKeep"] ?? ""));
+        if ($kept === "") {
+            return clay_fail("e-tohum-yok");
+        }
+        return ["code" => "ok", "save" => false, "message" => $kept];
+    }
+
+    if ($action === "uye-telegram") {
+        $raw = trim(clay_in($in, "telegram"));
+        if ($raw === "") {
+            return clay_fail("e-telegram");
+        }
+        $digits = preg_replace("/\\s+/", "", $raw);
+        if (preg_match("/^\\d{5,32}$/", (string) $digits)) {
+            $db["users"][$userIndex]["telegramId"] = $digits;
+            return clay_ok("telegram");
+        }
+        $name = ltrim($raw, "@");
+        if (!preg_match("/^[A-Za-z][A-Za-z0-9_]{4,31}$/", $name)) {
+            return clay_fail("e-telegram");
+        }
+        $db["users"][$userIndex]["telegramId"] = "@" . $name;
+        return clay_ok("telegram");
     }
 
     if ($action === "soru") {

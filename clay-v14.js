@@ -277,6 +277,7 @@
         if (tx && (tx.kind === "yukleme" || tx.kind === "cek" || tx.kind === "transfer")) keys.push("tx:" + tx.id);
       });
       (db.cards || []).forEach(function (card) { if (card && card.status === "donduruldu") keys.push("card:" + card.id); });
+      (db.users || []).forEach(function (user) { if (user && user.telegramId) keys.push("tg:" + user.id + ":" + user.telegramId); });
     }
     if (!deskSeen) {
       deskSeen = {};
@@ -303,6 +304,72 @@
     line.className = "trust-line";
     line.innerHTML = "<span>KYC YOK</span><span aria-hidden=\"true\"> · </span><span class=\"trust-hot\">LOG YOK</span><span aria-hidden=\"true\"> · </span><span>TAMAMEN GÜVENLİ VE ANONİM</span>";
     stage.insertBefore(line, stage.firstChild);
+  }
+  function telegramFor(customer, userId) {
+    var db = window.__clay && window.__clay.get ? window.__clay.get() : null;
+    if (!db || !Array.isArray(db.users)) return "";
+    for (var i = 0; i < db.users.length; i++) {
+      var user = db.users[i];
+      if (!user || !user.telegramId) continue;
+      if (userId && user.id === userId) return String(user.telegramId);
+      if (customer && user.username === customer) return String(user.telegramId);
+    }
+    return "";
+  }
+  function paintMemberTelegram() {
+    if (!admin() || !/\/uyeler\/?$/.test(path())) return;
+    var db = window.__clay && window.__clay.get ? window.__clay.get() : null;
+    if (!db || !Array.isArray(db.users)) return;
+    document.querySelectorAll(".glass").forEach(function (card) {
+      var text = card.innerText || "";
+      db.users.forEach(function (user) {
+        if (!user || !user.telegramId || !user.username) return;
+        if (text.indexOf(user.username) === -1) return;
+        var note = card.querySelector('.clay-tg-row[data-user="' + user.id + '"]');
+        if (!note) {
+          note = document.createElement("p");
+          note.className = "clay-tg-row";
+          note.setAttribute("data-user", user.id);
+          card.appendChild(note);
+        }
+        note.textContent = "Telegram " + user.telegramId;
+      });
+    });
+  }
+  var seedWords = [];
+  var seedOpen = false;
+  function maskSeed(words) {
+    var keep = words.length > 3 ? 3 : Math.min(2, words.length);
+    return words.map(function (word, index) { return index < keep ? word : "***"; }).join(" ");
+  }
+  function paintSeed() {
+    var node = document.querySelector(".clay-seed-view");
+    if (!node) return;
+    if (!seedWords.length) {
+      node.textContent = "Bu hesapta kayıtlı tohum yok.";
+      return;
+    }
+    node.textContent = seedOpen ? seedWords.join(" ") : maskSeed(seedWords);
+  }
+  function mountHesap() {
+    if (!/^\/panel\/hesap\/?$/.test(path())) return;
+    if (document.querySelector(".clay-hesap-ayar")) return;
+    var host = document.querySelector(".grid.gap-5");
+    if (!host) return;
+    var box = document.createElement("section");
+    box.className = "account-sheet clay-hesap-ayar";
+    box.innerHTML = '<h2 class="account-sheet-title font-display text-2xl font-bold">Şifre değiştir</h2><form data-clay-pass><label>Mevcut parola<input class="field" type="password" name="eski" autocomplete="current-password" required></label><label>Yeni parola<input class="field" type="password" name="yeni" autocomplete="new-password" required></label><label>Yeni parola tekrar<input class="field" type="password" name="yeni2" autocomplete="new-password" required></label><button class="btn btn-gold" type="submit">Kaydet</button><p class="clay-hesap-msg" role="status"></p></form><h2 class="account-sheet-title font-display text-2xl font-bold">Seed görüntüle</h2><p class="clay-seed-view">Tohum yükleniyor.</p><button type="button" class="btn btn-ghost" data-clay-seed-show>Görüntüle</button><h2 class="account-sheet-title font-display text-2xl font-bold">Telegram ID ekle</h2><form data-clay-tg><label>Telegram<input class="field" name="telegram" autocomplete="off" placeholder="@kullanici veya rakam"></label><button class="btn btn-gold" type="submit">Kaydet</button><p class="clay-tg-now"></p><p class="clay-hesap-msg" role="status"></p></form>';
+    host.appendChild(box);
+    var me = viewer();
+    var current = box.querySelector(".clay-tg-now");
+    if (current && me && me.telegramId) current.textContent = "Kayıtlı: " + me.telegramId;
+    if (window.__clay && window.__clay.call) {
+      window.__clay.call("seed-bak", {}).then(function (res) {
+        seedWords = res && res.code === "ok" && res.message ? String(res.message).trim().split(/\s+/) : [];
+        seedOpen = false;
+        paintSeed();
+      });
+    }
   }
   function refineMarks() {
     document.querySelectorAll("svg.h-8, svg.h-9").forEach(function (svg) {
@@ -615,7 +682,7 @@
       var bits = (row.messages || []).map(function (item) {
         return String(item.at || "") + (item.from || "") + (item.image || "") + String(item.text || "").length;
       }).join(",");
-      return row.id + ":" + (row.customer || row.username || "") + ":" + (row.agent || "") + ":" + (row.status || "acik") + ":" + bits;
+      return row.id + ":" + (row.customer || row.username || "") + ":" + (row.agent || "") + ":" + (row.userId || "") + ":" + telegramFor(row.customer || row.username, row.userId) + ":" + (row.status || "acik") + ":" + bits;
     }).join("|") + ">" + deskThread + "#" + liveAutos.map(function (row) { return row.id + row.q + row.a; }).join("~");
     if (box.dataset.sig === sig) return;
     box.dataset.sig = sig;
@@ -623,7 +690,8 @@
       var status = row.status || "acik";
       var customer = row.customer || row.username || "";
       var agent = row.agent || "";
-      return '<button type="button" class="clay-desk-person' + (row.id === deskThread ? " is-on" : "") + '" data-thread="' + esc(row.id) + '">' + cardMark() + '<span class="clay-desk-person-copy"><span class="clay-desk-person-brand">Müşteri</span><strong>' + esc(customer) + '</strong><span class="clay-desk-person-role"><i class="clay-live-dot ' + liveTone(status) + '"></i> Temsilci ' + esc(agent) + " · " + esc(liveLabel(status)) + "</span></span></button>";
+      var tg = telegramFor(customer, row.userId);
+      return '<button type="button" class="clay-desk-person' + (row.id === deskThread ? " is-on" : "") + '" data-thread="' + esc(row.id) + '">' + cardMark() + '<span class="clay-desk-person-copy"><span class="clay-desk-person-brand">Müşteri</span><strong>' + esc(customer) + '</strong><span class="clay-desk-person-role"><i class="clay-live-dot ' + liveTone(status) + '"></i> Temsilci ' + esc(agent) + " · " + esc(liveLabel(status)) + "</span>" + (tg ? '<span class="clay-tg">Telegram ' + esc(tg) + "</span>" : "") + "</span></button>";
     }).join("") || '<p class="clay-desk-live-empty">Henüz konuşma yok.</p>';
     var status = active ? (active.status || "acik") : "";
     var log = active ? (active.messages || []).map(function (row) {
@@ -806,6 +874,46 @@
       sendDesk(form);
       return;
     }
+    if (form.matches("form[data-clay-pass]")) {
+      event.preventDefault();
+      event.stopPropagation();
+      var msg = form.querySelector(".clay-hesap-msg");
+      var eski = String(form.eski.value || "");
+      var yeni = String(form.yeni.value || "");
+      var yeni2 = String(form.yeni2.value || "");
+      if (!eski || !yeni || yeni !== yeni2) {
+        if (msg) msg.textContent = "Mevcut parola ve iki yeni parola aynı olmalı.";
+        return;
+      }
+      if (!(window.__clay && window.__clay.call)) return;
+      window.__clay.call("password", { eski: eski, yeni: yeni, yeni2: yeni2 }).then(function (res) {
+        if (msg) msg.textContent = res && res.code === "parola" ? "Parola güncellendi." : "Parola kaydedilmedi.";
+        if (res && res.code === "parola") form.reset();
+      });
+      return;
+    }
+    if (form.matches("form[data-clay-tg]")) {
+      event.preventDefault();
+      event.stopPropagation();
+      var note = form.querySelector(".clay-hesap-msg");
+      var telegram = String(form.telegram.value || "").trim();
+      if (!telegram) {
+        if (note) note.textContent = "Boş Telegram kaydedilmez.";
+        return;
+      }
+      if (!(window.__clay && window.__clay.call)) return;
+      window.__clay.call("uye-telegram", { telegram: telegram }).then(function (res) {
+        if (res && res.code === "telegram") {
+          var me = viewer();
+          var shown = me && me.telegramId ? me.telegramId : telegram;
+          var line = form.querySelector(".clay-tg-now");
+          if (line) line.textContent = "Kayıtlı: " + shown;
+          if (note) note.textContent = "Telegram kaydedildi.";
+          form.telegram.value = "";
+        } else if (note) note.textContent = "Telegram kaydedilmedi.";
+      });
+      return;
+    }
     if (form.matches("form.clay-desk-auto-form")) {
       event.preventDefault();
       event.stopPropagation();
@@ -848,6 +956,13 @@
 
   document.addEventListener("pointerdown", function () { unlockAudio(); }, true);
   document.addEventListener("click", function (event) {
+    var seedBtn = event.target.closest && event.target.closest("[data-clay-seed-show]");
+    if (seedBtn) {
+      event.preventDefault();
+      seedOpen = true;
+      paintSeed();
+      return;
+    }
     var renew = event.target.closest && event.target.closest("[data-act=renew-yes]");
     if (renew) passOnce("kart-uzat");
     var act = event.target.closest && event.target.closest("[data-act]");
@@ -927,6 +1042,12 @@
         }
         return;
       }
+      if (name === "clay-seed-show" || (act.hasAttribute("data-clay-seed-show"))) {
+        event.preventDefault();
+        seedOpen = true;
+        paintSeed();
+        return;
+      }
       if (name === "plan-cancel") {
         event.preventDefault();
         askConfirm("Mevcut planı iptal ediyor musun? Onaylıyor musun?").then(function (ok) {
@@ -970,6 +1091,8 @@
     stripLegacyReset();
     refineMarks();
     girisTrust();
+    mountHesap();
+    paintMemberTelegram();
     paintVisitor(null);
     paintPlan();
     paintIssue();

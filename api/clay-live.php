@@ -1,6 +1,6 @@
 <?php
 /**
- * Visitor live support. Guests are Clay No Name Customer; members use their username.
+ * Visitor live support. The header shows a representative; the desk shows the customer.
  */
 
 header("Content-Type: application/json; charset=UTF-8");
@@ -195,13 +195,16 @@ function clay_live_session_user(): ?array
 
 function clay_live_anon_label(array $store, int $skip): string
 {
-    $base = "Clay No Name Customer";
+    $base = "Clay Anonim";
     $used = [];
     foreach ($store["threads"] as $i => $row) {
-        if ($i === $skip || ($row["status"] ?? "acik") === "bitti" || (string) ($row["userId"] ?? "") !== "") {
+        if ($i === $skip || ($row["status"] ?? "acik") === "bitti") {
             continue;
         }
-        $used[(string) ($row["username"] ?? "")] = true;
+        $label = (string) ($row["customer"] ?? $row["username"] ?? "");
+        if (preg_match('/^Clay Anonim( [0-9]+)?$/', $label)) {
+            $used[$label] = true;
+        }
     }
     if (empty($used[$base])) {
         return $base;
@@ -230,7 +233,7 @@ function clay_live_customer_label(array $store, int $skip, ?array $member): stri
         $name = trim((string) ($member["username"] ?? ""));
         $folded = function_exists("mb_strtolower") ? mb_strtolower($name, "UTF-8") : strtolower($name);
         if ($name === "" || $folded === "anonim") {
-            return "Clay Anonim";
+            return clay_live_anon_label($store, $skip);
         }
         return $name;
     }
@@ -258,7 +261,7 @@ function clay_live_apply_name(array &$store, int $index): void
         if ($owner !== "") {
             return;
         }
-        if (preg_match('/^Clay No Name Customer( [0-9]+)?$/', $current)) {
+        if (preg_match('/^Clay Anonim( [0-9]+)?$/', $current)) {
             $label = $current;
         } else {
             $label = clay_live_customer_label($store, $index, null);

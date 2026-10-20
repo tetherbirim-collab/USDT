@@ -630,6 +630,11 @@ body.clay-issue {
 .clay-desk-auto li p { margin: 0; }
 .clay-desk-auto li p:nth-child(2) { grid-column: 1; color: #5c5146; font-size: 13px; }
 .clay-desk-auto li button { grid-column: 2; grid-row: 1 / span 2; }
+.clay-hesap-ayar { display: grid; gap: 12px; margin-top: 16px; }
+.clay-hesap-ayar form { display: grid; gap: 8px; }
+.clay-hesap-ayar label { display: grid; gap: 4px; }
+.clay-seed-view { margin: 0; letter-spacing: 0.04em; }
+.clay-tg-row, .clay-tg { display: block; font-size: 12px; font-weight: 700; }
 .clay-desk-auto-form { display: flex; flex-wrap: wrap; gap: 8px; }
 .clay-desk-auto-form input { flex: 1; min-width: 140px; }
 .clay-desk-live-log p.is-auto { background: #efe2d0; }

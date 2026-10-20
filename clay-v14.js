@@ -695,16 +695,45 @@
     });
   }
   function pinAyarlar() {
-    if (!member()) return;
-    document.querySelectorAll("a[href='/panel/hesap'], a[href='/panel/hesap/']").forEach(function (hesap) {
-      var nav = hesap.parentElement;
-      if (!nav || nav.querySelector("[data-clay-ayarlar]")) return;
+    if (member()) {
+      document.querySelectorAll("nav.mt-4, details .mt-2.grid").forEach(function (nav) {
+        if (nav.querySelector("[data-clay-ayarlar]")) return;
+        var named = false;
+        nav.querySelectorAll("a").forEach(function (a) {
+          if ((a.textContent || "").replace(/\s+/g, " ").trim() === "Ayarlar") named = true;
+        });
+        if (named) return;
+        var hesap = null;
+        nav.querySelectorAll("a").forEach(function (a) {
+          var href = a.getAttribute("href") || "";
+          if (!hesap && (href === "/panel/hesap" || href === "/panel/hesap/")) hesap = a;
+        });
+        var link = document.createElement("a");
+        link.setAttribute("data-clay-ayarlar", "1");
+        link.href = "/panel/hesap/#ayarlar";
+        link.textContent = "Ayarlar";
+        link.className = "nav-pill rounded-full px-3 py-2 text-sm font-bold bg-white/5 text-white/80";
+        if (hesap) hesap.insertAdjacentElement("afterend", link);
+        else nav.appendChild(link);
+      });
+    }
+    if (!admin()) return;
+    document.querySelectorAll("header nav .flex.flex-wrap").forEach(function (row) {
+      if (row.querySelector("[data-clay-ayarlar]")) return;
+      if (!row.querySelector("a")) return;
+      var masa = null;
+      row.querySelectorAll("a").forEach(function (a) {
+        if (!masa && (a.textContent || "").replace(/\s+/g, " ").trim() === "Masa") masa = a;
+      });
+      if (!masa) return;
       var link = document.createElement("a");
       link.setAttribute("data-clay-ayarlar", "1");
-      link.href = "/panel/hesap/#ayarlar";
+      link.href = "/clayadm!nxx/hesap/";
       link.textContent = "Ayarlar";
-      link.className = String(hesap.className || "nav-pill").replace(/\bnav-on\b|\bnav-metal-gold\b/g, "").trim();
-      hesap.insertAdjacentElement("afterend", link);
+      var sample = row.querySelector("[data-clay-canli]") || masa;
+      link.className = String(sample.className || "nav-pill").replace(/\bnav-on\b/g, "").trim();
+      var after = row.querySelector("[data-clay-canli]") || masa;
+      after.insertAdjacentElement("afterend", link);
     });
   }
   function paintDesk(threads) {
@@ -806,6 +835,7 @@
     });
   }
 
+  var planCancelled = false;
   function paintPlan() {
     var stages = document.querySelectorAll(".plan-stage");
     if (!stages.length) return;
@@ -815,6 +845,18 @@
     stages.forEach(function (stage) {
       var gate = stage.previousElementSibling && stage.previousElementSibling.classList.contains("clay-plan-gate") ? stage.previousElementSibling : null;
       if (!live) {
+        if (planCancelled) {
+          if (!gate) {
+            gate = document.createElement("section");
+            gate.className = "clay-plan-gate";
+            stage.parentNode.insertBefore(gate, stage);
+          }
+          if (gate.dataset.sig !== "iptal") {
+            gate.dataset.sig = "iptal";
+            gate.innerHTML = "<p>Plan iptal edildi. Bu hesap yeni panelde duruyor.</p>";
+          }
+          return;
+        }
         if (gate) gate.remove();
         stage.querySelectorAll(".plan-offer-cta button").forEach(function (btn) {
           if ((btn.textContent || "").trim() === "Bu paket sende") btn.textContent = "Bu plana geç";
@@ -835,7 +877,12 @@
   function cancelPlan() {
     if (!(window.__clay && window.__clay.call)) return Promise.resolve(null);
     passOnce("plan-iptal");
-    return window.__clay.call("plan-iptal", { onay: "on" });
+    return window.__clay.call("plan-iptal", { onay: "on" }).then(function (res) {
+      if (res && res.code === "plan-iptal") planCancelled = true;
+      document.querySelectorAll(".clay-plan-gate").forEach(function (gate) { gate.dataset.sig = ""; });
+      paintPlan();
+      return res;
+    });
   }
 
   function amountText(raw) {
@@ -847,37 +894,36 @@
     if (!/\/panel\/kartlar\/yeni\/?$/.test(path())) return;
     var gate = document.querySelector(".clay-confirm");
     if (!gate) return;
-    var host = document.querySelector(".mx-auto.min-h-screen") || document.body;
-    if (host.lastElementChild !== gate) host.appendChild(gate);
+    var field = document.querySelector('form input[name="tutar"]');
+    var form = field && field.closest("form");
+    if (form && form.parentNode) form.parentNode.insertBefore(gate, form.nextSibling);
+    var names = { facebook_ads: "Facebook Ads", tiktok: "TikTok Ads", google_ads: "Google Ads", ultima: "Ultima", burner: "Tek Kullanımlık Kart" };
     var picked = document.querySelector('input[name="tur"]:checked');
     var label = picked && picked.closest("label");
-    var name = "—";
-    var kind = "—";
+    var name = picked ? (names[picked.value] || "") : "";
+    var kind = "";
     if (label) {
-      var nameNode = label.querySelector(".entrance-type, .font-semibold");
+      var nameNode = label.querySelector(".entrance-type");
       if (nameNode) {
         var first = nameNode.childNodes[0];
-        name = String((first && first.nodeType === 3 ? first.textContent : nameNode.textContent) || "").trim();
+        var read = String((first && first.nodeType === 3 ? first.textContent : "") || "").replace(/\s+/g, " ").trim();
+        if (read) name = read;
       }
       var kindNode = label.querySelector(".bin-global");
-      if (kindNode) kind = String(kindNode.textContent || "").trim();
+      if (kindNode) kind = String(kindNode.textContent || "").replace(/\s+/g, " ").trim();
     }
-    var field = document.querySelector('input[name="tutar"]');
-    var raw = field ? field.value : "";
-    var shown = amountText(raw);
+    if (name && (!kind || kind === "—")) kind = "Global kart";
+    var raw = field ? String(field.value || "").trim() : "";
+    var shown = raw ? raw.replace(".", ",") + " USD" : "";
     var brand = gate.querySelector(".clay-sample-brand");
-    if (brand) brand.textContent = name || "—";
+    if (brand && name) brand.textContent = name;
     var lines = gate.querySelectorAll(".clay-sample-line strong");
-    if (lines[0]) lines[0].textContent = shown;
-    if (lines[1]) lines[1].textContent = shown;
+    if (lines[0] && name) lines[0].textContent = name;
+    if (lines[1] && shown) lines[1].textContent = shown;
     var global = gate.querySelector(".clay-sample .bin-global");
-    if (global) global.textContent = kind || "—";
+    if (global && kind && kind !== "—") global.textContent = kind;
     var question = gate.querySelector(".clay-confirm-q");
-    if (question) {
-      question.textContent = raw
-        ? "Bu kadar " + shown + " bakiye yüklüyorsun, onaylıyor musun?"
-        : "Tutarı ve kart türünü seç. Onaylıyor musun?";
-    }
+    if (question && name && shown) question.textContent = name + " kartına " + shown + " yüklüyorsun. Onaylıyor musun?";
   }
   window.__clayPaintIssue = paintIssue;
 

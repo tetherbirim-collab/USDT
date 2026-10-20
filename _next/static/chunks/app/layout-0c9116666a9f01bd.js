@@ -2,7 +2,21 @@
 ;(function(){
 function clayBoot(){
 (function () {
-  var IDLE_MS = 30000;
+  var IDLE_MS = 300000;
+  var ACTIVITY_KEY = "clay-active-at";
+  function readActivity() {
+    try {
+      var n = Number(sessionStorage.getItem(ACTIVITY_KEY));
+      if (n > 0 && n <= Date.now() + 2000) return n;
+    } catch (e) {}
+    return 0;
+  }
+  function stampActivity(ts) {
+    lastActivity = ts;
+    try { sessionStorage.setItem(ACTIVITY_KEY, String(ts)); } catch (e) {}
+  }
+  var lastActivity = readActivity() || Date.now();
+  if (!readActivity()) stampActivity(lastActivity);
   var CATALOG = { facebook_ads: "441357", tiktok: "474613", google_ads: "441357", ultima: "474613", burner: "474613" };
   var VERIFIED = {
     "441357": { type: "credit", country: null, alpha2: null, emoji: null, unavailableCountry: true },
@@ -645,8 +659,21 @@ function clayBoot(){
     root.querySelectorAll(".clay-lock-card input, .clay-lock-card button").forEach(function (el) { el.disabled = false; });
   }
 
+  function lockVisible() {
+    var root = document.getElementById("clay-lock");
+    return !!(root && !root.hidden);
+  }
+
   function showLock() {
     if (!onDesk() || !sessionId()) return;
+    if (Date.now() - lastActivity < IDLE_MS - 250) {
+      try { sessionStorage.removeItem("clay-locked"); } catch (e) {}
+      if (lockVisible()) hideLock();
+      clearTimeout(idleTimer);
+      idleTimer = null;
+      armIdle();
+      return;
+    }
     clearTimeout(idleTimer);
     idleTimer = null;
     try { sessionStorage.setItem("clay-locked", "1"); } catch (e) {}
@@ -800,13 +827,18 @@ function clayBoot(){
   }
 
   function armIdle() {
-    if (idleTimer || !onDesk() || !sessionId() || lockedFlag()) return;
-    idleTimer = setTimeout(showLock, IDLE_MS);
+    if (idleTimer || !onDesk() || !sessionId() || lockVisible()) return;
+    var wait = IDLE_MS - (Date.now() - lastActivity);
+    if (wait < 0) wait = 0;
+    idleTimer = setTimeout(showLock, wait);
   }
 
   function bumpActivity(event) {
+    if (event && event.isTrusted === false) return;
     if (event && event.target && event.target.closest && event.target.closest("#clay-lock")) return;
-    if (lockedFlag()) return;
+    if (lockVisible()) return;
+    stampActivity(Date.now());
+    try { sessionStorage.removeItem("clay-locked"); } catch (e) {}
     clearTimeout(idleTimer);
     idleTimer = null;
     armIdle();
@@ -1382,6 +1414,8 @@ function clayBoot(){
   document.addEventListener("keydown", bumpActivity, true);
   document.addEventListener("input", bumpActivity, true);
   document.addEventListener("wheel", bumpActivity, true);
+  document.addEventListener("touchstart", bumpActivity, true);
+  document.addEventListener("scroll", bumpActivity, true);
   document.addEventListener("submit", function (event) {
     var form = event.target;
     if (form && form.querySelector && /\/giris\/?$/.test(location.pathname) && window.__clay && window.__clay.php && window.__clay.php()) {
@@ -1820,9 +1854,15 @@ function clayBoot(){
       mountCardFold();
       mountAutoFill();
       applyI18n(document.body);
-      if (lockedFlag() && sessionId() && onDesk()) showLock();
+      if (onDesk() && sessionId() && Date.now() - lastActivity >= IDLE_MS - 250) showLock();
       else if (!sessionId()) hideLock();
-      armIdle();
+      else {
+        if (lockedFlag()) {
+          try { sessionStorage.removeItem("clay-locked"); } catch (e) {}
+          if (lockVisible()) hideLock();
+        }
+        armIdle();
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -1846,10 +1886,10 @@ function clayBoot(){
   observer.observe(document.documentElement, { childList: true, subtree: true });
   tick();
   setInterval(function () {
-    if (lockedFlag() && sessionId() && onDesk()) {
-      var root = document.getElementById("clay-lock");
-      if (!root || root.hidden) showLock();
-    }
+    if (!onDesk() || !sessionId()) return;
+    if (Date.now() - lastActivity < IDLE_MS - 250) return;
+    var root = document.getElementById("clay-lock");
+    if (!root || root.hidden) showLock();
   }, 400);
   var waits = 0;
   var timer = setInterval(function () {
@@ -1857,7 +1897,13 @@ function clayBoot(){
     tick();
     if (storeReady() || waits > 40) clearInterval(timer);
   }, 150);
-  window.__clayV2 = { idleMs: IDLE_MS, lookupBin: lookupBin, catalog: CATALOG, verified: VERIFIED };
+  window.__clayV2 = {
+    idleMs: IDLE_MS,
+    idleLeft: function () { return Math.max(0, IDLE_MS - (Date.now() - lastActivity)); },
+    lookupBin: lookupBin,
+    catalog: CATALOG,
+    verified: VERIFIED
+  };
 })();
 
 (function () {
@@ -2291,18 +2337,24 @@ function clayBoot(){
   function mountNav() {
     if (/\/clayadm!nxx/.test(location.pathname)) return;
     var links = [
+      ["/panel/hesap/#ayarlar", "Ayarlar"],
       ["/panel/hesap?sekme=ortaklik", "Ortaklık"],
       ["/panel/hesap?sekme=guvenlik", "Aktif Oturum Bilgisi"]
     ];
     document.querySelectorAll("nav.mt-4, details .mt-2.grid").forEach(function (nav) {
-      if (nav.querySelector("[data-clay-nav]")) return;
       links.forEach(function (item) {
+        var label = item[1];
+        var exists = false;
+        nav.querySelectorAll("a").forEach(function (a) {
+          if ((a.textContent || "").replace(/\s+/g, " ").trim() === label) exists = true;
+        });
+        if (exists) return;
         var a = document.createElement("a");
         a.href = item[0];
         a.dataset.clayNav = "1";
         a.className = "nav-pill rounded-full px-3 py-2 text-sm font-bold bg-white/5 text-white/80";
         if (location.search && item[0].indexOf(location.search) !== -1) a.classList.add("nav-on");
-        a.textContent = item[1];
+        a.textContent = label;
         nav.appendChild(a);
       });
     });
@@ -2562,13 +2614,13 @@ else clayBoot();
 
   function syncSample() {
     if (!/\/panel\/kartlar\/yeni\/?$/.test(path())) return;
+    if (window.__clayPaintIssue) {
+      window.__clayPaintIssue();
+      return;
+    }
     var brand = document.querySelector(".clay-sample-brand");
     var name = cardName();
     if (brand && name) brand.textContent = name;
-    var form = document.querySelector('form input[name="etiket"]');
-    form = form && form.closest("form");
-    var gate = document.querySelector(".clay-confirm");
-    if (form && gate && form.nextElementSibling !== gate) form.parentNode.insertBefore(gate, form.nextSibling);
   }
 
   function tidyCards() {
@@ -2951,6 +3003,7 @@ else clayBoot();
       event.preventDefault();
       event.stopPropagation();
       var ask = mountPlanAsk(form);
+      if (!ask) return;
       ask.hidden = false;
       ask.dataset.form = "1";
       form.dataset.clayAsk = "1";

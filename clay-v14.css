@@ -266,6 +266,18 @@ body.clay-issue {
   .clay-ask-back { place-items: center; }
   .clay-ask { margin-bottom: 0; }
 }
+body.clay-issue .clay-confirm {
+  width: 100%;
+  margin: 16px 0 8px;
+}
+body.clay-issue .glass:has(.clay-confirm),
+body.clay-issue .mx-auto.min-h-screen:has(.clay-confirm) {
+  display: flex;
+  flex-direction: column;
+}
+body.clay-issue .clay-confirm {
+  order: 40;
+}
 
 /* Visitor live chat */
 .clay-live {

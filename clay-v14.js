@@ -202,7 +202,8 @@
   var liveOpening = false;
   var liveEnabled = null;
   var liveStatus = "acik";
-  var livePanelHtml = '<div class="clay-live-panel" hidden><header class="clay-live-head"><span class="clay-live-card" aria-hidden="true"><span class="clay-live-card-chip"></span><span class="clay-live-card-mark">CLAY</span></span><span class="clay-live-id"><span class="clay-live-brand">Clay Virtual Card</span><span class="clay-live-role">Müşteri temsilcisi</span><strong class="clay-live-name">Canlı destek</strong><span class="clay-live-sub"><i class="clay-live-dot is-on"></i><span class="clay-live-subtext">Çevrimiçi</span></span></span><button type="button" data-act="live-close" aria-label="Kapat"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button></header><div class="clay-live-log" role="log" aria-live="polite"></div><form class="clay-live-form"><label class="clay-live-photo"><input type="file" accept="image/*" hidden><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M4 6.5A2.5 2.5 0 0 1 6.5 4h2.2l1.2-1.6A2 2 0 0 1 11.4 1.5h1.2a2 2 0 0 1 1.5.9L15.3 4H17.5A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11zM12 16.2a3.7 3.7 0 1 0 0-7.4 3.7 3.7 0 0 0 0 7.4z"/></svg></label><input name="metin" maxlength="400" placeholder="Mesaj yazın" autocomplete="off" enterkeyhint="send"><button class="clay-live-send" type="submit" aria-label="Gönder"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3.2 11.2 20 4.2c.7-.3 1.4.4 1.1 1.1l-7 16.8c-.3.8-1.5.7-1.7-.1l-1.8-6.6-6.6-1.8c-.8-.2-.9-1.4-.1-1.7z"/></svg></button></form></div>';
+  var liveAutos = [];
+  var livePanelHtml = '<div class="clay-live-panel" hidden><header class="clay-live-head"><span class="clay-live-card" aria-hidden="true"><span class="clay-live-card-chip"></span><span class="clay-live-card-mark">CLAY</span></span><span class="clay-live-id"><span class="clay-live-brand">Clay Virtual Card</span><span class="clay-live-role">Müşteri temsilcisi</span><strong class="clay-live-name">Canlı destek</strong><span class="clay-live-sub"><i class="clay-live-dot is-on"></i><span class="clay-live-subtext">Çevrimiçi</span></span></span><button type="button" data-act="live-close" aria-label="Kapat"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button></header><div class="clay-live-log" role="log" aria-live="polite"></div><div class="clay-live-foot"><div class="clay-live-autos"></div><form class="clay-live-form"><label class="clay-live-photo"><input type="file" accept="image/*" hidden><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M4 6.5A2.5 2.5 0 0 1 6.5 4h2.2l1.2-1.6A2 2 0 0 1 11.4 1.5h1.2a2 2 0 0 1 1.5.9L15.3 4H17.5A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11zM12 16.2a3.7 3.7 0 1 0 0-7.4 3.7 3.7 0 0 0 0 7.4z"/></svg></label><input name="metin" maxlength="400" placeholder="Mesaj yazın" autocomplete="off" enterkeyhint="send"><button class="clay-live-send" type="submit" aria-label="Gönder"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3.2 11.2 20 4.2c.7-.3 1.4.4 1.1 1.1l-7 16.8c-.3.8-1.5.7-1.7-.1l-1.8-6.6-6.6-1.8c-.8-.2-.9-1.4-.1-1.7z"/></svg></button></form></div></div>';
   var liveButtonHtml = '<button type="button" class="clay-live-btn" data-act="live-open" aria-label="Canlı destek"><svg class="clay-live-icon-chat" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9.2L5 19.4c-.6.5-1.5.1-1.5-.7V5.5z"/></svg><svg class="clay-live-icon-x" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button>';
   function visitorShell() {
     if (!document.body || liveEnabled === false) return null;
@@ -216,6 +217,18 @@
     }
     if (!root.querySelector(".clay-live-panel")) root.insertAdjacentHTML("afterbegin", livePanelHtml);
     if (!root.querySelector(".clay-live-btn")) root.insertAdjacentHTML("beforeend", liveButtonHtml);
+    if (!root.querySelector(".clay-live-autos")) {
+      var form = root.querySelector(".clay-live-form");
+      if (form && form.parentNode) {
+        var foot = document.createElement("div");
+        foot.className = "clay-live-foot";
+        var chips = document.createElement("div");
+        chips.className = "clay-live-autos";
+        form.parentNode.insertBefore(foot, form);
+        foot.appendChild(chips);
+        foot.appendChild(form);
+      }
+    }
     return root;
   }
   function paintVisitor(thread) {
@@ -231,6 +244,7 @@
     var open = root.dataset.open === "1";
     root.classList.toggle("is-open", open);
     panel.hidden = !open;
+    paintAutoChips(root);
     if (!thread && liveThread) return;
     var nameNode = root.querySelector(".clay-live-name");
     if (nameNode) nameNode.textContent = thread && thread.username ? thread.username : "Canlı destek";
@@ -264,8 +278,8 @@
       html = '<p class="clay-live-admin clay-live-hello"><span>Clay Virtual Card</span>Merhaba. Mesajınızı veya fotoğrafınızı gönderin, yanıt burada görünür.</p>';
     }
     html += messages.map(function (row) {
-      var mine = row.from !== "admin";
-      var who = mine ? (thread.username || "Siz") : "Destek";
+      var mine = row.from === "visitor";
+      var who = mine ? (thread.username || "Siz") : (row.from === "auto" ? "Otomasyon" : "Destek");
       var photo = row.image ? '<img src="/api/clay-live-file.php?id=' + esc(row.image) + '" alt="Fotoğraf">' : "";
       return '<p class="clay-live-' + (mine ? "mine" : "admin") + '"><span>' + esc(who) + "</span>" + photo + (row.text ? esc(row.text) : "") + "</p>";
     }).join("");
@@ -311,6 +325,7 @@
   }
   function refreshVisitor() {
     postLive({ op: "status" }).then(function (res) {
+      if (res && Array.isArray(res.autos)) liveAutos = res.autos;
       var on = !res || res.enabled !== false;
       if (on !== liveEnabled) {
         liveEnabled = on;
@@ -406,6 +421,31 @@
     }).catch(function () {});
   }
 
+  function paintAutoChips(root) {
+    var host = root && root.querySelector(".clay-live-autos");
+    if (!host) return;
+    if (liveStatus === "bitti") {
+      if (host.dataset.sig !== "off") {
+        host.dataset.sig = "off";
+        host.innerHTML = "";
+      }
+      return;
+    }
+    var sig = liveAutos.map(function (row) { return row.id + "\n" + row.q; }).join("|");
+    if (host.dataset.sig === sig) return;
+    host.dataset.sig = sig;
+    host.innerHTML = liveAutos.map(function (row) {
+      return '<button type="button" data-act="auto-tap" data-id="' + esc(row.id) + '">' + esc(row.q) + "</button>";
+    }).join("");
+  }
+  function takeDesk(res) {
+    if (!res || !res.ok) return;
+    liveEnabled = res.enabled !== false;
+    if (Array.isArray(res.autos)) liveAutos = res.autos;
+    var box = document.querySelector(".clay-desk-live");
+    if (box) box.dataset.sig = "";
+    paintDesk(res.threads || []);
+  }
   function liveTone(status) {
     if (status === "beklemede") return "is-hold";
     if (status === "bitti") return "is-off";
@@ -423,10 +463,7 @@
     if (!deskThread) return;
     postLive({ op: "thread", thread: deskThread, mod: mod }).then(function (res) {
       if (!res || !res.ok) return;
-      liveEnabled = res.enabled !== false;
-      var box = document.querySelector(".clay-desk-live");
-      if (box) box.dataset.sig = "";
-      paintDesk(res.threads || []);
+      takeDesk(res);
     });
   }
   function paintDesk(threads) {
@@ -458,10 +495,10 @@
     threads.forEach(function (row) { if (row.id === deskThread) active = row; });
     var sig = (liveEnabled === false ? "0" : "1") + "|" + threads.map(function (row) {
       var bits = (row.messages || []).map(function (item) {
-        return String(item.at || "") + (item.image || "") + String(item.text || "").length;
+        return String(item.at || "") + (item.from || "") + (item.image || "") + String(item.text || "").length;
       }).join(",");
       return row.id + ":" + (row.username || "") + ":" + (row.status || "acik") + ":" + bits;
-    }).join("|") + ">" + deskThread;
+    }).join("|") + ">" + deskThread + "#" + liveAutos.map(function (row) { return row.id + row.q + row.a; }).join("~");
     if (box.dataset.sig === sig) return;
     box.dataset.sig = sig;
     var list = threads.map(function (row) {
@@ -470,31 +507,41 @@
     }).join("") || '<p class="clay-desk-live-empty">Henüz konuşma yok.</p>';
     var status = active ? (active.status || "acik") : "";
     var log = active ? (active.messages || []).map(function (row) {
-      var who = row.from === "admin" ? "Destek" : active.username;
-      var role = row.from === "admin" ? "" : "<small>Clay Virtual Card müşteri temsilcisi</small>";
+      var who = row.from === "admin" ? "Destek" : (row.from === "auto" ? "Otomasyon" : active.username);
+      var role = row.from === "auto" ? "<small>Otomatik yanıt</small>" : (row.from === "visitor" ? "<small>Clay Virtual Card müşteri temsilcisi</small>" : "");
       var photo = row.image ? '<img src="/api/clay-live-file.php?id=' + esc(row.image) + '" alt="Fotoğraf">' : "";
       var text = row.text ? '<span class="clay-desk-live-text">' + esc(row.text) + "</span>" : "";
-      return '<p class="' + (row.from === "admin" ? "is-admin" : "is-visitor") + '"><strong>' + esc(who) + "</strong>" + role + text + photo + "</p>";
+      return '<p class="' + (row.from === "admin" ? "is-admin" : (row.from === "auto" ? "is-auto" : "is-visitor")) + '"><strong>' + esc(who) + "</strong>" + role + text + photo + "</p>";
     }).join("") || "<p>Henüz mesaj yok.</p>" : "<p>Bir konuşma seç.</p>";
     var tools = active
       ? '<p class="clay-desk-live-meta"><i class="clay-live-dot ' + liveTone(status) + '"></i> Clay Virtual Card müşteri temsilcisi · ' + esc(active.username) + " · " + esc(liveLabel(status)) + '</p><div class="clay-desk-live-tools"><button type="button" class="btn btn-ghost" data-act="live-hold"' + (status === "acik" ? "" : " disabled") + '>Beklemeye al</button><button type="button" class="btn btn-ghost" data-act="live-resume"' + (status === "beklemede" ? "" : " disabled") + '>Beklemeden çıkar</button><button type="button" class="btn btn-ghost" data-act="live-end"' + (status === "bitti" ? " disabled" : "") + '>Görüşmeyi sonlandır</button><button type="button" class="btn btn-ghost" data-act="live-reopen"' + (status === "bitti" ? "" : " disabled") + '>Yeniden aç</button><button type="button" class="btn btn-ghost" data-act="live-delete">Sil</button></div>'
       : "";
+    var autos = '<section class="clay-desk-auto"><h3>Otomasyon mesajları</h3><ul>' + (liveAutos.map(function (row) {
+      return "<li><p><strong>" + esc(row.q) + "</strong></p><p>" + esc(row.a) + '</p><button type="button" class="btn btn-ghost" data-act="auto-del" data-id="' + esc(row.id) + '">Kaldır</button></li>';
+    }).join("") || "<li>Kayıtlı soru yok.</li>") + '</ul><form class="clay-desk-auto-form"><input name="soru" maxlength="400" placeholder="Soru" autocomplete="off"><input name="yanit" maxlength="400" placeholder="Yanıt" autocomplete="off"><button class="btn btn-gold" type="submit">Ekle</button></form></section>';
     var draft = "";
+    var soruDraft = "";
+    var yanitDraft = "";
     var input = box.querySelector("input[name=metin]");
+    var soruInput = box.querySelector("input[name=soru]");
+    var yanitInput = box.querySelector("input[name=yanit]");
     if (input && document.activeElement === input) draft = input.value;
+    if (soruInput && document.activeElement === soruInput) soruDraft = soruInput.value;
+    if (yanitInput && document.activeElement === yanitInput) yanitDraft = yanitInput.value;
     var open = liveEnabled !== false;
     var canReply = !!(active && open && status !== "bitti");
-    box.innerHTML = '<div class="clay-desk-live-head"><h2><i class="clay-live-lamp ' + (open ? "is-on" : "is-off") + '"></i>Canlı destek</h2><button type="button" class="btn btn-ghost" data-act="live-switch" data-on="' + (open ? "1" : "0") + '">' + (open ? "Kapat" : "Aç") + "</button></div><p class=\"clay-desk-live-state " + (open ? "is-on" : "is-off") + "\">" + (open ? "Ziyaretçiye açık" : "Ziyaretçiye kapalı") + '</p><div class="clay-desk-live-list">' + list + "</div>" + tools + '<div class="clay-desk-live-log">' + log + '</div><form class="clay-desk-live-form"><input name="metin" maxlength="400" placeholder="' + (status === "bitti" ? "Görüşme sonlandı" : "Yanıt yaz") + '" autocomplete="off"' + (canReply ? "" : " disabled") + '><button class="btn btn-gold" type="submit"' + (canReply ? "" : " disabled") + ">Gönder</button></form>";
+    box.innerHTML = '<div class="clay-desk-live-head"><h2><i class="clay-live-lamp ' + (open ? "is-on" : "is-off") + '"></i>Canlı destek</h2><button type="button" class="btn btn-ghost" data-act="live-switch" data-on="' + (open ? "1" : "0") + '">' + (open ? "Kapat" : "Aç") + "</button></div><p class=\"clay-desk-live-state " + (open ? "is-on" : "is-off") + "\">" + (open ? "Ziyaretçiye açık" : "Ziyaretçiye kapalı") + "</p>" + autos + '<div class="clay-desk-live-list">' + list + "</div>" + tools + '<div class="clay-desk-live-log">' + log + '</div><form class="clay-desk-live-form"><input name="metin" maxlength="400" placeholder="' + (status === "bitti" ? "Görüşme sonlandı" : "Yanıt yaz") + '" autocomplete="off"' + (canReply ? "" : " disabled") + '><button class="btn btn-gold" type="submit"' + (canReply ? "" : " disabled") + ">Gönder</button></form>";
     var next = box.querySelector("input[name=metin]");
+    var nextSoru = box.querySelector("input[name=soru]");
+    var nextYanit = box.querySelector("input[name=yanit]");
     if (next && draft) next.value = draft;
+    if (nextSoru && soruDraft) nextSoru.value = soruDraft;
+    if (nextYanit && yanitDraft) nextYanit.value = yanitDraft;
   }
   function refreshDesk() {
     if (!admin()) return;
     postLive({ op: "list" }).then(function (res) {
-      if (res && res.ok) {
-        liveEnabled = res.enabled !== false;
-        paintDesk(res.threads || []);
-      }
+      if (res && res.ok) takeDesk(res);
       else if (res && res.error === "giris") paintDesk([]);
     });
   }
@@ -635,6 +682,21 @@
       sendDesk(form);
       return;
     }
+    if (form.matches("form.clay-desk-auto-form")) {
+      event.preventDefault();
+      event.stopPropagation();
+      var question = String(form.soru.value || "").trim();
+      var answer = String(form.yanit.value || "").trim();
+      if (!question || !answer) return;
+      postLive({ op: "auto-add", q: question, a: answer }).then(function (res) {
+        if (res && res.ok) {
+          form.soru.value = "";
+          form.yanit.value = "";
+        }
+        takeDesk(res);
+      });
+      return;
+    }
     if (form.classList.contains("plan-offer-cta") && form.querySelector("[name=plan]")) {
       if (form.dataset.clayGo === "1") {
         form.dataset.clayGo = "";
@@ -666,6 +728,26 @@
     var act = event.target.closest && event.target.closest("[data-act]");
     if (act) {
       var name = act.getAttribute("data-act");
+      if (name === "auto-tap") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        var autoId = act.getAttribute("data-id");
+        whenThread().then(function (id) {
+          if (!id) return null;
+          return postLive({ op: "auto", thread: id, id: autoId });
+        }).then(function (res) {
+          if (res && Array.isArray(res.autos)) liveAutos = res.autos;
+          if (res && res.thread) paintVisitor(res.thread);
+          else paintVisitor(null);
+        });
+        return;
+      }
+      if (name === "auto-del") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        postLive({ op: "auto-del", id: act.getAttribute("data-id") }).then(takeDesk);
+        return;
+      }
       if (name === "live-switch") {
         event.preventDefault();
         event.stopImmediatePropagation();

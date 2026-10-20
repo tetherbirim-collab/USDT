@@ -125,6 +125,41 @@ function clay_live_on(array $store): bool
     return !array_key_exists("enabled", $store) || $store["enabled"] !== false;
 }
 
+function clay_live_ensure_autos(array &$store): bool
+{
+    if (array_key_exists("autos", $store) && is_array($store["autos"])) {
+        return false;
+    }
+    $store["autos"] = [
+        [
+            "id" => "kart",
+            "q" => "Kart nasıl alınır",
+            "a" => "Karta isim ver, kullanılabilir bakiyeyi seç, sonra o türün BIN listesinden bir satır işaretle. Türü, adı ve kullanılabilir bakiyeyi seçersin. Üzerindeki ad, verdiğin addır.",
+        ],
+        [
+            "id" => "bakiye",
+            "q" => "Bakiye nasıl yüklenir",
+            "a" => "Tutarı dolar olarak girersin. Heleket ödemesi onaylanınca aynı USD tutarı ana bakiyeye yazılır. Tutar ve bakiye ABD dolarıdır.",
+        ],
+        [
+            "id" => "plan",
+            "q" => "Plan nasıl değişir",
+            "a" => "Aylık paket ücreti yalnız plan değişince düşer. Yeni plan, bu plan iptal edilmeden açılmaz.",
+        ],
+    ];
+    return true;
+}
+
+function clay_live_auto(array $store, string $id): ?array
+{
+    foreach ($store["autos"] as $row) {
+        if (is_array($row) && (string) ($row["id"] ?? "") === $id) {
+            return $row;
+        }
+    }
+    return null;
+}
+
 function clay_live_assign(array &$store): string
 {
     $names = ["Ahmet", "Mehmet", "Ayşe", "Fatma", "Ali", "Zeynep"];
@@ -154,9 +189,14 @@ function clay_live_assign(array &$store): string
 
 if ($op === "status") {
     $on = clay_live_on($store);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    clay_live_out(["ok" => true, "enabled" => $on]);
+    $seeded = clay_live_ensure_autos($store);
+    if ($seeded) {
+        clay_live_save($handle, $store);
+    } else {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+    }
+    clay_live_out(["ok" => true, "enabled" => $on, "autos" => $store["autos"]]);
 }
 
 if ($op === "switch") {
@@ -291,7 +331,29 @@ if ($op === "read") {
     clay_live_out(["ok" => true, "thread" => $store["threads"][$index]]);
 }
 
-if ($op === "list" || $op === "reply") {
+if ($op === "auto") {
+    if (!clay_live_on($store)) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "kapali", "enabled" => false], 403);
+    }
+    clay_live_ensure_autos($store);
+    $pair = clay_live_auto($store, (string) ($input["id"] ?? ""));
+    $threadId = (string) ($input["thread"] ?? "");
+    $index = $threadId !== "" ? clay_live_find($store, $threadId) : -1;
+    if ($pair === null || $index < 0 || ($store["threads"][$index]["status"] ?? "acik") === "bitti") {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "yok", "autos" => $store["autos"]], 404);
+    }
+    $store["threads"][$index]["messages"][] = ["from" => "visitor", "text" => (string) $pair["q"], "at" => $now];
+    $store["threads"][$index]["messages"][] = ["from" => "auto", "text" => (string) $pair["a"], "at" => $now + 1];
+    $thread = $store["threads"][$index];
+    clay_live_save($handle, $store);
+    clay_live_out(["ok" => true, "thread" => $thread, "autos" => $store["autos"]]);
+}
+
+if ($op === "auto-add" || $op === "auto-del" || $op === "list" || $op === "reply") {
     if (!clay_live_admin()) {
         flock($handle, LOCK_UN);
         fclose($handle);
@@ -299,10 +361,39 @@ if ($op === "list" || $op === "reply") {
     }
 }
 
+if ($op === "auto-add") {
+    clay_live_ensure_autos($store);
+    $question = clay_live_text((string) ($input["q"] ?? ""));
+    $answer = clay_live_text((string) ($input["a"] ?? ""));
+    if ($question === "" || $answer === "") {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "alan", "autos" => $store["autos"]], 400);
+    }
+    $store["autos"][] = ["id" => "au_" . bin2hex(random_bytes(4)), "q" => $question, "a" => $answer];
+    clay_live_save($handle, $store);
+    clay_live_out(["ok" => true, "enabled" => clay_live_on($store), "threads" => $store["threads"], "autos" => $store["autos"]]);
+}
+
+if ($op === "auto-del") {
+    clay_live_ensure_autos($store);
+    $id = (string) ($input["id"] ?? "");
+    $store["autos"] = array_values(array_filter($store["autos"], function ($row) use ($id) {
+        return !is_array($row) || (string) ($row["id"] ?? "") !== $id;
+    }));
+    clay_live_save($handle, $store);
+    clay_live_out(["ok" => true, "enabled" => clay_live_on($store), "threads" => $store["threads"], "autos" => $store["autos"]]);
+}
+
 if ($op === "list") {
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    clay_live_out(["ok" => true, "enabled" => clay_live_on($store), "threads" => $store["threads"]]);
+    $seeded = clay_live_ensure_autos($store);
+    if ($seeded) {
+        clay_live_save($handle, $store);
+    } else {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+    }
+    clay_live_out(["ok" => true, "enabled" => clay_live_on($store), "threads" => $store["threads"], "autos" => $store["autos"]]);
 }
 
 if ($op === "reply") {

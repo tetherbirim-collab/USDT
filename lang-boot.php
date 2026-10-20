@@ -134,7 +134,7 @@ function clay_prepare($html)
         $html = preg_replace('/<\/head>/i', '<link rel="stylesheet" href="/clay-v14.css"><script src="/clay-v14.js"></script></head>', $html, 1);
     }
     if (strpos($html, "clay-live-btn") === false) {
-        $launcher = '<section class="clay-live" data-clay-launcher="1"><button type="button" class="clay-live-btn" data-act="live-open" aria-label="Canlı destek"><svg class="clay-live-icon-chat" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9.2L5 19.4c-.6.5-1.5.1-1.5-.7V5.5z"/></svg><svg class="clay-live-icon-x" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button></section>';
+        $launcher = '<section class="clay-live is-live" data-clay-launcher="1"><button type="button" class="clay-live-btn" data-act="live-open" aria-label="Canlı destek"><i class="clay-live-beacon" aria-hidden="true"></i><svg class="clay-live-icon-chat" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9.2L5 19.4c-.6.5-1.5.1-1.5-.7V5.5z"/></svg><svg class="clay-live-icon-x" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button></section>';
         $html = preg_replace('/<\/body>/i', $launcher . '</body>', $html, 1);
     }
     return $html;

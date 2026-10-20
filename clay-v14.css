@@ -1,3 +1,66 @@
+@font-face {
+  font-family: "Clay Display";
+  src: url("/fonts/cormorant-garamond-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Clay Display";
+  src: url("/fonts/cormorant-garamond-latin-ext-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+.font-display,
+.glass-brand,
+.glass-service,
+.glass-line,
+.trust-line,
+.trust-line span {
+  font-family: "Clay Display", "Times New Roman", serif !important;
+}
+.auth-stage > .trust-line {
+  margin: 0 auto 14px;
+  width: min(920px, calc(100% - 24px));
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8d1d32, #c4384a 50%, #8d1d32);
+}
+svg.clay-brand-card {
+  width: 46px !important;
+  height: 30px !important;
+}
+.glass-chip {
+  width: 58px;
+  height: 36px;
+  border-radius: 6px;
+  background: linear-gradient(145deg, #fff6dd 0%, #e2b15a 48%, #8d5a16 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+.glass-chip::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 7px;
+  width: 12px;
+  height: 8px;
+  border-radius: 2px;
+  background: linear-gradient(#fff8e4, #c9a15a);
+}
+.glass-chip::after {
+  content: "CLAY";
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  font-family: "Clay Display", "Times New Roman", serif;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: #3a2410;
+  line-height: 1;
+}
+
 /* Practical admin desk — one warm clay family */
 body.clay-desk {
   background: #efe3d4 !important;
@@ -223,6 +286,7 @@ body.clay-issue {
   cursor: pointer;
 }
 .clay-live-btn {
+  position: relative;
   width: 58px;
   height: 58px;
   border: 0;
@@ -232,6 +296,26 @@ body.clay-issue {
   background: #22c55e;
   color: #fff;
   box-shadow: 0 10px 24px rgba(22, 163, 74, 0.38);
+}
+.clay-live-beacon {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #6b6258;
+  box-shadow: 0 0 0 2px #10210f;
+}
+.clay-live.is-live .clay-live-beacon {
+  background: #4ade80;
+  box-shadow: 0 0 0 2px #14532d, 0 0 10px #22c55e;
+  animation: clay-beacon 1s ease-in-out infinite;
+}
+.clay-live.is-closed .clay-live-beacon { animation: none; background: #6b6258; box-shadow: none; }
+@keyframes clay-beacon {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.28; }
 }
 .clay-live-icon-x { display: none; }
 .clay-live.is-open .clay-live-icon-chat { display: none; }
@@ -387,9 +471,10 @@ body.clay-issue {
 .clay-live-foot { background: #fff; border-top: 1px solid rgba(28, 25, 21, 0.08); }
 .clay-live-autos {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   padding: 8px 10px 0;
+  overflow-x: auto;
 }
 .clay-live-autos:empty { display: none; }
 .clay-live-autos button {
@@ -535,12 +620,16 @@ body.clay-issue {
 .clay-desk-auto ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .clay-desk-auto li {
   display: grid;
-  gap: 4px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  align-items: center;
   padding: 8px 10px;
   border-radius: 12px;
   background: #f6efe6;
 }
 .clay-desk-auto li p { margin: 0; }
+.clay-desk-auto li p:nth-child(2) { grid-column: 1; color: #5c5146; font-size: 13px; }
+.clay-desk-auto li button { grid-column: 2; grid-row: 1 / span 2; }
 .clay-desk-auto-form { display: flex; flex-wrap: wrap; gap: 8px; }
 .clay-desk-auto-form input { flex: 1; min-width: 140px; }
 .clay-desk-live-log p.is-auto { background: #efe2d0; }

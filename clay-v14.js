@@ -203,10 +203,122 @@
   var liveEnabled = null;
   var liveStatus = "acik";
   var liveAutos = [];
+  var audioCtx = null;
+  var audioHeard = {};
+  var deskSeen = null;
+  window.__clayAudio = { state: "idle", played: [] };
+  function unlockAudio() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return false;
+      if (!audioCtx) audioCtx = new Ctx();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      window.__clayAudio.ctx = audioCtx;
+      window.__clayAudio.state = audioCtx.state;
+      return audioCtx.state === "running";
+    } catch (e) {
+      window.__clayAudio.state = "blocked";
+      return false;
+    }
+  }
+  function playTone(freq, delay, dur) {
+    if (!audioCtx || audioCtx.state !== "running") return false;
+    var start = audioCtx.currentTime + delay;
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.06, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(start);
+    osc.stop(start + dur + 0.02);
+    return true;
+  }
+  function playChime(kind) {
+    var ok = false;
+    if (kind === "welcome") ok = playTone(523, 0, 0.16) && playTone(784, 0.12, 0.2);
+    else if (kind === "customer") ok = playTone(440, 0, 0.12) && playTone(660, 0.09, 0.16);
+    else ok = playTone(392, 0, 0.1) && playTone(523, 0.08, 0.14);
+    window.__clayAudio.state = audioCtx ? audioCtx.state : "blocked";
+    if (ok) window.__clayAudio.played.push(kind);
+    return ok;
+  }
+  function hearWelcome(messages) {
+    (messages || []).forEach(function (row) {
+      if (row.from !== "welcome") return;
+      var key = "w" + row.at;
+      if (audioHeard[key]) return;
+      if (Date.now() - Number(row.at) > 12000) {
+        audioHeard[key] = true;
+        return;
+      }
+      if (playChime("welcome")) audioHeard[key] = true;
+    });
+  }
+  function hearDesk(threads) {
+    if (!admin()) return;
+    var keys = [];
+    (threads || []).forEach(function (row) {
+      keys.push("chat:" + row.id);
+      (row.messages || []).forEach(function (msg) {
+        if (msg.from === "visitor") keys.push("msg:" + row.id + ":" + msg.at);
+      });
+    });
+    var db = window.__clay && window.__clay.get ? window.__clay.get() : null;
+    if (db) {
+      (db.users || []).forEach(function (user) { if (user && user.role === "uye") keys.push("user:" + user.id); });
+      (db.orders || []).forEach(function (order) { if (order && order.status === "hazirlaniyor") keys.push("order:" + order.id); });
+      (db.payouts || []).forEach(function (payout) { if (payout && payout.status === "bekliyor") keys.push("pay:" + payout.id); });
+      (db.tickets || []).forEach(function (ticket) { if (ticket && ticket.status === "acik") keys.push("tkt:" + ticket.id); });
+      (db.transactions || []).forEach(function (tx) {
+        if (tx && (tx.kind === "yukleme" || tx.kind === "cek" || tx.kind === "transfer")) keys.push("tx:" + tx.id);
+      });
+      (db.cards || []).forEach(function (card) { if (card && card.status === "donduruldu") keys.push("card:" + card.id); });
+    }
+    if (!deskSeen) {
+      deskSeen = {};
+      keys.forEach(function (key) { deskSeen[key] = true; });
+      return;
+    }
+    var customer = false;
+    var other = false;
+    keys.forEach(function (key) {
+      if (deskSeen[key]) return;
+      deskSeen[key] = true;
+      if (key.indexOf("msg:") === 0) customer = true;
+      else other = true;
+    });
+    if (customer) playChime("customer");
+    else if (other) playChime("desk");
+  }
+  function girisTrust() {
+    if (!/^\/giris\/?$/.test(path())) return;
+    if (document.querySelector(".auth-stage .trust-line")) return;
+    var stage = document.querySelector(".auth-stage");
+    if (!stage) return;
+    var line = document.createElement("p");
+    line.className = "trust-line";
+    line.innerHTML = "<span>KYC YOK</span><span aria-hidden=\"true\"> · </span><span class=\"trust-hot\">LOG YOK</span><span aria-hidden=\"true\"> · </span><span>TAMAMEN GÜVENLİ VE ANONİM</span>";
+    stage.insertBefore(line, stage.firstChild);
+  }
+  function refineMarks() {
+    document.querySelectorAll("svg.h-8, svg.h-9").forEach(function (svg) {
+      if (svg.dataset.clayCard === "1" || svg.getAttribute("viewBox") !== "0 0 32 32") return;
+      if (svg.innerHTML.indexOf("#f0c98a") === -1) return;
+      svg.dataset.clayCard = "1";
+      svg.setAttribute("viewBox", "0 0 68 44");
+      svg.setAttribute("class", (svg.getAttribute("class") || "") + " clay-brand-card");
+      svg.setAttribute("aria-hidden", "true");
+      svg.innerHTML = '<rect width="68" height="44" rx="7" fill="#e2b15a"/><rect x="7" y="9" width="14" height="10" rx="2" fill="#fff6e4"/><text x="7" y="34" fill="#3a2410" font-size="12" font-family="Clay Display, Times New Roman, serif" letter-spacing="1.4">CLAY</text>';
+    });
+  }
   var livePanelHtml = '<div class="clay-live-panel" hidden><header class="clay-live-head"><span class="clay-live-card" aria-hidden="true"><span class="clay-live-card-chip"></span><span class="clay-live-card-mark">CLAY</span></span><span class="clay-live-id"><span class="clay-live-brand">Clay Virtual Card</span><span class="clay-live-role">Müşteri temsilcisi</span><strong class="clay-live-name">Canlı destek</strong><span class="clay-live-sub"><i class="clay-live-dot is-on"></i><span class="clay-live-subtext">Çevrimiçi</span></span></span><button type="button" data-act="live-close" aria-label="Kapat"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button></header><div class="clay-live-log" role="log" aria-live="polite"></div><div class="clay-live-foot"><div class="clay-live-autos"></div><form class="clay-live-form"><label class="clay-live-photo"><input type="file" accept="image/*" hidden><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M4 6.5A2.5 2.5 0 0 1 6.5 4h2.2l1.2-1.6A2 2 0 0 1 11.4 1.5h1.2a2 2 0 0 1 1.5.9L15.3 4H17.5A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11zM12 16.2a3.7 3.7 0 1 0 0-7.4 3.7 3.7 0 0 0 0 7.4z"/></svg></label><input name="metin" maxlength="400" placeholder="Mesaj yazın" autocomplete="off" enterkeyhint="send"><button class="clay-live-send" type="submit" aria-label="Gönder"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3.2 11.2 20 4.2c.7-.3 1.4.4 1.1 1.1l-7 16.8c-.3.8-1.5.7-1.7-.1l-1.8-6.6-6.6-1.8c-.8-.2-.9-1.4-.1-1.7z"/></svg></button></form></div></div>';
-  var liveButtonHtml = '<button type="button" class="clay-live-btn" data-act="live-open" aria-label="Canlı destek"><svg class="clay-live-icon-chat" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9.2L5 19.4c-.6.5-1.5.1-1.5-.7V5.5z"/></svg><svg class="clay-live-icon-x" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button>';
+  var liveButtonHtml = '<button type="button" class="clay-live-btn" data-act="live-open" aria-label="Canlı destek"><i class="clay-live-beacon" aria-hidden="true"></i><svg class="clay-live-icon-chat" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9.2L5 19.4c-.6.5-1.5.1-1.5-.7V5.5z"/></svg><svg class="clay-live-icon-x" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button>';
   function visitorShell() {
-    if (!document.body || liveEnabled === false) return null;
+    if (!document.body) return null;
     var root = document.querySelector(".clay-live");
     if (!root) {
       root = document.createElement("section");
@@ -232,13 +344,18 @@
     return root;
   }
   function paintVisitor(thread) {
-    if (liveEnabled === false) {
-      var gone = document.querySelector(".clay-live");
-      if (gone) gone.remove();
-      return;
-    }
     var root = visitorShell();
     if (!root) return;
+    var closed = liveEnabled === false;
+    root.classList.toggle("is-live", !closed);
+    root.classList.toggle("is-closed", closed);
+    if (closed) {
+      root.dataset.open = "";
+      root.classList.remove("is-open");
+      var shut = root.querySelector(".clay-live-panel");
+      if (shut) shut.hidden = true;
+      return;
+    }
     var panel = root.querySelector(".clay-live-panel");
     if (!panel) return;
     var open = root.dataset.open === "1";
@@ -271,6 +388,7 @@
     if (sendBtn) sendBtn.disabled = ended;
     if (photo) photo.disabled = ended;
     var sig = (thread && thread.username ? thread.username : "") + "|" + state + "|" + messages.map(function (row) { return row.at + row.from + row.text + (row.image || ""); }).join("~");
+    hearWelcome(messages);
     if (log.dataset.sig === sig) return;
     log.dataset.sig = sig;
     var html = "";
@@ -507,11 +625,11 @@
     }).join("") || '<p class="clay-desk-live-empty">Henüz konuşma yok.</p>';
     var status = active ? (active.status || "acik") : "";
     var log = active ? (active.messages || []).map(function (row) {
-      var who = row.from === "admin" ? "Destek" : (row.from === "auto" ? "Otomasyon" : active.username);
+      var who = row.from === "auto" ? "Otomasyon" : (row.from === "visitor" ? active.username : "Destek");
       var role = row.from === "auto" ? "<small>Otomatik yanıt</small>" : (row.from === "visitor" ? "<small>Clay Virtual Card müşteri temsilcisi</small>" : "");
       var photo = row.image ? '<img src="/api/clay-live-file.php?id=' + esc(row.image) + '" alt="Fotoğraf">' : "";
       var text = row.text ? '<span class="clay-desk-live-text">' + esc(row.text) + "</span>" : "";
-      return '<p class="' + (row.from === "admin" ? "is-admin" : (row.from === "auto" ? "is-auto" : "is-visitor")) + '"><strong>' + esc(who) + "</strong>" + role + text + photo + "</p>";
+      return '<p class="' + (row.from === "visitor" ? "is-visitor" : (row.from === "auto" ? "is-auto" : "is-admin")) + '"><strong>' + esc(who) + "</strong>" + role + text + photo + "</p>";
     }).join("") || "<p>Henüz mesaj yok.</p>" : "<p>Bir konuşma seç.</p>";
     var tools = active
       ? '<p class="clay-desk-live-meta"><i class="clay-live-dot ' + liveTone(status) + '"></i> Clay Virtual Card müşteri temsilcisi · ' + esc(active.username) + " · " + esc(liveLabel(status)) + '</p><div class="clay-desk-live-tools"><button type="button" class="btn btn-ghost" data-act="live-hold"' + (status === "acik" ? "" : " disabled") + '>Beklemeye al</button><button type="button" class="btn btn-ghost" data-act="live-resume"' + (status === "beklemede" ? "" : " disabled") + '>Beklemeden çıkar</button><button type="button" class="btn btn-ghost" data-act="live-end"' + (status === "bitti" ? " disabled" : "") + '>Görüşmeyi sonlandır</button><button type="button" class="btn btn-ghost" data-act="live-reopen"' + (status === "bitti" ? "" : " disabled") + '>Yeniden aç</button><button type="button" class="btn btn-ghost" data-act="live-delete">Sil</button></div>'
@@ -541,7 +659,10 @@
   function refreshDesk() {
     if (!admin()) return;
     postLive({ op: "list" }).then(function (res) {
-      if (res && res.ok) takeDesk(res);
+      if (res && res.ok) {
+        takeDesk(res);
+        hearDesk(res.threads || []);
+      }
       else if (res && res.error === "giris") paintDesk([]);
     });
   }
@@ -722,6 +843,7 @@
     }
   }, true);
 
+  document.addEventListener("pointerdown", function () { unlockAudio(); }, true);
   document.addEventListener("click", function (event) {
     var renew = event.target.closest && event.target.closest("[data-act=renew-yes]");
     if (renew) passOnce("kart-uzat");
@@ -781,6 +903,8 @@
       if (name === "live-open") {
         event.preventDefault();
         event.stopImmediatePropagation();
+        unlockAudio();
+        if (liveEnabled === false) return;
         var root = document.querySelector(".clay-live");
         if (!root) { paintVisitor(null); root = document.querySelector(".clay-live"); }
         if (!root) return;
@@ -841,6 +965,8 @@
     document.body.classList.toggle("clay-issue", /\/panel\/kartlar\/yeni\/?$/.test(path()));
     tidyCards();
     stripLegacyReset();
+    refineMarks();
+    girisTrust();
     paintVisitor(null);
     paintPlan();
     paintIssue();

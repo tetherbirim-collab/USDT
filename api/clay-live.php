@@ -1,6 +1,6 @@
 <?php
 /**
- * Visitor live support. Each open connection gets its own Turkish given name.
+ * Visitor live support. Guests are Clay No Name Customer; members use their username.
  */
 
 header("Content-Type: application/json; charset=UTF-8");
@@ -160,31 +160,107 @@ function clay_live_auto(array $store, string $id): ?array
     return null;
 }
 
-function clay_live_assign(array &$store): string
+function clay_live_users(): array
 {
-    $names = ["Ahmet", "Mehmet", "Ayşe", "Fatma", "Ali", "Zeynep"];
+    $raw = @file_get_contents(__DIR__ . "/clay-ledger.json");
+    $db = json_decode($raw ?: "", true);
+    if (!is_array($db) || !isset($db["users"]) || !is_array($db["users"])) {
+        $seed = json_decode((string) @file_get_contents(__DIR__ . "/clay-seed.json"), true);
+        $db = is_array($seed) ? $seed : null;
+    }
+    if (!is_array($db) || !isset($db["users"]) || !is_array($db["users"])) {
+        return [];
+    }
+    return $db["users"];
+}
+
+function clay_live_session_user(): ?array
+{
+    $uid = $_SESSION["uid"] ?? "";
+    if (!is_string($uid) || $uid === "") {
+        return null;
+    }
+    foreach (clay_live_users() as $user) {
+        if (($user["id"] ?? "") !== $uid) {
+            continue;
+        }
+        $status = (string) ($user["status"] ?? "acik");
+        if ($status === "askida" || $status === "kapali") {
+            return null;
+        }
+        $name = trim((string) ($user["username"] ?? ""));
+        if ($name === "") {
+            return null;
+        }
+        return ["id" => $uid, "username" => $name];
+    }
+    return null;
+}
+
+function clay_live_anon_label(array $store, int $skip): string
+{
+    $base = "Clay No Name Customer";
     $used = [];
-    foreach ($store["threads"] as $row) {
+    foreach ($store["threads"] as $i => $row) {
+        if ($i === $skip || ($row["status"] ?? "acik") === "bitti" || (string) ($row["userId"] ?? "") !== "") {
+            continue;
+        }
         $used[(string) ($row["username"] ?? "")] = true;
     }
-    $cursor = (int) ($store["cursor"] ?? 0);
-    $count = count($names);
-    $picked = "";
-    $pickedIndex = $cursor % $count;
-    for ($i = 0; $i < $count; $i++) {
-        $idx = ($cursor + $i) % $count;
-        if (empty($used[$names[$idx]])) {
-            $picked = $names[$idx];
-            $pickedIndex = $idx;
-            break;
+    if (empty($used[$base])) {
+        return $base;
+    }
+    for ($n = 2; $n < 40; $n++) {
+        $label = $base . " " . $n;
+        if (empty($used[$label])) {
+            return $label;
         }
     }
-    if ($picked === "") {
-        $picked = $names[$cursor % $count];
-        $pickedIndex = $cursor % $count;
+    return $base . " 40";
+}
+
+function clay_live_apply_name(array &$store, int $index): void
+{
+    $member = clay_live_session_user();
+    $id = (string) ($store["threads"][$index]["id"] ?? "");
+    $owner = (string) ($store["threads"][$index]["userId"] ?? "");
+    $bound = (string) ($_SESSION["clayLive"] ?? "");
+    if ($member) {
+        $fresh = $owner === "" && (string) ($store["threads"][$index]["username"] ?? "") === "";
+        if (!$fresh && $owner !== "" && $owner !== $member["id"]) {
+            return;
+        }
+        if (!$fresh && $owner === "" && $bound !== "" && $bound !== $id) {
+            return;
+        }
+        $store["threads"][$index]["username"] = $member["username"];
+        $store["threads"][$index]["userId"] = $member["id"];
+        $_SESSION["clayLive"] = $id;
+        return;
     }
-    $store["cursor"] = ($pickedIndex + 1) % $count;
-    return $picked;
+    if ($owner !== "") {
+        return;
+    }
+    $current = (string) ($store["threads"][$index]["username"] ?? "");
+    if (!preg_match('/^Clay No Name Customer( [0-9]+)?$/', $current)) {
+        $store["threads"][$index]["username"] = clay_live_anon_label($store, $index);
+        $store["threads"][$index]["userId"] = "";
+    }
+    $_SESSION["clayLive"] = $id;
+}
+
+function clay_live_welcome(array &$store, int $index, int $now): void
+{
+    foreach ($store["threads"][$index]["messages"] ?? [] as $msg) {
+        if (($msg["from"] ?? "") === "welcome") {
+            return;
+        }
+    }
+    $store["threads"][$index]["messages"][] = [
+        "from" => "welcome",
+        "text" => "Clay Virtual Sanal Kart Hizmetleri Sizlere Nasıl Yardımcı Olabiliriz?",
+        "at" => $now,
+    ];
 }
 
 if ($op === "status") {
@@ -270,6 +346,7 @@ if ($op === "upload") {
         clay_live_out(["ok" => false, "error" => "kayit"], 500);
     }
     $caption = clay_live_text((string) ($input["text"] ?? ""));
+    clay_live_apply_name($store, $index);
     $store["threads"][$index]["messages"][] = [
         "from" => "visitor",
         "text" => $caption,
@@ -294,7 +371,13 @@ if ($op === "open" || $op === "send") {
         clay_live_out(["ok" => false, "error" => "alan"], 400);
     }
     $threadId = (string) ($input["thread"] ?? "");
+    if ($threadId === "" && $op === "open") {
+        $threadId = (string) ($_SESSION["clayLive"] ?? "");
+    }
     $index = $threadId !== "" ? clay_live_find($store, $threadId) : -1;
+    if ($op === "open" && $index >= 0 && ($store["threads"][$index]["status"] ?? "acik") === "bitti") {
+        $index = -1;
+    }
     if ($index >= 0 && ($store["threads"][$index]["status"] ?? "acik") === "bitti") {
         $thread = $store["threads"][$index];
         flock($handle, LOCK_UN);
@@ -305,12 +388,17 @@ if ($op === "open" || $op === "send") {
         $threadId = "lv_" . bin2hex(random_bytes(6));
         $store["threads"][] = [
             "id" => $threadId,
-            "username" => clay_live_assign($store),
+            "username" => "",
+            "userId" => "",
             "status" => "acik",
             "at" => $now,
             "messages" => [],
         ];
         $index = count($store["threads"]) - 1;
+    }
+    clay_live_apply_name($store, $index);
+    if ($op === "open") {
+        clay_live_welcome($store, $index, $now);
     }
     if ($op === "send") {
         $store["threads"][$index]["messages"][] = ["from" => "visitor", "text" => $text, "at" => $now];
@@ -323,12 +411,22 @@ if ($op === "open" || $op === "send") {
 if ($op === "read") {
     $threadId = (string) ($input["thread"] ?? "");
     $index = clay_live_find($store, $threadId);
-    flock($handle, LOCK_UN);
-    fclose($handle);
     if ($index < 0) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
         clay_live_out(["ok" => false, "error" => "yok"], 404);
     }
-    clay_live_out(["ok" => true, "thread" => $store["threads"][$index]]);
+    $before = (string) ($store["threads"][$index]["username"] ?? "") . "|" . (string) ($store["threads"][$index]["userId"] ?? "");
+    clay_live_apply_name($store, $index);
+    $after = (string) ($store["threads"][$index]["username"] ?? "") . "|" . (string) ($store["threads"][$index]["userId"] ?? "");
+    $thread = $store["threads"][$index];
+    if ($before !== $after) {
+        clay_live_save($handle, $store);
+    } else {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+    }
+    clay_live_out(["ok" => true, "thread" => $thread]);
 }
 
 if ($op === "auto") {
@@ -346,6 +444,7 @@ if ($op === "auto") {
         fclose($handle);
         clay_live_out(["ok" => false, "error" => "yok", "autos" => $store["autos"]], 404);
     }
+    clay_live_apply_name($store, $index);
     $store["threads"][$index]["messages"][] = ["from" => "visitor", "text" => (string) $pair["q"], "at" => $now];
     $store["threads"][$index]["messages"][] = ["from" => "auto", "text" => (string) $pair["a"], "at" => $now + 1];
     $thread = $store["threads"][$index];

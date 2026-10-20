@@ -358,9 +358,11 @@
     var host = document.querySelector(".grid.gap-5");
     if (!host) return;
     var box = document.createElement("section");
+    box.id = "ayarlar";
     box.className = "account-sheet clay-hesap-ayar";
-    box.innerHTML = '<h2 class="account-sheet-title font-display text-2xl font-bold">Şifre değiştir</h2><form data-clay-pass><label>Mevcut parola<input class="field" type="password" name="eski" autocomplete="current-password" required></label><label>Yeni parola<input class="field" type="password" name="yeni" autocomplete="new-password" required></label><label>Yeni parola tekrar<input class="field" type="password" name="yeni2" autocomplete="new-password" required></label><button class="btn btn-gold" type="submit">Kaydet</button><p class="clay-hesap-msg" role="status"></p></form><h2 class="account-sheet-title font-display text-2xl font-bold">Seed görüntüle</h2><p class="clay-seed-view">Tohum yükleniyor.</p><button type="button" class="btn btn-ghost" data-clay-seed-show>Görüntüle</button><h2 class="account-sheet-title font-display text-2xl font-bold">Telegram ID ekle</h2><form data-clay-tg><label>Telegram<input class="field" name="telegram" autocomplete="off" placeholder="@kullanici veya rakam"></label><button class="btn btn-gold" type="submit">Kaydet</button><p class="clay-tg-now"></p><p class="clay-hesap-msg" role="status"></p></form>';
-    host.appendChild(box);
+    box.innerHTML = '<h2 class="account-sheet-title font-display text-2xl font-bold">Ayarlar</h2><h2 class="account-sheet-title font-display text-2xl font-bold">Şifre değiştir</h2><form data-clay-pass><label>Mevcut parola<input class="field" type="password" name="eski" autocomplete="current-password" required></label><label>Yeni parola<input class="field" type="password" name="yeni" autocomplete="new-password" required></label><label>Yeni parola tekrar<input class="field" type="password" name="yeni2" autocomplete="new-password" required></label><button class="btn btn-gold" type="submit">Kaydet</button><p class="clay-hesap-msg" role="status"></p></form><h2 class="account-sheet-title font-display text-2xl font-bold">Seed görüntüle</h2><p class="clay-seed-view">Tohum yükleniyor.</p><button type="button" class="btn btn-ghost" data-clay-seed-show>Görüntüle</button><h2 class="account-sheet-title font-display text-2xl font-bold">Telegram ID ekle</h2><form data-clay-tg><label>Telegram<input class="field" name="telegram" autocomplete="off" placeholder="@kullanici veya rakam"></label><button class="btn btn-gold" type="submit">Kaydet</button><p class="clay-tg-now"></p><p class="clay-hesap-msg" role="status"></p></form>';
+    host.insertBefore(box, host.firstChild);
+    if (location.hash === "#ayarlar") box.scrollIntoView({ block: "start" });
     var me = viewer();
     var current = box.querySelector(".clay-tg-now");
     if (current && me && me.telegramId) current.textContent = "Kayıtlı: " + me.telegramId;
@@ -690,6 +692,19 @@
         link.className = "nav-pill";
         nav.insertBefore(link, nav.firstChild);
       }
+    });
+  }
+  function pinAyarlar() {
+    if (!member()) return;
+    document.querySelectorAll("a[href='/panel/hesap'], a[href='/panel/hesap/']").forEach(function (hesap) {
+      var nav = hesap.parentElement;
+      if (!nav || nav.querySelector("[data-clay-ayarlar]")) return;
+      var link = document.createElement("a");
+      link.setAttribute("data-clay-ayarlar", "1");
+      link.href = "/panel/hesap/#ayarlar";
+      link.textContent = "Ayarlar";
+      link.className = String(hesap.className || "nav-pill").replace(/\bnav-on\b|\bnav-metal-gold\b/g, "").trim();
+      hesap.insertAdjacentElement("afterend", link);
     });
   }
   function paintDesk(threads) {
@@ -1504,6 +1519,7 @@
     if (admin() && masaPath() && !document.querySelector(".clay-desk-live")) paintDesk(deskThreads);
     orderDesk();
     pinCanliNav();
+    pinAyarlar();
     mountUyeList();
     mountUyeDetail();
     document.body.classList.toggle("clay-issue", /\/panel\/kartlar\/yeni\/?$/.test(path()));

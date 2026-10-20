@@ -4,7 +4,7 @@
  * Base: https://appapi.kripicard.com
  * POST /api/external/cards/createcard   api_key, bin, amount, name_on_card
  * dateOfBirth (YYYY-MM-DD) is added only for a leftover 537872 when the member record already has one.
- * Issued BINs are 441357, 49387520, 493728, and 474613. createcard sends the chosen one.
+ * Issued BINs are 441357 and 474613. An empty bin falls back to 441357.
  * POST /api/external/cards/carddetails  api_key, card_id
  * POST /api/external/cards/fundcard     api_key, card_id, amount
  * POST /api/external/cards/deletecard   api_key, card_id
@@ -14,54 +14,8 @@
 
 const KRIPICARD_KEY_MISSING = "Kart sağlayıcı anahtarı yok. Yönetim ücretler ekranından Kripicard anahtarı yapıştırılmalı. Kart numarası üretilmedi.";
 const KRIPICARD_BIRTH_REQUIRED = "Bu BIN için kart kuruluşu doğum tarihi istiyor. Üyenin kayıtlı doğum tarihi yok.";
-const KRIPICARD_MEMBER_HOLD = "Clay topluluk hizmetleri şu an kartını veremiyor. Daha sonra tekrar dene.";
+const KRIPICARD_DEFAULT_BIN = "441357";
 const KRIPICARD_API_BASE = "https://appapi.kripicard.com";
-
-function kripicard_member_line(string $message): string
-{
-    $trim = trim($message);
-    $trim = (string) preg_replace("/\\s*\\(\\d{3}\\)\\s*$/", "", $trim);
-    if ($trim === KRIPICARD_KEY_MISSING) {
-        return "Kripicard anahtarı masada yok. Ücretler ekranına yapıştır, sonra kartı bas.";
-    }
-    if ($trim === KRIPICARD_BIRTH_REQUIRED) {
-        return "Bu kart doğum tarihi istiyor. Üyenin kaydında yok.";
-    }
-    if ($trim === "Kripicard tutarı en az 10 USD olmalı.") {
-        return "En az 10 USD yaz.";
-    }
-    if ($trim === "BIN seç.") {
-        return "Listeden bir BIN seç.";
-    }
-    if ($trim === "Kart sağlayıcı kartı kapatmadı.") {
-        return "Clay bu kartı kapatamadı. Birazdan tekrar dene.";
-    }
-    $low = strtolower($trim);
-    $hold = $trim === ""
-        || $trim === "Kart sağlayıcı isteği kabul etmedi."
-        || $trim === "Kart sağlayıcı isteği hazırlanamadı."
-        || $trim === "Kart sağlayıcıya ulaşılamadı."
-        || $trim === "Kart sağlayıcı yanıtı okunamadı."
-        || $trim === "Kart sağlayıcı kart kimliği döndürmedi."
-        || $trim === "Kart sağlayıcı kart kimliği yok."
-        || str_contains($low, "maintenance")
-        || str_contains($low, "refund")
-        || str_contains($low, "card creation")
-        || str_contains($low, "please try")
-        || str_contains($low, "failed");
-    if ($hold) {
-        return KRIPICARD_MEMBER_HOLD;
-    }
-    if (preg_match("/[A-Za-z]/", $trim) && !preg_match("/[ğüşöçıİĞÜŞÖÇ]/u", $trim) && preg_match("/\\b(the|your|please|card|failed|balance|provider|unavailable)\\b/i", $trim)) {
-        return KRIPICARD_MEMBER_HOLD;
-    }
-    return $trim;
-}
-
-function kripicard_account_bin(string $bin): bool
-{
-    return in_array($bin, ["441357", "49387520", "493728", "474613"], true);
-}
 
 function kripicard_config_path(): string
 {
@@ -145,9 +99,9 @@ function kripicard_redact(string $text): string
 
 function kripicard_fail(string $message): array
 {
-    $clean = kripicard_member_line(kripicard_redact($message));
+    $clean = kripicard_redact($message);
     if ($clean === "") {
-        $clean = KRIPICARD_MEMBER_HOLD;
+        $clean = "Kart sağlayıcı isteği kabul etmedi.";
     }
     return ["ok" => false, "message" => $clean, "body" => null];
 }
@@ -243,7 +197,10 @@ function kripicard_request(string $endpoint, array $fields): array
             $message = (string) $decoded["error"];
         }
         if ($message === "") {
-            $message = KRIPICARD_MEMBER_HOLD;
+            $message = "Kart sağlayıcı isteği kabul etmedi.";
+        }
+        if ($code >= 400) {
+            $message .= " (" . $code . ")";
         }
         return kripicard_fail($message);
     }
@@ -392,7 +349,10 @@ function kripicard_create_fields(float $amount, string $bin, string $nameOnCard,
     if ($amount < 10) {
         return kripicard_fail("Kripicard tutarı en az 10 USD olmalı.");
     }
-    if (!kripicard_account_bin($bin)) {
+    if ($bin === "") {
+        $bin = KRIPICARD_DEFAULT_BIN;
+    }
+    if (!preg_match("/^\\d{4,8}$/", $bin)) {
         return kripicard_fail("BIN seç.");
     }
     $name = trim((string) preg_replace("/\\s+/u", " ", $nameOnCard));

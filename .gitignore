@@ -3,6 +3,8 @@ node_modules
 out
 .vercel
 api/clay-ledger.json
+api/clay-live.json
+api/clay-live-uploads/*.jpg
 api/heleket-payments.json
 *.lock
 *.log

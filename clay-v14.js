@@ -92,7 +92,7 @@
   }
   function moneyText(action, data) {
     var label = MONEY[action] || "Bu işlem";
-    var amount = data && (data.tutar || data.amount || data.plan || "");
+    var amount = data && (data.tutar || data.bakiye || data.limit || data.amount || data.plan || "");
     if (action === "plan" && data && data.plan) amount = planLabel(data.plan);
     if (amount) return label + " · " + amount + ". Onaylıyor musun?";
     return label + ". Onaylıyor musun?";
@@ -954,14 +954,101 @@
   }
   function cardList(user) {
     if (!user) return "<h3>Kartlar</h3><p class=\"clay-uye-empty\">Kart yok.</p>";
-    var db = window.__clay && window.__clay.get ? window.__clay.get() : null;
-    var cards = db && Array.isArray(db.cards) ? db.cards.filter(function (card) { return card && card.userId === user.id; }) : [];
+    var cards = userCards(user);
     if (!cards.length) return "<h3>Kartlar</h3><p class=\"clay-uye-empty\">Kart yok.</p>";
     return "<h3>Kartlar</h3><ul class=\"clay-uye-cards\">" + cards.map(function (card) {
       var kind = cardTypeName(card.type);
       var state = cardStatusName(card.status);
       return "<li><strong>" + esc(card.label || "Kart") + "</strong><span>" + esc([state, kind].filter(Boolean).join(" · ")) + " · " + esc(moneyUsd(card.limit)) + "</span></li>";
     }).join("") + "</ul>";
+  }
+  function userCards(user) {
+    var db = window.__clay && window.__clay.get ? window.__clay.get() : null;
+    if (!user || !db || !Array.isArray(db.cards)) return [];
+    return db.cards.filter(function (card) { return card && card.userId === user.id; });
+  }
+  function usdField(cents) {
+    var n = Math.abs(Math.round(Number(cents) || 0));
+    var frac = String(n % 100);
+    if (frac.length < 2) frac = "0" + frac;
+    return String(Math.floor(n / 100)) + "." + frac;
+  }
+  function planChoices(current) {
+    return [
+      ["kivilcim", "Kıvılcım"],
+      ["atolye", "Atölye"],
+      ["galeri", "Galeri"]
+    ].map(function (row) {
+      return '<option value="' + row[0] + '"' + (row[0] === current ? " selected" : "") + ">" + row[1] + "</option>";
+    }).join("");
+  }
+  function statusChoices(current) {
+    return [
+      ["hazirlaniyor", "Hazırlanıyor"],
+      ["aktif", "Aktif"],
+      ["donduruldu", "Donduruldu"],
+      ["kapali", "Kapalı"]
+    ].map(function (row) {
+      return '<option value="' + row[0] + '"' + (row[0] === current ? " selected" : "") + ">" + row[1] + "</option>";
+    }).join("");
+  }
+  function memberActs(user) {
+    if (!user) return "";
+    var id = esc(user.id);
+    var balance = '<form class="clay-uye-act" data-clay-act="bakiye" data-user="' + id + '"><label>Yeni bakiye (USD)<input class="field" name="bakiye" inputmode="decimal" value="' + esc(usdField(user.balance)) + '" required></label><button class="btn btn-gold" type="submit">Bakiyeyi yaz</button></form>';
+    var delta = '<form class="clay-uye-act" data-clay-act="fark" data-user="' + id + '"><label>Tutar (USD)<input class="field" name="tutar" inputmode="decimal" placeholder="10"></label><button class="btn btn-gold" type="submit" name="yon" value="artir">Artır</button><button class="btn btn-ghost" type="submit" name="yon" value="azalt">Azalt</button></form>';
+    var plan = '<form class="clay-uye-act" data-clay-act="plan" data-user="' + id + '"><label>Plan<select class="field" name="plan">' + planChoices(user.plan) + '</select></label><button class="btn btn-gold" type="submit">Ücreti düş ve yaz</button></form>';
+    return '<div class="clay-uye-acts"><h3>Bakiye</h3>' + balance + delta + "<h3>Plan</h3>" + plan + '<p class="clay-uye-act-msg" role="status"></p></div>';
+  }
+  function cardTools(card) {
+    var id = esc(card.id);
+    var status = card.status || "";
+    var bits = [];
+    if (status === "aktif") bits.push('<button type="button" class="btn btn-ghost" data-act="uye-dondur" data-card="' + id + '">Kartı dondur</button>');
+    if (status === "donduruldu") bits.push('<button type="button" class="btn btn-gold" data-act="uye-coz" data-card="' + id + '">Kartı aktif et</button>');
+    if (status === "aktif" || status === "donduruldu") {
+      bits.push('<form class="clay-uye-act" data-clay-act="kapat" data-card="' + id + '"><label class="clay-uye-check"><input type="checkbox" name="onay" value="on" required> Emin misin? Basım ücreti bakiyeye döner.</label><button class="btn btn-gold" type="submit">Evet, kapat</button></form>');
+    }
+    if (status === "kapali") {
+      bits.push('<form class="clay-uye-act" data-clay-act="sil" data-card="' + id + '"><label class="clay-uye-check"><input type="checkbox" name="onay" value="on" required> Emin misin? Kart ve siparişi silinir. Bakiye değişmez.</label><button class="btn btn-gold" type="submit">Evet, sil</button></form>');
+    }
+    return bits.join("");
+  }
+  function cardActs(user) {
+    var cards = userCards(user);
+    if (!cards.length) return "<h3>Kartlar</h3><p class=\"clay-uye-empty\">Kart yok.</p>";
+    return "<h3>Kartlar</h3><ul class=\"clay-uye-cards\">" + cards.map(function (card) {
+      var kind = cardTypeName(card.type);
+      var state = cardStatusName(card.status);
+      var save = '<form class="clay-uye-act" data-clay-act="kart" data-user="' + esc(user.id) + '" data-card="' + esc(card.id) + '"><label>Kart adı<input class="field" name="etiket" value="' + esc(card.label || "") + '" required minlength="2" maxlength="32"></label><label>Kullanılabilir bakiye (USD)<input class="field" name="limit" inputmode="decimal" value="' + esc(usdField(card.limit)) + '" required></label><label>Durum<select class="field" name="durum">' + statusChoices(card.status || "") + '</select></label><button class="btn btn-gold" type="submit">Kartı kaydet</button></form>';
+      return "<li><strong>" + esc(card.label || "Kart") + "</strong><span>" + esc([state, kind].filter(Boolean).join(" · ")) + " · " + esc(moneyUsd(card.limit)) + "</span><div class=\"clay-uye-card-tools\">" + cardTools(card) + "</div>" + save + "</li>";
+    }).join("") + "</ul>";
+  }
+  function actDone(code) {
+    return {
+      bakiye: "Bakiye yazıldı.",
+      "plan-yaz": "Plan yazıldı.",
+      kart: "Kart kaydedildi.",
+      donduruldu: "Kart donduruldu.",
+      cozuldu: "Kart aktif.",
+      kapatildi: "Kart kapatıldı.",
+      silindi: "Kart silindi."
+    }[code] || "";
+  }
+  function refreshMemberFile(code) {
+    var box = document.querySelector(".mx-auto.min-h-screen > .mt-6 > .clay-uye-detail");
+    if (box) box.dataset.sig = "";
+    mountUyeDetail();
+    var note = document.querySelector(".clay-uye-detail .clay-uye-act-msg");
+    if (!note) return;
+    if (actDone(code)) note.textContent = actDone(code);
+    else if (code && String(code).indexOf("e-") === 0) note.textContent = "İşlem uygulanmadı.";
+  }
+  function memberCall(action, fields) {
+    if (!(window.__clay && window.__clay.call)) return;
+    window.__clay.call(action, fields).then(function (res) {
+      refreshMemberFile(res && res.code ? res.code : "");
+    });
   }
   function pageSlot() {
     return document.querySelector(".mx-auto.min-h-screen > .mt-6");
@@ -1045,12 +1132,13 @@
       box.className = "clay-uye-detail";
       slot.insertBefore(box, slot.firstChild);
     }
+    box.setAttribute("data-clay-skip", "1");
     if (box.dataset.sig === sig) return;
     var draft = "";
     var input = box.querySelector("input[name=metin]");
     if (input && document.activeElement === input) draft = input.value;
     box.dataset.sig = sig;
-    box.innerHTML = '<p class="clay-uye-back"><a href="/clayadm!nxx/uyeler/">Üye listesi</a></p><h2>Üye ' + esc(label) + "</h2>" + accountFacts(user) + cardList(user) + threadLog(thread) + chatForm(thread);
+    box.innerHTML = '<p class="clay-uye-back"><a href="/clayadm!nxx/uyeler/">Üye listesi</a></p><h2>Üye ' + esc(label) + "</h2>" + accountFacts(user) + memberActs(user) + cardActs(user) + threadLog(thread) + chatForm(thread);
     var log = box.querySelector(".clay-desk-live-log");
     if (log) log.scrollTop = log.scrollHeight;
     var next = box.querySelector("input[name=metin]");
@@ -1124,6 +1212,44 @@
         form.metin.value = "";
         refreshDesk();
       });
+      return;
+    }
+    if (form.matches("form.clay-uye-act")) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var kind = form.getAttribute("data-clay-act") || "";
+      var who = form.getAttribute("data-user") || "";
+      var cardId = form.getAttribute("data-card") || "";
+      if (kind === "bakiye") {
+        memberCall("admin-set-balance", { uye: who, bakiye: String(form.bakiye.value || "").trim() });
+        return;
+      }
+      if (kind === "fark") {
+        var yon = event.submitter ? event.submitter.value : "";
+        memberCall("admin-balance", { uye: who, yon: yon, tutar: String(form.tutar.value || "").trim() });
+        return;
+      }
+      if (kind === "plan") {
+        memberCall("admin-uye-plan", { uye: who, plan: String(form.plan.value || "") });
+        return;
+      }
+      if (kind === "kart") {
+        memberCall("admin-edit-card", {
+          id: cardId,
+          uye: who,
+          etiket: String(form.etiket.value || "").trim(),
+          limit: String(form.limit.value || "").trim(),
+          durum: String(form.durum.value || "")
+        });
+        return;
+      }
+      if (kind === "kapat") {
+        memberCall("admin-close", { id: cardId, onay: form.onay && form.onay.checked ? "on" : "" });
+        return;
+      }
+      if (kind === "sil") {
+        memberCall("admin-purge", { id: cardId, onay: form.onay && form.onay.checked ? "on" : "" });
+      }
       return;
     }
     if (form.matches("form[data-clay-pass]")) {
@@ -1292,6 +1418,25 @@
           live.dataset.open = "";
           paintVisitor(null);
         }
+        return;
+      }
+      if (name === "uye-dondur" || name === "uye-coz" || name === "uye-dondur-evet") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        var card = act.getAttribute("data-card") || "";
+        if (name === "uye-dondur") {
+          var hold = act.parentNode;
+          if (!hold) return;
+          hold.innerHTML = '<p class="clay-uye-ask">Emin misin? Kart dondurulmuş sekmeye gider.</p><button type="button" class="btn btn-gold" data-act="uye-dondur-evet" data-card="' + esc(card) + '">Evet, dondur</button><button type="button" class="btn btn-ghost" data-act="uye-vazgec">Vazgeç</button>';
+          return;
+        }
+        memberCall("admin-card", { id: card, mod: name === "uye-coz" ? "coz" : "dondur" });
+        return;
+      }
+      if (name === "uye-vazgec") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        refreshMemberFile("");
         return;
       }
       if (name === "clay-seed-show" || (act.hasAttribute("data-clay-seed-show"))) {

@@ -638,9 +638,9 @@ body.clay-issue {
 body.clay-desk .clay-uye-list,
 body.clay-desk .clay-uye-detail {
   margin: 0 0 16px;
-  padding: 16px;
+  padding: 14px;
   display: grid;
-  gap: 12px;
+  gap: 8px;
   background: #f6efe6;
   border: 1px solid #e0d0ba;
   border-radius: 16px;
@@ -723,6 +723,51 @@ body.clay-desk .clay-uye-detail .clay-desk-live-log { max-height: 220px; }
 body.clay-desk .clay-uye-back { margin: 0; }
 body.clay-desk .clay-uye-back a { color: #8a5a12; font-weight: 700; text-decoration: none; }
 body.clay-desk .clay-uye-empty { margin: 0; color: #6b5e52; }
+body.clay-desk .clay-uye-acts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  align-items: end;
+}
+body.clay-desk .clay-uye-acts h3,
+body.clay-desk .clay-uye-act-msg { grid-column: 1 / -1; }
+body.clay-desk .clay-uye-act {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+body.clay-desk .clay-uye-act label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5c5146;
+}
+body.clay-desk .clay-uye-act input,
+body.clay-desk .clay-uye-act select { min-width: 140px; }
+body.clay-desk .clay-uye-check {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+body.clay-desk .clay-uye-check input { min-width: 0; }
+body.clay-desk .clay-uye-cards li { display: grid; gap: 8px; }
+body.clay-desk .clay-uye-card-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+body.clay-desk .clay-uye-ask { margin: 0; font-weight: 700; }
+body.clay-desk .clay-uye-act-msg { margin: 0; min-height: 1.2em; font-weight: 700; color: #8a5a12; }
+body.clay-desk .clay-uye-detail .btn-ghost,
+body.clay-desk .clay-uye-list .btn-ghost {
+  color: #2a2118 !important;
+  background: #f3e7d6 !important;
+  border: 1px solid #d7c4aa !important;
+}
 body.clay-desk .clay-uye-list .clay-uye-detail { margin: 0; padding: 0; border: 0; background: transparent; }
 .clay-desk-auto-form { display: flex; flex-wrap: wrap; gap: 8px; }
 .clay-desk-auto-form input { flex: 1; min-width: 140px; }

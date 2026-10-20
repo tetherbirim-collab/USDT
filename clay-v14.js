@@ -202,24 +202,32 @@
   var liveOpening = false;
   var liveEnabled = null;
   var liveStatus = "acik";
+  var livePanelHtml = '<div class="clay-live-panel" hidden><header class="clay-live-head"><span class="clay-live-card" aria-hidden="true"><span class="clay-live-card-chip"></span><span class="clay-live-card-mark">CLAY</span></span><span class="clay-live-id"><span class="clay-live-brand">Clay Virtual Card</span><span class="clay-live-role">Müşteri temsilcisi</span><strong class="clay-live-name">Canlı destek</strong><span class="clay-live-sub"><i class="clay-live-dot is-on"></i><span class="clay-live-subtext">Çevrimiçi</span></span></span><button type="button" data-act="live-close" aria-label="Kapat"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button></header><div class="clay-live-log" role="log" aria-live="polite"></div><form class="clay-live-form"><label class="clay-live-photo"><input type="file" accept="image/*" hidden><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M4 6.5A2.5 2.5 0 0 1 6.5 4h2.2l1.2-1.6A2 2 0 0 1 11.4 1.5h1.2a2 2 0 0 1 1.5.9L15.3 4H17.5A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11zM12 16.2a3.7 3.7 0 1 0 0-7.4 3.7 3.7 0 0 0 0 7.4z"/></svg></label><input name="metin" maxlength="400" placeholder="Mesaj yazın" autocomplete="off" enterkeyhint="send"><button class="clay-live-send" type="submit" aria-label="Gönder"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3.2 11.2 20 4.2c.7-.3 1.4.4 1.1 1.1l-7 16.8c-.3.8-1.5.7-1.7-.1l-1.8-6.6-6.6-1.8c-.8-.2-.9-1.4-.1-1.7z"/></svg></button></form></div>';
+  var liveButtonHtml = '<button type="button" class="clay-live-btn" data-act="live-open" aria-label="Canlı destek"><svg class="clay-live-icon-chat" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9.2L5 19.4c-.6.5-1.5.1-1.5-.7V5.5z"/></svg><svg class="clay-live-icon-x" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button>';
   function visitorShell() {
+    if (!document.body || liveEnabled === false) return null;
     var root = document.querySelector(".clay-live");
-    if (root) return root;
-    root = document.createElement("section");
-    root.className = "clay-live";
-    root.innerHTML = '<div class="clay-live-panel" hidden><header class="clay-live-head"><span class="clay-live-card" aria-hidden="true"><span class="clay-live-card-chip"></span><span class="clay-live-card-mark">CLAY</span></span><span class="clay-live-id"><span class="clay-live-brand">Clay Virtual Card</span><span class="clay-live-role">Müşteri temsilcisi</span><strong class="clay-live-name">Canlı destek</strong><span class="clay-live-sub"><i class="clay-live-dot is-on"></i><span class="clay-live-subtext">Çevrimiçi</span></span></span><button type="button" data-act="live-close" aria-label="Kapat"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button></header><div class="clay-live-log" role="log" aria-live="polite"></div><form class="clay-live-form"><label class="clay-live-photo"><input type="file" accept="image/*" hidden><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M4 6.5A2.5 2.5 0 0 1 6.5 4h2.2l1.2-1.6A2 2 0 0 1 11.4 1.5h1.2a2 2 0 0 1 1.5.9L15.3 4H17.5A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11zM12 16.2a3.7 3.7 0 1 0 0-7.4 3.7 3.7 0 0 0 0 7.4z"/></svg></label><input name="metin" maxlength="400" placeholder="Mesaj yazın" autocomplete="off" enterkeyhint="send"><button class="clay-live-send" type="submit" aria-label="Gönder"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3.2 11.2 20 4.2c.7-.3 1.4.4 1.1 1.1l-7 16.8c-.3.8-1.5.7-1.7-.1l-1.8-6.6-6.6-1.8c-.8-.2-.9-1.4-.1-1.7z"/></svg></button></form></div><button type="button" class="clay-live-btn" data-act="live-open" aria-label="Canlı destek"><svg class="clay-live-icon-chat" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9.2L5 19.4c-.6.5-1.5.1-1.5-.7V5.5z"/></svg><svg class="clay-live-icon-x" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button>';
-    document.body.appendChild(root);
+    if (!root) {
+      root = document.createElement("section");
+      root.className = "clay-live";
+      root.innerHTML = livePanelHtml + liveButtonHtml;
+      document.body.appendChild(root);
+      return root;
+    }
+    if (!root.querySelector(".clay-live-panel")) root.insertAdjacentHTML("afterbegin", livePanelHtml);
+    if (!root.querySelector(".clay-live-btn")) root.insertAdjacentHTML("beforeend", liveButtonHtml);
     return root;
   }
   function paintVisitor(thread) {
-    if (admin() || liveEnabled === false) {
+    if (liveEnabled === false) {
       var gone = document.querySelector(".clay-live");
       if (gone) gone.remove();
       return;
     }
-    if (liveEnabled !== true || !(publicSite() || member())) return;
     var root = visitorShell();
+    if (!root) return;
     var panel = root.querySelector(".clay-live-panel");
+    if (!panel) return;
     var open = root.dataset.open === "1";
     root.classList.toggle("is-open", open);
     panel.hidden = !open;
@@ -274,6 +282,11 @@
     liveOpenWait = postLive({ op: "open" }).then(function (res) {
       liveOpening = false;
       liveOpenWait = null;
+      if (res && res.enabled === false) {
+        liveEnabled = false;
+        paintVisitor(null);
+        return "";
+      }
       if (!res || !res.ok || !res.thread) return "";
       liveThread = res.thread.id;
       paintVisitor(res.thread);
@@ -282,7 +295,7 @@
     return liveOpenWait;
   }
   function ensureThread() {
-    if (liveEnabled !== true || liveThread || liveOpening) return;
+    if (liveEnabled === false || liveThread || liveOpening) return;
     whenThread();
   }
   function dropThread() {
@@ -297,7 +310,6 @@
     if (root && root.dataset.open === "1") ensureThread();
   }
   function refreshVisitor() {
-    if (admin()) return;
     postLive({ op: "status" }).then(function (res) {
       var on = !res || res.enabled !== false;
       if (on !== liveEnabled) {
@@ -763,7 +775,10 @@
   }
   function boot() {
     if (document.documentElement) {
-      new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
+      new MutationObserver(function () {
+        if (!document.querySelector(".clay-live-btn")) visitorShell();
+        schedule();
+      }).observe(document.documentElement, { childList: true, subtree: true });
     }
     tick();
     refreshDesk();

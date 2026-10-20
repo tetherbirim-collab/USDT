@@ -209,7 +209,7 @@ body.clay-issue {
   position: fixed;
   right: 20px;
   bottom: 20px;
-  z-index: 70;
+  z-index: 80;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -229,9 +229,9 @@ body.clay-issue {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #1c1915;
-  color: #f6f1e8;
-  box-shadow: 0 10px 24px rgba(20, 12, 16, 0.28);
+  background: #22c55e;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.38);
 }
 .clay-live-icon-x { display: none; }
 .clay-live.is-open .clay-live-icon-chat { display: none; }

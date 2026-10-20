@@ -171,6 +171,76 @@ if ($op === "switch") {
     clay_live_out(["ok" => true, "enabled" => $on]);
 }
 
+if ($op === "thread") {
+    if (!clay_live_admin()) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "giris"], 403);
+    }
+    $mode = (string) ($input["mod"] ?? "");
+    $index = clay_live_find($store, (string) ($input["thread"] ?? ""));
+    if ($index < 0 || !in_array($mode, ["beklemede", "acik", "bitti", "sil"], true)) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "yok"], 404);
+    }
+    if ($mode === "sil") {
+        array_splice($store["threads"], $index, 1);
+    } else {
+        $store["threads"][$index]["status"] = $mode;
+    }
+    clay_live_save($handle, $store);
+    clay_live_out(["ok" => true, "enabled" => clay_live_on($store), "threads" => $store["threads"]]);
+}
+
+if ($op === "upload") {
+    if (!clay_live_on($store)) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "kapali", "enabled" => false], 403);
+    }
+    $index = clay_live_find($store, (string) ($input["thread"] ?? ""));
+    $rawImage = (string) ($input["image"] ?? "");
+    if ($index < 0 || ($store["threads"][$index]["status"] ?? "acik") === "bitti") {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "yok"], 404);
+    }
+    if (!preg_match("#^data:image/jpeg;base64,#", $rawImage)) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "foto"], 400);
+    }
+    $bin = base64_decode(substr($rawImage, strpos($rawImage, ",") + 1), true);
+    if (!is_string($bin) || strlen($bin) < 32 || strlen($bin) > 1200000 || substr($bin, 0, 3) !== "\xFF\xD8\xFF") {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "foto"], 400);
+    }
+    $dir = __DIR__ . "/clay-live-uploads";
+    if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "kayit"], 500);
+    }
+    $imageId = bin2hex(random_bytes(8));
+    if (file_put_contents($dir . "/" . $imageId . ".jpg", $bin) === false) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "kayit"], 500);
+    }
+    $caption = clay_live_text((string) ($input["text"] ?? ""));
+    $store["threads"][$index]["messages"][] = [
+        "from" => "visitor",
+        "text" => $caption,
+        "image" => $imageId,
+        "at" => $now,
+    ];
+    $thread = $store["threads"][$index];
+    clay_live_save($handle, $store);
+    clay_live_out(["ok" => true, "thread" => $thread]);
+}
+
 if ($op === "open" || $op === "send") {
     if (!clay_live_on($store)) {
         flock($handle, LOCK_UN);
@@ -185,11 +255,18 @@ if ($op === "open" || $op === "send") {
     }
     $threadId = (string) ($input["thread"] ?? "");
     $index = $threadId !== "" ? clay_live_find($store, $threadId) : -1;
+    if ($index >= 0 && ($store["threads"][$index]["status"] ?? "acik") === "bitti") {
+        $thread = $store["threads"][$index];
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "bitti", "thread" => $thread], 409);
+    }
     if ($index < 0) {
         $threadId = "lv_" . bin2hex(random_bytes(6));
         $store["threads"][] = [
             "id" => $threadId,
             "username" => clay_live_assign($store),
+            "status" => "acik",
             "at" => $now,
             "messages" => [],
         ];

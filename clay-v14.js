@@ -200,6 +200,7 @@
   }
 
   var liveOpening = false;
+  var liveEnabled = null;
   function visitorShell() {
     var root = document.querySelector(".clay-live");
     if (root) return root;
@@ -210,12 +211,12 @@
     return root;
   }
   function paintVisitor(thread) {
-    if (admin()) {
+    if (admin() || liveEnabled === false) {
       var gone = document.querySelector(".clay-live");
       if (gone) gone.remove();
       return;
     }
-    if (!(publicSite() || member())) return;
+    if (liveEnabled !== true || !(publicSite() || member())) return;
     var root = visitorShell();
     var panel = root.querySelector(".clay-live-panel");
     var open = root.dataset.open === "1";
@@ -242,7 +243,7 @@
     log.scrollTop = log.scrollHeight;
   }
   function ensureThread() {
-    if (liveThread || liveOpening) return;
+    if (liveEnabled !== true || liveThread || liveOpening) return;
     liveOpening = true;
     postLive({ op: "open" }).then(function (res) {
       liveOpening = false;
@@ -252,9 +253,28 @@
     });
   }
   function refreshVisitor() {
-    if (!liveThread || admin()) return;
-    postLive({ op: "read", thread: liveThread }).then(function (res) {
-      if (res && res.thread) paintVisitor(res.thread);
+    if (admin()) return;
+    postLive({ op: "status" }).then(function (res) {
+      var on = !res || res.enabled !== false;
+      if (on !== liveEnabled) {
+        liveEnabled = on;
+        if (!on) {
+          var root = document.querySelector(".clay-live");
+          if (root) root.remove();
+          return;
+        }
+      } else {
+        liveEnabled = on;
+      }
+      if (!on) return;
+      if (!liveThread) {
+        paintVisitor(null);
+        return;
+      }
+      postLive({ op: "read", thread: liveThread }).then(function (read) {
+        if (read && read.thread) paintVisitor(read.thread);
+        else paintVisitor(null);
+      });
     });
   }
   function sendVisitor(form) {
@@ -295,7 +315,7 @@
     if (deskThread && !threads.some(function (row) { return row.id === deskThread; })) deskThread = threads[0] ? threads[0].id : "";
     var active = null;
     threads.forEach(function (row) { if (row.id === deskThread) active = row; });
-    var sig = threads.map(function (row) {
+    var sig = (liveEnabled === false ? "0" : "1") + "|" + threads.map(function (row) {
       var last = row.messages && row.messages.length ? row.messages[row.messages.length - 1].at : 0;
       return row.id + ":" + row.username + ":" + (row.messages ? row.messages.length : 0) + ":" + last;
     }).join("|") + ">" + deskThread;
@@ -311,14 +331,18 @@
     var draft = "";
     var input = box.querySelector("input[name=metin]");
     if (input && document.activeElement === input) draft = input.value;
-    box.innerHTML = '<h2>Canlı destek</h2><div class="clay-desk-live-list">' + list + '</div><div class="clay-desk-live-log">' + log + '</div><form class="clay-desk-live-form"><input name="metin" maxlength="400" placeholder="Yanıt yaz" autocomplete="off"' + (active ? "" : " disabled") + '><button class="btn btn-gold" type="submit"' + (active ? "" : " disabled") + ">Gönder</button></form>";
+    var open = liveEnabled !== false;
+    box.innerHTML = '<div class="clay-desk-live-head"><h2>Canlı destek</h2><button type="button" class="btn btn-ghost" data-act="live-switch" data-on="' + (open ? "1" : "0") + '">' + (open ? "Kapat" : "Aç") + "</button></div><p class=\"clay-desk-live-state\">" + (open ? "Ziyaretçiye açık" : "Ziyaretçiye kapalı") + '</p><div class="clay-desk-live-list">' + list + '</div><div class="clay-desk-live-log">' + log + '</div><form class="clay-desk-live-form"><input name="metin" maxlength="400" placeholder="Yanıt yaz" autocomplete="off"' + (active && open ? "" : " disabled") + '><button class="btn btn-gold" type="submit"' + (active && open ? "" : " disabled") + ">Gönder</button></form>";
     var next = box.querySelector("input[name=metin]");
     if (next && draft) next.value = draft;
   }
   function refreshDesk() {
     if (!admin()) return;
     postLive({ op: "list" }).then(function (res) {
-      if (res && res.ok) paintDesk(res.threads || []);
+      if (res && res.ok) {
+        liveEnabled = res.enabled !== false;
+        paintDesk(res.threads || []);
+      }
       else if (res && res.error === "giris") paintDesk([]);
     });
   }
@@ -490,6 +514,14 @@
     var act = event.target.closest && event.target.closest("[data-act]");
     if (act) {
       var name = act.getAttribute("data-act");
+      if (name === "live-switch") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        postLive({ op: "switch", acik: act.getAttribute("data-on") === "1" ? "0" : "1" }).then(function () {
+          refreshDesk();
+        });
+        return;
+      }
       if (name === "live-open") {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -565,6 +597,7 @@
     }
     tick();
     refreshDesk();
+    refreshVisitor();
     setInterval(function () {
       refreshVisitor();
       refreshDesk();

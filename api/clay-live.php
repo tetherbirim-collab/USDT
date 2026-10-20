@@ -120,6 +120,11 @@ function clay_live_find(array $store, string $id): int
     return -1;
 }
 
+function clay_live_on(array $store): bool
+{
+    return !array_key_exists("enabled", $store) || $store["enabled"] !== false;
+}
+
 function clay_live_assign(array &$store): string
 {
     $names = ["Ahmet", "Mehmet", "Ayşe", "Fatma", "Ali", "Zeynep"];
@@ -147,7 +152,31 @@ function clay_live_assign(array &$store): string
     return $picked;
 }
 
+if ($op === "status") {
+    $on = clay_live_on($store);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    clay_live_out(["ok" => true, "enabled" => $on]);
+}
+
+if ($op === "switch") {
+    if (!clay_live_admin()) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "giris"], 403);
+    }
+    $store["enabled"] = ((string) ($input["acik"] ?? "")) === "1";
+    $on = clay_live_on($store);
+    clay_live_save($handle, $store);
+    clay_live_out(["ok" => true, "enabled" => $on]);
+}
+
 if ($op === "open" || $op === "send") {
+    if (!clay_live_on($store)) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        clay_live_out(["ok" => false, "error" => "kapali", "enabled" => false], 403);
+    }
     $text = $op === "send" ? clay_live_text((string) ($input["text"] ?? "")) : "";
     if ($op === "send" && $text === "") {
         flock($handle, LOCK_UN);
@@ -196,7 +225,7 @@ if ($op === "list" || $op === "reply") {
 if ($op === "list") {
     flock($handle, LOCK_UN);
     fclose($handle);
-    clay_live_out(["ok" => true, "threads" => $store["threads"]]);
+    clay_live_out(["ok" => true, "enabled" => clay_live_on($store), "threads" => $store["threads"]]);
 }
 
 if ($op === "reply") {

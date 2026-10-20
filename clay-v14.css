@@ -327,6 +327,14 @@ body.clay-issue {
     height: min(68vh, 520px);
   }
 }
+.clay-desk-live-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.clay-desk-live-head h2 { margin: 0; }
+.clay-desk-live-state { margin: 0; font-size: 13px; font-weight: 700; }
 .clay-desk-live-log p.is-admin,
 .clay-desk-live-log p.is-visitor {
   padding: 8px 10px;

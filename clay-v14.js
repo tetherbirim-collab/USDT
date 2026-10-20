@@ -1070,7 +1070,7 @@
     });
     var sig = rows.map(function (row) {
       var bits = row.thread && row.thread.messages ? row.thread.messages.map(function (item) { return String(item.at || "") + (item.text || ""); }).join(",") : "";
-      var mark = row.user ? row.user.id + ":" + (row.user.balance || 0) + ":" + (row.user.plan || "") + ":" + (row.user.telegramId || "") : "guest";
+      var mark = row.user ? row.user.id + ":" + (row.user.status || "") + ":" + (row.user.balance || 0) + ":" + (row.user.plan || "") + ":" + (row.user.telegramId || "") : "guest";
       return row.label + "|" + mark + "|" + (row.thread ? row.thread.id : "") + "|" + bits;
     }).join("~") + ">" + focus;
     var box = slot.querySelector(":scope > .clay-uye-list");
@@ -1090,6 +1090,7 @@
         : "/clayadm!nxx/uyeler/?konusma=" + encodeURIComponent(row.thread ? row.thread.id : "");
       var on = !!(row.guest && row.thread && row.thread.id === focus);
       var note = row.user ? planLabel(row.user.plan) + " · " + moneyUsd(row.user.balance) : "Canlı sohbet";
+      if (row.user && row.user.status === "kapali") note = "Kapalı · " + note;
       return '<a class="clay-uye-row' + (on ? " is-on" : "") + '" href="' + href + '"><strong>Üye ' + esc(row.label) + "</strong><span>" + esc(note) + "</span></a>";
     }).join("") || '<p class="clay-uye-empty">Henüz üye yok.</p>';
     var detail = "";
@@ -1187,9 +1188,27 @@
       if ((node.textContent || "").indexOf("Soruyu, yanıtı") !== -1 && node.closest("form")) node.remove();
     });
   }
+  function permanentCloseForm(form) {
+    if (!form || !form.querySelector) return false;
+    var mod = form.querySelector('input[name="mod"]');
+    var who = form.querySelector('input[name="uye"]');
+    return !!(mod && mod.value === "kalici" && who && who.value);
+  }
   document.addEventListener("submit", function (event) {
     var form = event.target;
     if (!form || !form.matches) return;
+    if (permanentCloseForm(form)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var onay = form.querySelector('input[name="onay"]');
+      var who = form.querySelector('input[name="uye"]');
+      if (!onay || !onay.checked || !who || !(window.__clay && window.__clay.call)) return;
+      window.__clay.call("admin-kapat", { uye: who.value, mod: "kalici", onay: "on" }).then(function (res) {
+        if (!res || res.code !== "kapandi") return;
+        window.location.assign("/clayadm!nxx/uyeler/?bildirim=kapandi");
+      });
+      return;
+    }
     if (form.matches("form.clay-live-form")) {
       event.preventDefault();
       event.stopPropagation();

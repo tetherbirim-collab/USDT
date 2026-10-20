@@ -364,7 +364,7 @@
     paintAutoChips(root);
     if (!thread && liveThread) return;
     var nameNode = root.querySelector(".clay-live-name");
-    if (nameNode) nameNode.textContent = thread && thread.username ? thread.username : "Canlı destek";
+    if (nameNode) nameNode.textContent = thread && thread.agent ? thread.agent : "Canlı destek";
     var log = root.querySelector(".clay-live-log");
     var messages = thread && thread.messages ? thread.messages : [];
     var state = thread && thread.status ? thread.status : "acik";
@@ -387,7 +387,7 @@
     }
     if (sendBtn) sendBtn.disabled = ended;
     if (photo) photo.disabled = ended;
-    var sig = (thread && thread.username ? thread.username : "") + "|" + state + "|" + messages.map(function (row) { return row.at + row.from + row.text + (row.image || ""); }).join("~");
+    var sig = (thread && thread.agent ? thread.agent : "") + "|" + (thread && (thread.customer || thread.username) ? (thread.customer || thread.username) : "") + "|" + state + "|" + messages.map(function (row) { return row.at + row.from + row.text + (row.image || ""); }).join("~");
     hearWelcome(messages);
     if (log.dataset.sig === sig) return;
     log.dataset.sig = sig;
@@ -397,7 +397,7 @@
     }
     html += messages.map(function (row) {
       var mine = row.from === "visitor";
-      var who = mine ? (thread.username || "Siz") : (row.from === "auto" ? "Otomasyon" : "Destek");
+      var who = mine ? ((thread && (thread.customer || thread.username)) || "Siz") : (row.from === "auto" ? "Otomasyon" : "Destek");
       var photo = row.image ? '<img src="/api/clay-live-file.php?id=' + esc(row.image) + '" alt="Fotoğraf">' : "";
       return '<p class="clay-live-' + (mine ? "mine" : "admin") + '"><span>' + esc(who) + "</span>" + photo + (row.text ? esc(row.text) : "") + "</p>";
     }).join("");
@@ -615,24 +615,27 @@
       var bits = (row.messages || []).map(function (item) {
         return String(item.at || "") + (item.from || "") + (item.image || "") + String(item.text || "").length;
       }).join(",");
-      return row.id + ":" + (row.username || "") + ":" + (row.status || "acik") + ":" + bits;
+      return row.id + ":" + (row.customer || row.username || "") + ":" + (row.agent || "") + ":" + (row.status || "acik") + ":" + bits;
     }).join("|") + ">" + deskThread + "#" + liveAutos.map(function (row) { return row.id + row.q + row.a; }).join("~");
     if (box.dataset.sig === sig) return;
     box.dataset.sig = sig;
     var list = threads.map(function (row) {
       var status = row.status || "acik";
-      return '<button type="button" class="clay-desk-person' + (row.id === deskThread ? " is-on" : "") + '" data-thread="' + esc(row.id) + '">' + cardMark() + '<span class="clay-desk-person-copy"><span class="clay-desk-person-brand">Clay Virtual Card</span><strong>' + esc(row.username) + '</strong><span class="clay-desk-person-role"><i class="clay-live-dot ' + liveTone(status) + '"></i> Müşteri temsilcisi · ' + esc(liveLabel(status)) + "</span></span></button>";
+      var customer = row.customer || row.username || "";
+      var agent = row.agent || "";
+      return '<button type="button" class="clay-desk-person' + (row.id === deskThread ? " is-on" : "") + '" data-thread="' + esc(row.id) + '">' + cardMark() + '<span class="clay-desk-person-copy"><span class="clay-desk-person-brand">Müşteri</span><strong>' + esc(customer) + '</strong><span class="clay-desk-person-role"><i class="clay-live-dot ' + liveTone(status) + '"></i> Temsilci ' + esc(agent) + " · " + esc(liveLabel(status)) + "</span></span></button>";
     }).join("") || '<p class="clay-desk-live-empty">Henüz konuşma yok.</p>';
     var status = active ? (active.status || "acik") : "";
     var log = active ? (active.messages || []).map(function (row) {
-      var who = row.from === "auto" ? "Otomasyon" : (row.from === "visitor" ? active.username : "Destek");
-      var role = row.from === "auto" ? "<small>Otomatik yanıt</small>" : (row.from === "visitor" ? "<small>Clay Virtual Card müşteri temsilcisi</small>" : "");
+      var customer = active.customer || active.username || "";
+      var who = row.from === "auto" ? "Otomasyon" : (row.from === "visitor" ? customer : "Destek");
+      var role = row.from === "auto" ? "<small>Otomatik yanıt</small>" : (row.from === "visitor" ? "<small>Müşteri</small>" : "");
       var photo = row.image ? '<img src="/api/clay-live-file.php?id=' + esc(row.image) + '" alt="Fotoğraf">' : "";
       var text = row.text ? '<span class="clay-desk-live-text">' + esc(row.text) + "</span>" : "";
       return '<p class="' + (row.from === "visitor" ? "is-visitor" : (row.from === "auto" ? "is-auto" : "is-admin")) + '"><strong>' + esc(who) + "</strong>" + role + text + photo + "</p>";
     }).join("") || "<p>Henüz mesaj yok.</p>" : "<p>Bir konuşma seç.</p>";
     var tools = active
-      ? '<p class="clay-desk-live-meta"><i class="clay-live-dot ' + liveTone(status) + '"></i> Clay Virtual Card müşteri temsilcisi · ' + esc(active.username) + " · " + esc(liveLabel(status)) + '</p><div class="clay-desk-live-tools"><button type="button" class="btn btn-ghost" data-act="live-hold"' + (status === "acik" ? "" : " disabled") + '>Beklemeye al</button><button type="button" class="btn btn-ghost" data-act="live-resume"' + (status === "beklemede" ? "" : " disabled") + '>Beklemeden çıkar</button><button type="button" class="btn btn-ghost" data-act="live-end"' + (status === "bitti" ? " disabled" : "") + '>Görüşmeyi sonlandır</button><button type="button" class="btn btn-ghost" data-act="live-reopen"' + (status === "bitti" ? "" : " disabled") + '>Yeniden aç</button><button type="button" class="btn btn-ghost" data-act="live-delete">Sil</button></div>'
+      ? '<p class="clay-desk-live-meta"><i class="clay-live-dot ' + liveTone(status) + '"></i> ' + esc(active.customer || active.username || "") + " · " + esc(liveLabel(status)) + (active.agent ? " · Temsilci " + esc(active.agent) : "") + '</p><div class="clay-desk-live-tools"><button type="button" class="btn btn-ghost" data-act="live-hold"' + (status === "acik" ? "" : " disabled") + '>Beklemeye al</button><button type="button" class="btn btn-ghost" data-act="live-resume"' + (status === "beklemede" ? "" : " disabled") + '>Beklemeden çıkar</button><button type="button" class="btn btn-ghost" data-act="live-end"' + (status === "bitti" ? " disabled" : "") + '>Görüşmeyi sonlandır</button><button type="button" class="btn btn-ghost" data-act="live-reopen"' + (status === "bitti" ? "" : " disabled") + '>Yeniden aç</button><button type="button" class="btn btn-ghost" data-act="live-delete">Sil</button></div>'
       : "";
     var autos = '<section class="clay-desk-auto"><h3>Otomasyon mesajları</h3><ul>' + (liveAutos.map(function (row) {
       return "<li><p><strong>" + esc(row.q) + "</strong></p><p>" + esc(row.a) + '</p><button type="button" class="btn btn-ghost" data-act="auto-del" data-id="' + esc(row.id) + '">Kaldır</button></li>';

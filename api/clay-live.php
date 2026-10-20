@@ -188,11 +188,7 @@ function clay_live_session_user(): ?array
         if ($status === "askida" || $status === "kapali") {
             return null;
         }
-        $name = trim((string) ($user["username"] ?? ""));
-        if ($name === "") {
-            return null;
-        }
-        return ["id" => $uid, "username" => $name];
+        return ["id" => $uid, "username" => trim((string) ($user["username"] ?? ""))];
     }
     return null;
 }
@@ -219,32 +215,60 @@ function clay_live_anon_label(array $store, int $skip): string
     return $base . " 40";
 }
 
+function clay_live_agent(array &$store): string
+{
+    $names = ["Ahmet", "Ayşe", "Mehmet", "Fatma", "Ali", "Zeynep"];
+    $cursor = (int) ($store["agentCursor"] ?? 0);
+    $picked = $names[$cursor % count($names)];
+    $store["agentCursor"] = ($cursor + 1) % count($names);
+    return $picked;
+}
+
+function clay_live_customer_label(array $store, int $skip, ?array $member): string
+{
+    if ($member) {
+        $name = trim((string) ($member["username"] ?? ""));
+        $folded = function_exists("mb_strtolower") ? mb_strtolower($name, "UTF-8") : strtolower($name);
+        if ($name === "" || $folded === "anonim") {
+            return "Clay Anonim";
+        }
+        return $name;
+    }
+    return clay_live_anon_label($store, $skip);
+}
+
 function clay_live_apply_name(array &$store, int $index): void
 {
     $member = clay_live_session_user();
     $id = (string) ($store["threads"][$index]["id"] ?? "");
     $owner = (string) ($store["threads"][$index]["userId"] ?? "");
     $bound = (string) ($_SESSION["clayLive"] ?? "");
+    $current = (string) ($store["threads"][$index]["username"] ?? "");
+    $fresh = $owner === "" && $current === "";
     if ($member) {
-        $fresh = $owner === "" && (string) ($store["threads"][$index]["username"] ?? "") === "";
         if (!$fresh && $owner !== "" && $owner !== $member["id"]) {
             return;
         }
         if (!$fresh && $owner === "" && $bound !== "" && $bound !== $id) {
             return;
         }
-        $store["threads"][$index]["username"] = $member["username"];
+        $label = clay_live_customer_label($store, $index, $member);
         $store["threads"][$index]["userId"] = $member["id"];
-        $_SESSION["clayLive"] = $id;
-        return;
-    }
-    if ($owner !== "") {
-        return;
-    }
-    $current = (string) ($store["threads"][$index]["username"] ?? "");
-    if (!preg_match('/^Clay No Name Customer( [0-9]+)?$/', $current)) {
-        $store["threads"][$index]["username"] = clay_live_anon_label($store, $index);
+    } else {
+        if ($owner !== "") {
+            return;
+        }
+        if (preg_match('/^Clay No Name Customer( [0-9]+)?$/', $current)) {
+            $label = $current;
+        } else {
+            $label = clay_live_customer_label($store, $index, null);
+        }
         $store["threads"][$index]["userId"] = "";
+    }
+    $store["threads"][$index]["customer"] = $label;
+    $store["threads"][$index]["username"] = $label;
+    if ((string) ($store["threads"][$index]["agent"] ?? "") === "") {
+        $store["threads"][$index]["agent"] = clay_live_agent($store);
     }
     $_SESSION["clayLive"] = $id;
 }

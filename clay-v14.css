@@ -1,43 +1,55 @@
-/* Practical admin desk */
+/* Practical admin desk — one warm clay family */
 body.clay-desk {
-  background: #efe8dc !important;
-  color: #1c1915 !important;
+  background: #efe3d4 !important;
+  color: #2a2118 !important;
 }
 body.clay-desk .mx-auto.min-h-screen {
   max-width: 1120px;
 }
 body.clay-desk header.glass {
-  background: #1c1915 !important;
-  color: #f6f1e8 !important;
-  border: 1px solid #1c1915 !important;
+  background: #2b241c !important;
+  color: #f6efe4 !important;
+  border: 1px solid rgba(214, 184, 138, 0.28) !important;
   border-radius: 18px !important;
-  box-shadow: none !important;
+  box-shadow: 0 12px 28px rgba(43, 36, 28, 0.16) !important;
   position: sticky;
   top: 10px;
   z-index: 20;
 }
 body.clay-desk header.glass :is(a, span, p, button, strong) {
-  color: #f6f1e8;
+  color: #f6efe4;
 }
 body.clay-desk header .text-gold {
   color: #e0b15a !important;
 }
 body.clay-desk header .btn-ghost {
-  color: #f6f1e8 !important;
+  color: #f6efe4 !important;
   background: transparent !important;
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border: 1px solid rgba(230, 213, 192, 0.35) !important;
 }
-body.clay-desk .glass:not(header) {
-  background: #fffdf8 !important;
-  color: #1c1915 !important;
-  border: 1px solid #e4d8c8 !important;
-  box-shadow: 0 1px 2px rgba(40, 28, 12, 0.04) !important;
+body.clay-desk .glass:not(header),
+body.clay-desk .order-slip {
+  background: #f6efe6 !important;
+  color: #2a2118 !important;
+  border: 1px solid #e0d0ba !important;
+  box-shadow: 0 8px 22px rgba(43, 36, 28, 0.05) !important;
+}
+body.clay-desk .order-slip-owner,
+body.clay-desk .order-slip-phrase {
+  color: #5c5146 !important;
+}
+body.clay-desk .order-slip-kicker,
+body.clay-desk .order-slip-wait {
+  color: #8a5a12 !important;
+}
+body.clay-desk .border-white\/10 {
+  border-color: #e0d0ba !important;
 }
 body.clay-desk :is(.text-white, .text-white\/45, .text-white\/50, .text-white\/55, .text-white\/60, .text-white\/65, .text-white\/70, .text-white\/75, .text-white\/80) {
-  color: #3d3832 !important;
+  color: #3f362d !important;
 }
 body.clay-desk header :is(.text-white, .text-white\/70, .text-white\/80, .text-white\/65) {
-  color: #f6f1e8 !important;
+  color: #f6efe4 !important;
 }
 body.clay-desk .text-gold {
   color: #8a5a12 !important;
@@ -51,32 +63,35 @@ body.clay-desk nav {
 }
 body.clay-desk nav a,
 body.clay-desk .nav-pill {
-  background: #fff !important;
-  color: #1c1915 !important;
-  border: 1px solid #e0d4c4 !important;
+  background: #d8c4a8 !important;
+  color: #2a2118 !important;
+  border: 1px solid #c4ad8e !important;
   border-radius: 999px !important;
 }
 body.clay-desk nav a.nav-on,
-body.clay-desk .nav-on {
-  background: #1c1915 !important;
-  color: #f7f1e6 !important;
-  border-color: #1c1915 !important;
+body.clay-desk a.nav-on,
+body.clay-desk .nav-pill.nav-on {
+  background: #d9b56a !important;
+  color: #2a2118 !important;
+  border-color: #b8924a !important;
 }
 body.clay-desk .glass:not(header) .btn-ghost {
-  color: #1c1915 !important;
-  background: #fff !important;
-  border: 1px solid #e0d4c4 !important;
+  color: #2a2118 !important;
+  background: #f3e7d6 !important;
+  border: 1px solid #d7c4aa !important;
 }
 body.clay-desk .btn-gold {
-  color: #1c1408 !important;
+  color: #2a2118 !important;
+  background: #e0b15a !important;
+  border-color: #c49845 !important;
 }
 body.clay-desk input,
 body.clay-desk select,
 body.clay-desk textarea,
 body.clay-desk .field {
-  background: #fff !important;
-  color: #1c1915 !important;
-  border: 1px solid #cbbba6 !important;
+  background: #fbf6ee !important;
+  color: #2a2118 !important;
+  border: 1px solid #d9c7b0 !important;
   border-radius: 10px !important;
 }
 body.clay-desk table {
@@ -85,10 +100,10 @@ body.clay-desk table {
 }
 body.clay-desk th,
 body.clay-desk td {
-  border-bottom: 1px solid #eadfD2;
+  border-bottom: 1px solid #e4d5c3;
   padding: 8px 10px;
   text-align: left;
-  color: #1c1915;
+  color: #2a2118;
 }
 body.clay-desk .clay-desk-live {
   margin: 16px 0;
@@ -109,9 +124,9 @@ body.clay-desk .clay-desk-person {
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid #e0d4c4;
-  background: #fff;
-  color: #1c1915;
+  border: 1px solid #e0d0ba;
+  background: #f6efe6;
+  color: #2a2118;
   border-radius: 16px;
   padding: 8px 12px 8px 8px;
   cursor: pointer;
@@ -119,16 +134,16 @@ body.clay-desk .clay-desk-person {
   min-width: 220px;
 }
 body.clay-desk .clay-desk-person.is-on {
-  background: #1c1915;
-  color: #f6f1e8;
-  border-color: #1c1915;
+  background: #2b241c;
+  color: #f6efe4;
+  border-color: #2b241c;
 }
 body.clay-desk .clay-desk-live-log {
   display: grid;
   gap: 8px;
   max-height: 360px;
   overflow: auto;
-  background: #f7f2ea;
+  background: #f3eadd;
   border-radius: 12px;
   padding: 10px 12px;
 }
@@ -480,9 +495,9 @@ body.clay-issue {
 .clay-desk-live-log p.is-visitor {
   padding: 8px 10px;
   border-radius: 10px;
-  background: #fff;
+  background: #f8f1e7;
 }
-.clay-desk-live-log p.is-admin { background: #f4ecdf; }
+.clay-desk-live-log p.is-admin { background: #efe2d0; }
 .clay-desk-live-log small,
 .clay-desk-live-log .clay-desk-live-text { display: block; }
 .clay-desk-live-log small {

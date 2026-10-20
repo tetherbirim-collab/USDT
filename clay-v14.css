@@ -635,6 +635,95 @@ body.clay-issue {
 .clay-hesap-ayar label { display: grid; gap: 4px; }
 .clay-seed-view { margin: 0; letter-spacing: 0.04em; }
 .clay-tg-row, .clay-tg { display: block; font-size: 12px; font-weight: 700; }
+body.clay-desk .clay-uye-list,
+body.clay-desk .clay-uye-detail {
+  margin: 0 0 16px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  background: #f6efe6;
+  border: 1px solid #e0d0ba;
+  border-radius: 16px;
+  color: #2a2118;
+}
+body.clay-desk .clay-uye-list h2,
+body.clay-desk .clay-uye-detail h2,
+body.clay-desk .clay-uye-detail h3 {
+  margin: 0;
+  color: #2a2118;
+}
+body.clay-desk .clay-uye-rows { display: grid; gap: 8px; }
+body.clay-desk a.clay-uye-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fffaf3;
+  border: 1px solid #e0d0ba;
+  color: #2a2118;
+  text-decoration: none;
+}
+body.clay-desk a.clay-uye-row strong { font-size: 16px; }
+body.clay-desk a.clay-uye-row span { color: #6b5e52; font-size: 13px; }
+body.clay-desk a.clay-uye-row.is-on {
+  background: #2b241c;
+  border-color: #2b241c;
+  color: #f6efe4;
+}
+body.clay-desk a.clay-uye-row.is-on span { color: #e7d3b4; }
+body.clay-desk .clay-uye-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+body.clay-desk .clay-uye-facts div {
+  background: #fffaf3;
+  border: 1px solid #e0d0ba;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+body.clay-desk .clay-uye-facts dt {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8a5a12;
+}
+body.clay-desk .clay-uye-facts dd { margin: 4px 0 0; font-weight: 700; }
+body.clay-desk .clay-uye-cards {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+body.clay-desk .clay-uye-cards li {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fffaf3;
+  border: 1px solid #e0d0ba;
+}
+@media (max-width: 720px) {
+  body.clay-desk .clay-uye-facts { grid-template-columns: 1fr; }
+  body.clay-desk a.clay-uye-row { align-items: flex-start; flex-direction: column; }
+}
+body.clay-desk .clay-uye-cards span { color: #6b5e52; font-size: 13px; }
+body.clay-desk .clay-uye-chat-form { display: flex; gap: 8px; }
+body.clay-desk .clay-uye-chat-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+}
+body.clay-desk .clay-uye-detail .clay-desk-live-log { max-height: 220px; }
+body.clay-desk .clay-uye-back { margin: 0; }
+body.clay-desk .clay-uye-back a { color: #8a5a12; font-weight: 700; text-decoration: none; }
+body.clay-desk .clay-uye-empty { margin: 0; color: #6b5e52; }
+body.clay-desk .clay-uye-list .clay-uye-detail { margin: 0; padding: 0; border: 0; background: transparent; }
 .clay-desk-auto-form { display: flex; flex-wrap: wrap; gap: 8px; }
 .clay-desk-auto-form input { flex: 1; min-width: 140px; }
 .clay-desk-live-log p.is-auto { background: #efe2d0; }

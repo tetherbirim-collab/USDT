@@ -30,6 +30,7 @@
   };
   var liveThread = "";
   var deskThread = "";
+  var deskThreads = [];
   var deskPicked = false;
   var lastLedger = "";
   var askChain = Promise.resolve();
@@ -651,6 +652,46 @@
       takeDesk(res);
     });
   }
+  function masaPath() {
+    return /^\/clayadm!nxx\/?$/.test(path());
+  }
+  function deskShell() {
+    var host = document.querySelector(".mx-auto.min-h-screen");
+    if (!host || !host.querySelector(":scope > header")) return null;
+    return host;
+  }
+  function placeDesk(box) {
+    if (!box) return;
+    box.id = "canli-destek";
+    var host = deskShell();
+    if (masaPath() && host) {
+      var header = host.querySelector(":scope > header");
+      if (header && (box.parentNode !== host || box.previousElementSibling !== header)) host.insertBefore(box, header.nextSibling);
+      return;
+    }
+    if (!box.parentNode) document.body.appendChild(box);
+  }
+  function pinCanliNav() {
+    if (!admin()) return;
+    document.querySelectorAll("header nav").forEach(function (nav) {
+      if (nav.querySelector("[data-clay-canli]")) return;
+      var link = document.createElement("a");
+      link.setAttribute("data-clay-canli", "1");
+      link.href = "/clayadm!nxx/#canli-destek";
+      link.textContent = "Canlı destek";
+      var masa = null;
+      nav.querySelectorAll("a").forEach(function (node) {
+        if (!masa && (node.textContent || "").replace(/\s+/g, " ").trim() === "Masa") masa = node;
+      });
+      if (masa) {
+        link.className = String(masa.className || "").replace(/\bnav-on\b/g, "").trim();
+        masa.insertAdjacentElement("afterend", link);
+      } else {
+        link.className = "nav-pill";
+        nav.insertBefore(link, nav.firstChild);
+      }
+    });
+  }
   function paintDesk(threads) {
     if (!admin()) {
       var gone = document.querySelector(".clay-desk-live");
@@ -661,14 +702,12 @@
     if (!box) {
       box = document.createElement("section");
       box.className = "clay-desk-live glass";
-      var host = document.querySelector(".mx-auto.min-h-screen") || document.body;
-      var nav = host.querySelector(":scope > nav");
-      var header = host.querySelector(":scope > header");
-      var anchor = nav || header;
-      if (anchor && anchor.parentNode === host) host.insertBefore(box, anchor.nextSibling);
-      else host.appendChild(box);
+      box.id = "canli-destek";
+      placeDesk(box);
     }
+    box.id = "canli-destek";
     threads = Array.isArray(threads) ? threads.slice() : [];
+    deskThreads = threads.slice();
     threads.sort(function (a, b) {
       var am = a.messages && a.messages.length ? a.messages[a.messages.length - 1].at : a.at;
       var bm = b.messages && b.messages.length ? b.messages[b.messages.length - 1].at : b.at;
@@ -684,7 +723,11 @@
       }).join(",");
       return row.id + ":" + (row.customer || row.username || "") + ":" + (row.agent || "") + ":" + (row.userId || "") + ":" + telegramFor(row.customer || row.username, row.userId) + ":" + (row.status || "acik") + ":" + bits;
     }).join("|") + ">" + deskThread + "#" + liveAutos.map(function (row) { return row.id + row.q + row.a; }).join("~");
-    if (box.dataset.sig === sig) return;
+    if (box.dataset.sig === sig) {
+      mountUyeList();
+      mountUyeDetail();
+      return;
+    }
     box.dataset.sig = sig;
     var list = threads.map(function (row) {
       var status = row.status || "acik";
@@ -726,6 +769,8 @@
     if (next && draft) next.value = draft;
     if (nextSoru && soruDraft) nextSoru.value = soruDraft;
     if (nextYanit && yanitDraft) nextYanit.value = yanitDraft;
+    mountUyeList();
+    mountUyeDetail();
   }
   function refreshDesk() {
     if (!admin()) return;
@@ -821,8 +866,203 @@
   }
   window.__clayPaintIssue = paintIssue;
 
+  function moneyUsd(cents) {
+    var n = Math.round(Number(cents) || 0);
+    var sign = n < 0 ? "-" : "";
+    var abs = Math.abs(n);
+    var whole = String(Math.floor(abs / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    var frac = String(abs % 100);
+    if (frac.length < 2) frac = "0" + frac;
+    return sign + "$" + whole + "." + frac;
+  }
+  function anonName(name) {
+    var text = String(name || "").trim().toLowerCase();
+    return !text || text === "anonim";
+  }
+  function cardTypeName(type) {
+    return {
+      facebook_ads: "Facebook Ads",
+      tiktok: "TikTok Ads",
+      google_ads: "Google Ads",
+      ultima: "Ultima",
+      burner: "Tek Kullanımlık Kart"
+    }[type] || "";
+  }
+  function cardStatusName(status) {
+    return { hazirlaniyor: "Hazırlanıyor", aktif: "Aktif", donduruldu: "Donduruldu", kapali: "Kapalı" }[status] || "";
+  }
+  function findThread(user) {
+    var found = null;
+    deskThreads.forEach(function (row) {
+      if (found || !row || !user) return;
+      if (user.id && row.userId === user.id) found = row;
+      else if (!anonName(user.username) && (row.customer === user.username || row.username === user.username)) found = row;
+    });
+    return found;
+  }
+  function memberRows() {
+    var db = window.__clay && window.__clay.get ? window.__clay.get() : null;
+    var users = db && Array.isArray(db.users) ? db.users : [];
+    var rows = [];
+    var used = {};
+    users.forEach(function (user) {
+      if (!user || user.role !== "uye") return;
+      var thread = findThread(user);
+      if (thread) used[thread.id] = true;
+      var label = !anonName(user.username) ? user.username : ((thread && (thread.customer || thread.username)) || "Clay Anonim");
+      rows.push({ user: user, thread: thread, label: label, guest: false });
+    });
+    rows.sort(function (a, b) { return a.label.localeCompare(b.label, "tr"); });
+    var guests = [];
+    deskThreads.forEach(function (row) {
+      if (!row || used[row.id]) return;
+      if (row.userId && users.some(function (user) { return user && user.id === row.userId; })) return;
+      guests.push({ user: null, thread: row, label: row.customer || row.username || "Clay Anonim", guest: true });
+    });
+    guests.sort(function (a, b) { return a.label.localeCompare(b.label, "tr"); });
+    return rows.concat(guests);
+  }
+  function threadLog(thread) {
+    if (!thread) return '<p class="clay-uye-empty">Bu kişinin açık konuşması yok.</p>';
+    var customer = thread.customer || thread.username || "";
+    var lines = (thread.messages || []).map(function (row) {
+      var who = row.from === "auto" ? "Otomasyon" : (row.from === "visitor" ? customer : "Destek");
+      var role = row.from === "auto" ? "<small>Otomatik yanıt</small>" : (row.from === "visitor" ? "<small>Müşteri</small>" : "");
+      var photo = row.image ? '<img src="/api/clay-live-file.php?id=' + esc(row.image) + '" alt="Fotoğraf">' : "";
+      var text = row.text ? '<span class="clay-desk-live-text">' + esc(row.text) + "</span>" : "";
+      return '<p class="' + (row.from === "visitor" ? "is-visitor" : (row.from === "auto" ? "is-auto" : "is-admin")) + '"><strong>' + esc(who) + "</strong>" + role + text + photo + "</p>";
+    }).join("");
+    var status = thread.status || "acik";
+    var meta = esc(customer) + " · " + esc(liveLabel(status)) + (thread.agent ? " · Temsilci " + esc(thread.agent) : "");
+    return '<p class="clay-desk-live-meta"><i class="clay-live-dot ' + liveTone(status) + '"></i> ' + meta + '</p><div class="clay-desk-live-log">' + (lines || "<p>Henüz mesaj yok.</p>") + "</div>";
+  }
+  function chatForm(thread) {
+    if (!thread) return "";
+    var status = thread.status || "acik";
+    var open = liveEnabled !== false && status !== "bitti";
+    return '<form class="clay-uye-chat-form" data-thread="' + esc(thread.id) + '"><input name="metin" maxlength="400" placeholder="' + (status === "bitti" ? "Görüşme sonlandı" : "Yanıt yaz") + '" autocomplete="off"' + (open ? "" : " disabled") + '><button class="btn btn-gold" type="submit"' + (open ? "" : " disabled") + ">Gönder</button></form>";
+  }
+  function accountFacts(user) {
+    var tg = user && user.telegramId ? String(user.telegramId) : "Yok";
+    var bal = user ? moneyUsd(user.balance) : "Yok";
+    var plan = "Yok";
+    if (user) {
+      plan = planLabel(user.plan);
+      if (user.planStatus === "iptal") plan += " · iptal";
+    }
+    return '<dl class="clay-uye-facts"><div><dt>Telegram</dt><dd>' + esc(tg) + "</dd></div><div><dt>Bakiye</dt><dd>" + esc(bal) + "</dd></div><div><dt>Plan</dt><dd>" + esc(plan) + "</dd></div></dl>";
+  }
+  function cardList(user) {
+    if (!user) return "<h3>Kartlar</h3><p class=\"clay-uye-empty\">Kart yok.</p>";
+    var db = window.__clay && window.__clay.get ? window.__clay.get() : null;
+    var cards = db && Array.isArray(db.cards) ? db.cards.filter(function (card) { return card && card.userId === user.id; }) : [];
+    if (!cards.length) return "<h3>Kartlar</h3><p class=\"clay-uye-empty\">Kart yok.</p>";
+    return "<h3>Kartlar</h3><ul class=\"clay-uye-cards\">" + cards.map(function (card) {
+      var kind = cardTypeName(card.type);
+      var state = cardStatusName(card.status);
+      return "<li><strong>" + esc(card.label || "Kart") + "</strong><span>" + esc([state, kind].filter(Boolean).join(" · ")) + " · " + esc(moneyUsd(card.limit)) + "</span></li>";
+    }).join("") + "</ul>";
+  }
+  function pageSlot() {
+    return document.querySelector(".mx-auto.min-h-screen > .mt-6");
+  }
+  function mountUyeList() {
+    if (!admin() || !/\/uyeler\/?$/.test(path())) {
+      var stale = document.querySelector(".clay-uye-list");
+      if (stale) stale.remove();
+      return;
+    }
+    var slot = pageSlot();
+    if (!slot) return;
+    var rows = memberRows();
+    var focus = new URLSearchParams(location.search).get("konusma") || "";
+    var guest = null;
+    rows.forEach(function (row) {
+      if (guest || !row.guest || !row.thread) return;
+      if (row.thread.id === focus) guest = row;
+    });
+    var sig = rows.map(function (row) {
+      var bits = row.thread && row.thread.messages ? row.thread.messages.map(function (item) { return String(item.at || "") + (item.text || ""); }).join(",") : "";
+      var mark = row.user ? row.user.id + ":" + (row.user.balance || 0) + ":" + (row.user.plan || "") + ":" + (row.user.telegramId || "") : "guest";
+      return row.label + "|" + mark + "|" + (row.thread ? row.thread.id : "") + "|" + bits;
+    }).join("~") + ">" + focus;
+    var box = slot.querySelector(":scope > .clay-uye-list");
+    if (!box) {
+      box = document.createElement("section");
+      box.className = "clay-uye-list";
+      slot.insertBefore(box, slot.firstChild);
+    }
+    if (box.dataset.sig === sig) return;
+    var draft = "";
+    var input = box.querySelector("input[name=metin]");
+    if (input && document.activeElement === input) draft = input.value;
+    box.dataset.sig = sig;
+    var list = rows.map(function (row) {
+      var href = row.user
+        ? "/clayadm!nxx/kullanici?id=" + encodeURIComponent(row.user.id)
+        : "/clayadm!nxx/uyeler/?konusma=" + encodeURIComponent(row.thread ? row.thread.id : "");
+      var on = !!(row.guest && row.thread && row.thread.id === focus);
+      var note = row.user ? planLabel(row.user.plan) + " · " + moneyUsd(row.user.balance) : "Canlı sohbet";
+      return '<a class="clay-uye-row' + (on ? " is-on" : "") + '" href="' + href + '"><strong>Üye ' + esc(row.label) + "</strong><span>" + esc(note) + "</span></a>";
+    }).join("") || '<p class="clay-uye-empty">Henüz üye yok.</p>';
+    var detail = "";
+    if (guest) {
+      detail = '<article class="clay-uye-detail"><h2>Üye ' + esc(guest.label) + "</h2>" + accountFacts(null) + cardList(null) + threadLog(guest.thread) + chatForm(guest.thread) + "</article>";
+    }
+    box.innerHTML = "<h2>Üyeler</h2><div class=\"clay-uye-rows\">" + list + "</div>" + detail;
+    var guestLog = box.querySelector(".clay-uye-detail .clay-desk-live-log");
+    if (guestLog) guestLog.scrollTop = guestLog.scrollHeight;
+    var next = box.querySelector("input[name=metin]");
+    if (next && draft) {
+      next.value = draft;
+      next.focus();
+    }
+  }
+  function mountUyeDetail() {
+    if (!admin() || !/\/kullanici\/?$/.test(path())) {
+      var stale = document.querySelector(".mx-auto.min-h-screen > .mt-6 > .clay-uye-detail");
+      if (stale) stale.remove();
+      return;
+    }
+    var slot = pageSlot();
+    if (!slot) return;
+    var id = new URLSearchParams(location.search).get("id") || "";
+    var db = window.__clay && window.__clay.get ? window.__clay.get() : null;
+    var user = null;
+    if (db && Array.isArray(db.users)) db.users.forEach(function (row) { if (row && row.id === id) user = row; });
+    var box = slot.querySelector(":scope > .clay-uye-detail");
+    if (!user) {
+      if (box) box.remove();
+      return;
+    }
+    var thread = findThread(user);
+    var label = !anonName(user.username) ? user.username : ((thread && (thread.customer || thread.username)) || "Clay Anonim");
+    var cards = db && Array.isArray(db.cards) ? db.cards.filter(function (card) { return card && card.userId === user.id; }) : [];
+    var bits = thread && thread.messages ? thread.messages.map(function (item) { return String(item.at || "") + (item.text || "") + (item.image || ""); }).join(",") : "";
+    var sig = label + "|" + (user.telegramId || "") + "|" + (user.balance || 0) + "|" + (user.plan || "") + "|" + (user.planStatus || "") + "|" + cards.map(function (card) { return card.id + (card.status || "") + (card.limit || "") + (card.label || ""); }).join(",") + "|" + (thread ? thread.id + (thread.status || "") + (thread.agent || "") + bits : "");
+    if (!box) {
+      box = document.createElement("section");
+      box.className = "clay-uye-detail";
+      slot.insertBefore(box, slot.firstChild);
+    }
+    if (box.dataset.sig === sig) return;
+    var draft = "";
+    var input = box.querySelector("input[name=metin]");
+    if (input && document.activeElement === input) draft = input.value;
+    box.dataset.sig = sig;
+    box.innerHTML = '<p class="clay-uye-back"><a href="/clayadm!nxx/uyeler/">Üye listesi</a></p><h2>Üye ' + esc(label) + "</h2>" + accountFacts(user) + cardList(user) + threadLog(thread) + chatForm(thread);
+    var log = box.querySelector(".clay-desk-live-log");
+    if (log) log.scrollTop = log.scrollHeight;
+    var next = box.querySelector("input[name=metin]");
+    if (next && draft) {
+      next.value = draft;
+      next.focus();
+    }
+  }
   function orderDesk() {
     if (!admin()) return;
+    var parked = document.querySelector(".clay-desk-live");
+    if (parked) placeDesk(parked);
     var host = document.querySelector(".mx-auto.min-h-screen");
     if (!host) return;
     var header = host.querySelector(":scope > header");
@@ -872,6 +1112,18 @@
       event.preventDefault();
       event.stopPropagation();
       sendDesk(form);
+      return;
+    }
+    if (form.matches("form.clay-uye-chat-form")) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var threadId = form.getAttribute("data-thread") || "";
+      var reply = String(form.metin.value || "").trim();
+      if (!reply || !threadId) return;
+      postLive({ op: "reply", thread: threadId, text: reply }).then(function () {
+        form.metin.value = "";
+        refreshDesk();
+      });
       return;
     }
     if (form.matches("form[data-clay-pass]")) {
@@ -1085,7 +1337,11 @@
 
   function tick() {
     document.body.classList.toggle("clay-desk", admin());
+    if (admin() && masaPath() && !document.querySelector(".clay-desk-live")) paintDesk(deskThreads);
     orderDesk();
+    pinCanliNav();
+    mountUyeList();
+    mountUyeDetail();
     document.body.classList.toggle("clay-issue", /\/panel\/kartlar\/yeni\/?$/.test(path()));
     tidyCards();
     stripLegacyReset();

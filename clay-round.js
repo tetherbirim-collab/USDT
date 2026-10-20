@@ -1,5 +1,4 @@
 (function () {
-  if (window.__CLAY_V14) return;
   var LIVE_KEY = "clay-live-v1";
   var AGENTS = [
     "Clay Mehmet IŞIK",

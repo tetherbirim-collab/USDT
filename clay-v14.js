@@ -2,7 +2,6 @@
   if (window.__CLAY_V14) return;
   window.__CLAY_V14 = true;
 
-  var WORDS = ["ada", "akasya", "armut", "ayna", "badem", "bahar", "bakir", "balon", "bambu", "belge", "bere", "bez", "boru", "bulut", "cam", "cami", "ceviz", "cicek", "damla", "defter", "deniz", "elma", "fener", "gece", "gol", "gumus", "harita", "kalem", "kapi", "kaya", "kitap", "limon", "masa", "nehir", "orman", "ruzgar", "sabah", "saat", "sepet", "simit", "toprak", "yildiz", "yol", "zeytin", "zincir"];
   var MONEY = {
     issue: "Kart basımı",
     fund: "Karta yükleme",
@@ -29,7 +28,6 @@
     "admin-cek": "Çekim",
     "admin-close": "Kart kapatma"
   };
-  var signup = { sig: "", phrase: "", approved: false, created: false, note: "" };
   var liveThread = "";
   var deskThread = "";
   var deskPicked = false;
@@ -309,132 +307,6 @@
     });
   }
 
-  function seedPhrase() {
-    var bag = WORDS.slice();
-    var out = [];
-    var roll = new Uint32Array(1);
-    while (out.length < 12 && bag.length) {
-      crypto.getRandomValues(roll);
-      out.push(bag.splice(roll[0] % bag.length, 1)[0]);
-    }
-    return out.join(" ");
-  }
-  function signupForm() {
-    if (!/\/kayit\/?$/.test(path())) return null;
-    var field = document.querySelector('form input[name="parola2"]');
-    return field ? field.closest("form") : null;
-  }
-  function signupValues(form) {
-    return {
-      user: String((form.kullanici && form.kullanici.value) || "").trim(),
-      pass: String((form.parola && form.parola.value) || ""),
-      again: String((form.parola2 && form.parola2.value) || "")
-    };
-  }
-  function signupReady(values) {
-    return /^[A-Za-z0-9_]{2,24}$/.test(values.user) && /^[A-Za-z0-9]{6,72}$/.test(values.pass) && values.pass === values.again;
-  }
-  function downloadSeed(phrase) {
-    var blob = new Blob(["CLAY tohum\n\n" + phrase + "\n\nBu tohum hesap açılırken gösterilir. Şifreni unutursan kullanıcı adın ve bu tohumla girersin.\n"], { type: "text/plain;charset=utf-8" });
-    var url = URL.createObjectURL(blob);
-    var link = document.createElement("a");
-    link.href = url;
-    link.download = "clay-tohum.txt";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-  }
-  function paintSignup() {
-    document.body.classList.toggle("clay-kayit", /\/kayit\/?$/.test(path()));
-    var form = signupForm();
-    if (!form) return;
-    var nativeSeed = form.querySelector(".seed-block");
-    if (nativeSeed) nativeSeed.hidden = true;
-    var nativeCheck = form.querySelector(".auth-check");
-    if (nativeCheck) nativeCheck.hidden = true;
-    var nativeBox = form.querySelector("#signup-confirm");
-    if (nativeBox) {
-      nativeBox.required = false;
-      nativeBox.disabled = true;
-    }
-    var values = signupValues(form);
-    if (!signup.created) {
-      if (signupReady(values)) {
-        var sig = values.user + "\n" + values.pass;
-        if (sig !== signup.sig) {
-          signup.sig = sig;
-          signup.phrase = seedPhrase();
-          signup.approved = false;
-          signup.note = "";
-        }
-      } else if (!signup.created) {
-        signup.sig = "";
-        signup.phrase = "";
-        signup.approved = false;
-      }
-    }
-    var panel = form.querySelector(".clay-signup-seed");
-    if (!panel) {
-      panel = document.createElement("section");
-      panel.className = "clay-signup-seed";
-      panel.innerHTML = '<p class="auth-label">Tohum</p><ol class="seed-words"></ol><div class="clay-signup-ask"><p class="clay-confirm-q">Bu tohumla hesabı açıyorsun. Onaylıyor musun?</p><label class="clay-confirm-check"><input type="checkbox" data-seed-approve> <span>Onay kutusunu işaretleyin</span></label><div class="clay-confirm-actions"><button type="button" class="btn btn-gold" data-act="seed-yes" disabled>Onaylıyorum</button><button type="button" class="btn btn-ghost" data-act="seed-no">Reddet</button></div></div><div class="clay-signup-files" hidden><button type="button" class="btn btn-gold" data-act="seed-save">Kaydet</button><button type="button" class="btn btn-ghost" data-act="seed-download">İndir</button></div><p class="clay-signup-note" role="status"></p>';
-    }
-    var submit = form.querySelector('button[type="submit"]');
-    if (submit && panel.nextElementSibling !== submit) form.insertBefore(panel, submit);
-    else if (!panel.parentNode) form.appendChild(panel);
-    panel.hidden = !signup.phrase;
-    var list = panel.querySelector(".seed-words");
-    var shown = signup.phrase ? signup.phrase.split(" ") : [];
-    if (list.dataset.phrase !== signup.phrase) {
-      list.dataset.phrase = signup.phrase;
-      list.dataset.fresh = "1";
-      list.innerHTML = shown.map(function (word, index) {
-        return '<li class="seed-word"><span>' + (index + 1) + "</span>" + esc(word) + "</li>";
-      }).join("");
-    }
-    var ask = panel.querySelector(".clay-signup-ask");
-    var files = panel.querySelector(".clay-signup-files");
-    if (ask) ask.hidden = !signup.phrase || signup.created;
-    if (files) files.hidden = !signup.created;
-    var box = panel.querySelector("[data-seed-approve]");
-    var yes = panel.querySelector("[data-act=seed-yes]");
-    if (box && list.dataset.fresh === "1") {
-      box.checked = false;
-      list.dataset.fresh = "";
-    }
-    if (yes) yes.disabled = !(box && box.checked);
-    var note = panel.querySelector(".clay-signup-note");
-    if (note) note.textContent = signup.note;
-    if (submit) submit.disabled = signup.created;
-  }
-  function registerSignup(form) {
-    var values = signupValues(form);
-    if (!signup.phrase || !signup.approved || !signupReady(values)) {
-      signup.note = "Önce kullanıcı adı, iki şifre ve tohum onayı.";
-      paintSignup();
-      return;
-    }
-    fetch("/api/ledger.php", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json", Accept: "application/json", "X-Clay": "1" },
-      body: JSON.stringify({ action: "register", kullanici: values.user, parola: values.pass, parola2: values.again, tohum: signup.phrase, sessiz: "1" })
-    }).then(function (res) { return res.json(); }).then(function (res) {
-      if (!res || res.code !== "ok") {
-        signup.note = res && res.code === "e-var" ? "Bu kullanıcı adı zaten var." : "Hesap açılamadı.";
-        paintSignup();
-        return;
-      }
-      signup.created = true;
-      signup.note = "Hesap açıldı. Tohumu kaydet veya indir.";
-      paintSignup();
-    }).catch(function () {
-      signup.note = "Hesap açılamadı.";
-      paintSignup();
-    });
-  }
-
   function paintPlan() {
     var stages = document.querySelectorAll(".plan-stage");
     if (!stages.length) return;
@@ -548,99 +420,6 @@
       if ((node.textContent || "").indexOf("Soruyu, yanıtı") !== -1 && node.closest("form")) node.remove();
     });
   }
-  function halfMarkup(faces) {
-    var bits = ['<span class="clay-slide-word">clay kart</span>', '<code class="clay-slide-code">clay.kart({ kimlik: false, eposta: false })</code>', '<span class="clay-slide-word">kimlik</span>'];
-    faces.forEach(function (html, index) {
-      bits.push('<div class="clay-slide-face">' + html + "</div>");
-      if (index === 1) bits.push('<span class="clay-slide-word">e-posta gerekmez</span>');
-    });
-    return bits.join("");
-  }
-  function faceFromBeat(beat) {
-    var card = beat.querySelector(".vcard");
-    if (!card) return "";
-    var clone = card.cloneNode(true);
-    clone.removeAttribute("id");
-    var badge = beat.querySelector(".launch-badge");
-    var extra = badge ? badge.outerHTML : '<span class="launch-badge"><span class="bin-badge"><span class="bin-dot"></span>Aktif</span><span class="bin-global">Global kart</span></span>';
-    return clone.outerHTML + extra;
-  }
-  function mountSlide() {
-    if (!home()) return;
-    document.body.classList.add("clay-slide-on");
-    var pad = document.querySelector(".launchpad");
-    if (!pad) return;
-    var beats = pad.querySelectorAll(".launch-beat");
-    if (beats.length < 4) return;
-    var existing = pad.querySelector(".clay-slide");
-    if (existing && existing.dataset.ready === "1") return;
-    var faces = [];
-    beats.forEach(function (beat) {
-      var html = faceFromBeat(beat);
-      if (html) faces.push(html);
-    });
-    if (faces.length < 4) return;
-    faces = faces.slice(0, 4);
-    var block = document.createElement("div");
-    block.className = "clay-slide";
-    block.dataset.ready = "1";
-    var row = halfMarkup(faces);
-    block.innerHTML = '<div class="clay-slide-mask"><div class="clay-slide-core" aria-hidden="true"><span>CLAY</span></div><div class="clay-slide-track">' + row + row + "</div></div>";
-    pad.insertBefore(block, pad.firstChild);
-  }
-  function onePortrait() {
-    if (!home()) return;
-    document.querySelectorAll(".hero-still").forEach(function (img) { img.hidden = true; img.style.display = "none"; });
-    var motions = document.querySelectorAll(".hero-motion");
-    motions.forEach(function (img, index) {
-      if (index > 0) img.remove();
-    });
-  }
-  function mountCrypto() {
-    if (!home()) return;
-    var yard = document.querySelector(".coin-yard");
-    if (!yard || yard.querySelector(".clay-crypto-pair")) return;
-    var pair = document.createElement("div");
-    pair.className = "clay-crypto-pair";
-    pair.innerHTML = '<figure><div class="clay-crypto-visual" data-file="/lottie/crypto/crypto.json" data-assets="/lottie/crypto/images/"></div><figcaption>Kripto</figcaption></figure><figure><div class="clay-crypto-visual" data-file="/lottie/launch/kripto.json" data-assets="/lottie/launch/kripto/"></div><figcaption>Coin</figcaption></figure>';
-    yard.appendChild(pair);
-    var start = function () {
-      if (!window.lottie) return;
-      pair.querySelectorAll(".clay-crypto-visual").forEach(function (el) {
-        if (el.__anim) return;
-        el.__anim = window.lottie.loadAnimation({ container: el, renderer: "svg", loop: true, autoplay: true, path: el.getAttribute("data-file"), assetsPath: el.getAttribute("data-assets") || undefined });
-      });
-    };
-    if (window.lottie) { start(); return; }
-    if (document.querySelector("script[data-clay-round-lottie]")) return;
-    var script = document.createElement("script");
-    script.src = "/lottie/lottie.min.js";
-    script.setAttribute("data-clay-round-lottie", "1");
-    script.onload = start;
-    document.body.appendChild(script);
-  }
-  function mountFoot() {
-    if (!publicSite()) return;
-    if (document.querySelector(".clay-site-foot")) return;
-    var foot = document.createElement("footer");
-    foot.className = "clay-site-foot";
-    foot.innerHTML = '<nav><button type="button" data-clay-page="misyon">Misyon</button><button type="button" data-clay-page="vizyon">Vizyon</button></nav><p>tüm hakları saklıdır</p>';
-    var main = document.querySelector("main");
-    if (main) main.appendChild(foot);
-    else document.body.appendChild(foot);
-  }
-  function openPage(kind) {
-    var old = document.querySelector(".clay-page-pop");
-    if (old) old.remove();
-    var copy = kind === "misyon"
-      ? "<h2>Misyon</h2><p>CLAY reklam bütçesi için sanal kart basar. Bakiye dolar cinsindendir. Kimlik belgesi istenmez.</p>"
-      : "<h2>Vizyon</h2><p>Dört kart türü tek cüzdanda durur. Ücret satırı açıktır.</p>";
-    var pop = document.createElement("div");
-    pop.className = "clay-page-pop";
-    pop.innerHTML = '<div class="clay-page-card" role="dialog" aria-modal="true">' + copy + '<button type="button" class="btn btn-ghost" data-clay-page-close>Kapat</button></div>';
-    document.body.appendChild(pop);
-  }
-
   document.addEventListener("submit", function (event) {
     var form = event.target;
     if (!form || !form.matches) return;
@@ -662,7 +441,7 @@
         return;
       }
       event.preventDefault();
-      event.stopPropagation();
+      event.stopImmediatePropagation();
       var user = viewer();
       if (planLive(user)) {
         askConfirm("Yeni plan açılmaz. Mevcut planı iptal ediyor musun? Onaylıyor musun?").then(function (ok) {
@@ -679,38 +458,17 @@
       });
       return;
     }
-    if (signupForm() === form) {
-      event.preventDefault();
-      event.stopPropagation();
-      if (signup.created) return;
-      if (!signup.approved) {
-        signup.note = "Tohumu onaylaman gerekir.";
-        paintSignup();
-        return;
-      }
-      registerSignup(form);
-    }
   }, true);
 
   document.addEventListener("click", function (event) {
     var renew = event.target.closest && event.target.closest("[data-act=renew-yes]");
     if (renew) passOnce("kart-uzat");
-    var page = event.target.closest && event.target.closest("[data-clay-page]");
-    if (page) {
-      event.preventDefault();
-      openPage(page.getAttribute("data-clay-page"));
-      return;
-    }
-    if (event.target.closest && event.target.closest("[data-clay-page-close]")) {
-      var pop = document.querySelector(".clay-page-pop");
-      if (pop) pop.remove();
-      return;
-    }
     var act = event.target.closest && event.target.closest("[data-act]");
     if (act) {
       var name = act.getAttribute("data-act");
       if (name === "live-open") {
         event.preventDefault();
+        event.stopImmediatePropagation();
         var root = document.querySelector(".clay-live");
         if (!root) { paintVisitor(null); root = document.querySelector(".clay-live"); }
         if (!root) return;
@@ -730,33 +488,6 @@
           var pane = live.querySelector(".clay-live-panel");
           if (pane) pane.hidden = true;
         }
-        return;
-      }
-      if (name === "seed-yes" || name === "seed-no" || name === "seed-save" || name === "seed-download") {
-        event.preventDefault();
-        if (name === "seed-no") {
-          signup.approved = false;
-          signup.note = "Tohum onayı kalktı.";
-          var seedBox = act.closest(".clay-signup-seed");
-          var input = seedBox && seedBox.querySelector("[data-seed-approve]");
-          if (input) input.checked = false;
-          var yesBtn = seedBox && seedBox.querySelector("[data-act=seed-yes]");
-          if (yesBtn) yesBtn.disabled = true;
-          paintSignup();
-          return;
-        }
-        if (name === "seed-yes") {
-          var box = act.closest(".clay-signup-seed").querySelector("[data-seed-approve]");
-          if (!box || !box.checked) return;
-          signup.approved = true;
-          signup.note = "Tohum onaylandı. Kayıt ol ile hesabı aç.";
-          paintSignup();
-          return;
-        }
-        if (!signup.created || !signup.phrase) return;
-        downloadSeed(signup.phrase);
-        signup.note = name === "seed-save" ? "Tohum dosyası kaydedildi." : "Tohum dosyası indirildi.";
-        paintSignup();
         return;
       }
       if (name === "plan-cancel") {
@@ -779,21 +510,11 @@
     var target = event.target;
     if (!target) return;
     if (target.name === "tur" || target.name === "tutar") paintIssue();
-    if (target.matches && target.matches("[data-seed-approve]")) {
-      if (!target.checked) {
-        signup.approved = false;
-        signup.note = "";
-      }
-      var yes = target.closest(".clay-signup-seed");
-      yes = yes && yes.querySelector("[data-act=seed-yes]");
-      if (yes) yes.disabled = !target.checked;
-    }
   });
   document.addEventListener("input", function (event) {
     var target = event.target;
     if (!target) return;
     if (target.name === "tutar") paintIssue();
-    if (target.name === "kullanici" || target.name === "parola" || target.name === "parola2") paintSignup();
   });
 
   function tick() {
@@ -802,12 +523,7 @@
     document.body.classList.toggle("clay-issue", /\/panel\/kartlar\/yeni\/?$/.test(path()));
     tidyCards();
     stripLegacyReset();
-    mountSlide();
-    onePortrait();
-    mountCrypto();
-    mountFoot();
     paintVisitor(null);
-    paintSignup();
     paintPlan();
     paintIssue();
     document.querySelectorAll(".clay-live-btn ~ .clay-live-btn, .clay-site-foot [data-act=live-open]").forEach(function (node) { node.remove(); });

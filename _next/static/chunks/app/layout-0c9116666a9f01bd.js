@@ -2480,7 +2480,6 @@ else clayBoot();
 })();
 
 (function () {
-  if (window.__CLAY_V14) return;
   var LIVE_KEY = "clay-live-v1";
   var AGENTS = [
     "Clay Mehmet IŞIK",
@@ -2709,6 +2708,7 @@ else clayBoot();
   }
 
   function openLive() {
+    return;
     var store = readLive();
     var last = "";
     try { last = sessionStorage.getItem("clay-live-agent") || ""; } catch (e) {}
@@ -2729,6 +2729,7 @@ else clayBoot();
   }
 
   function paintLive() {
+    return;
     if (admin()) return;
     var root = document.querySelector(".clay-live");
     if (!root) {
@@ -2762,6 +2763,7 @@ else clayBoot();
   }
 
   function sendLive(text, from) {
+    return;
     var clean = String(text || "").trim();
     if (!clean) return;
     var store = readLive();
@@ -2775,6 +2777,7 @@ else clayBoot();
   }
 
   function paintAdminLive() {
+    return;
     if (!admin()) {
       var gone = document.querySelector(".clay-desk-live");
       if (gone) gone.remove();
@@ -2887,6 +2890,7 @@ else clayBoot();
   }
 
   function mountPlanAsk(form) {
+    return;
     var ask = form.parentNode && form.parentNode.querySelector(".clay-plan-ask[data-for='" + (form.querySelector("[name=plan]") || {}).value + "']");
     if (ask) return ask;
     ask = document.createElement("div");
